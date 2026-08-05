@@ -33,7 +33,7 @@ import matplotlib.pyplot as plt
 
 import setup_sat as ss
 from data_sat import (SatROIDataset, SatScenarioChannels, GROUND_TARGET_TEMPLATES,
-                      WIDEBAND_K)
+                      WIDEBAND_K, ISAR_M)
 from models import AdvancedCondEncoder
 
 N_CLASSES = len(GROUND_TARGET_TEMPLATES)
@@ -42,6 +42,10 @@ CLASS_NAMES = [n for n, _ in GROUND_TARGET_TEMPLATES]
 
 def ss_wb_dim():
     return WIDEBAND_K
+
+
+def ss_isar_dim():
+    return ISAR_M * WIDEBAND_K
 
 
 class MLPBackbone(nn.Module):
@@ -63,10 +67,14 @@ class MLPBackbone(nn.Module):
 
     def forward(self, cond, rp=None):
         x = cond.flatten(1) if cond is not None else torch.zeros(rp.size(0), 0)
+        r = None
         if rp is not None and self.rp_net is not None:
-            r = self.rp_net(rp)          # [B, 64] 距离像独立编码
+            if rp.dim() > 2:
+                rp = rp.flatten(1)      # [B, M*K] ISAR 序列展平
+            r = self.rp_net(rp)          # [B, 64] 距离像/ISAR 独立编码
             x = torch.cat([x, r], dim=1)
-        return self.net(x)
+        fused = self.net(x)
+        return fused, r                   # (融合特征, rp特征) 供分类/姿态分离
 
 
 class CondEncBackbone(nn.Module):
@@ -84,17 +92,20 @@ class CondEncBackbone(nn.Module):
 
 
 class PerceptionHead(nn.Module):
-    """感知头：分类（6 类）+ 姿态（sinθ, cosθ 双输出回归）。"""
+    """感知头：分类用融合特征，姿态用 rp 特征（任务分离，避免分类主导）。"""
 
-    def __init__(self, in_dim, n_classes=N_CLASSES, hidden=128):
+    def __init__(self, in_dim, rp_dim=0, n_classes=N_CLASSES, hidden=128):
         super().__init__()
         self.cls_head = nn.Sequential(
             nn.Linear(in_dim, hidden), nn.ReLU(), nn.Linear(hidden, n_classes))
+        pose_in = rp_dim if rp_dim > 0 else in_dim
         self.pose_head = nn.Sequential(
-            nn.Linear(in_dim, hidden), nn.ReLU(), nn.Linear(hidden, 2))
+            nn.Linear(pose_in, hidden), nn.ReLU(), nn.Linear(hidden, 2))
 
-    def forward(self, feat):
-        return self.cls_head(feat), self.pose_head(feat)
+    def forward(self, feat, rp_feat=None):
+        logits = self.cls_head(feat)
+        pose_sc = self.pose_head(rp_feat if rp_feat is not None else feat)
+        return logits, pose_sc
 
 
 def pose_target(angle_deg):
@@ -127,7 +138,8 @@ def make_online_train_loader(channels, args, device):
     ds = SatROIDataset(args.train_data, channels, num_points=args.num_points,
                        device=device, tau=args.tau, phase_mode=args.phase_mode,
                        with_label=True, target_source="ground",
-                       wideband=args.wideband, wideband_snr_db=args.wideband_snr_db)
+                       wideband=args.wideband, wideband_snr_db=args.wideband_snr_db,
+                       isar=args.isar)
     return DataLoader(ds, batch_size=args.batch_size, shuffle=True)
 
 
@@ -143,7 +155,8 @@ def evaluate(model, head, loader, device, wideband=False, rp_only=False):
         else:
             pc, cond, cid, angle = batch
             feat = model(cond.to(device))
-        logits, pose_sc = head(feat)
+        fused, rp_feat = feat if isinstance(feat, tuple) else (feat, None)
+        logits, pose_sc = head(fused, rp_feat)
         pred = logits.argmax(dim=1)
         for i in range(len(cid)):
             cm[cid[i].item(), pred[i].item()] += 1
@@ -185,22 +198,30 @@ def main(args):
     print(f"cond_dim={cond_dim}")
 
     # ---- 固定测试集（可复现） ----
-    print(f"预生成测试样本 ({args.test_data}), wideband={args.wideband}...")
+    print(f"预生成测试样本 ({args.test_data}), wideband={args.wideband}, isar={args.isar}...")
     test_ds = SatROIDataset(args.test_data, channels, num_points=args.num_points,
                             device=device, tau=args.tau, phase_mode=args.phase_mode,
                             with_label=True, target_source="ground",
-                            wideband=args.wideband, wideband_snr_db=args.wideband_snr_db)
-    test_fixed = make_fixed_samples(test_ds, args.test_data, wideband=args.wideband)
+                            wideband=args.wideband, wideband_snr_db=args.wideband_snr_db,
+                            isar=args.isar)
+    test_fixed = make_fixed_samples(test_ds, args.test_data, wideband=args.wideband or args.isar)
     test_loader = DataLoader(test_fixed, batch_size=args.batch_size, shuffle=False)
 
     # ---- 模型 ----
-    rp_dim = ss_wb_dim() if args.wideband else 0
+    if args.isar:
+        rp_dim = ss_isar_dim()
+    elif args.wideband:
+        rp_dim = ss_wb_dim()
+    else:
+        rp_dim = 0
     cond_used = args.tau * cond_dim if not args.rp_only else 0
     if args.backbone == "mlp":
         model = MLPBackbone(in_dim=cond_used, rp_dim=rp_dim)
     else:
         model = CondEncBackbone(seq_len=args.tau, input_size=cond_dim)
-    head = PerceptionHead(in_dim=model.out_dim, n_classes=N_CLASSES).to(device)
+    head = PerceptionHead(in_dim=model.out_dim,
+                          rp_dim=64 if (args.wideband or args.isar) else 0,
+                          n_classes=N_CLASSES).to(device)
     model.to(device)
     opt = torch.optim.Adam(list(model.parameters()) + list(head.parameters()),
                            lr=args.lr, weight_decay=args.weight_decay)
@@ -212,15 +233,17 @@ def main(args):
         train_loader = make_online_train_loader(channels, args, device)
         tot_loss = tot_cls = tot_pose = 0.0
         for batch in train_loader:
-            if args.wideband:
+            if args.wideband or args.isar:
                 pc, cond, rp, cid, angle = batch
                 cond = cond.to(device); rp = rp.to(device)
             else:
                 pc, cond, cid, angle = batch
                 cond = cond.to(device)
             cid = cid.to(device); angle = angle.to(device)
-            feat = model(None if args.rp_only else cond, rp if args.wideband else None)
-            logits, pose_sc = head(feat)
+            feat = model(None if args.rp_only else cond,
+                         rp if (args.wideband or args.isar) else None)
+            fused, rp_feat = feat if isinstance(feat, tuple) else (feat, None)
+            logits, pose_sc = head(fused, rp_feat)
             loss_cls = F.cross_entropy(logits, cid)
             loss_pose = F.mse_loss(pose_sc, pose_target(angle).to(device))
             loss = loss_cls + args.pose_weight * loss_pose
@@ -228,7 +251,8 @@ def main(args):
             tot_loss += loss.item(); tot_cls += loss_cls.item(); tot_pose += loss_pose.item()
 
         acc, mae, cm = evaluate(model, head, test_loader, device,
-                                wideband=args.wideband, rp_only=args.rp_only)
+                                wideband=args.wideband or args.isar,
+                                rp_only=args.rp_only)
         if (ep + 1) % 5 == 0 or ep < 3:
             print(f"ep {ep+1:3d}/{args.epochs} loss={tot_loss/len(train_loader):.4f} "
                   f"| test acc={acc:.3f} pose MAE={mae:.1f}°")
@@ -262,6 +286,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_dir", type=str, default="./sat_perception")
     parser.add_argument("--bs_ant", type=int, default=4, help="卫星天线数")
     parser.add_argument("--ue_ant", type=int, default=4, help="地面站天线数")
+    parser.add_argument("--isar", action="store_true", help="使用 ISAR 距离-时间序列（目标转动）")
     parser.add_argument("--rp_only", action="store_true", help="只用距离像特征（姿态最佳）")
     parser.add_argument("--wideband", action="store_true", help="使用宽带距离像特征")
     parser.add_argument("--wideband_snr_db", type=float, default=20.0)
