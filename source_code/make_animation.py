@@ -11,6 +11,7 @@ make_animation.py — 生成演示动画 GIF（基于 demo 数据，Pillow write
 
 import os
 import argparse
+from datetime import datetime, timedelta
 import numpy as np
 import torch
 import matplotlib
@@ -76,7 +77,9 @@ def main(args):
     roi_est_t = torch.tensor(roi_est.astype(np.float32)).reshape(-1)
 
     n = len(frames)
+    t0 = datetime(*scenario.start_utc)
     elevs = [f["elevation_deg"] for f in frames]
+    utcs = [(t0 + timedelta(seconds=f["t_abs_sec"])).strftime("%H:%M:%S") for f in frames]
     powers = {"random": [], "sensed": [], "oracle": []}
     for Ht in channels.channels_per_frame:
         n_irs = Ht["H_ROI_IRS"].shape[1]
@@ -140,7 +143,7 @@ def main(args):
         # 信息面板
         ax_info.clear(); ax_info.axis("off")
         info_lines = [
-            f"Frame {i + 1}/{n} | Elev {elev:.1f} deg",
+            f"Frame {i + 1}/{n} | UTC {utcs[i]} | Elev {elevs[i]:.1f} deg",
             f"Class: {CLASS_NAMES[cid_pred]} {'OK' if cls_ok else 'MISS'} (true {CLASS_NAMES[cid_true]})",
             f"Pos: true({pos_true[0]:+.2f},{pos_true[1]:+.2f}) sensed({pos_pred[0]:+.2f},{pos_pred[1]:+.2f})",
             f"Closed-loop gain: +{gain_s:.0f}% vs random",
@@ -152,7 +155,7 @@ def main(args):
 
     anim = FuncAnimation(fig, update, frames=n, init_func=init, blit=False, repeat=True)
     gif_path = os.path.join(OUT_DIR, "demo_animation.gif")
-    anim.save(gif_path, writer=PillowWriter(fps=1.5))
+    anim.save(gif_path, writer=PillowWriter(fps=2.0))
     print(f"[make_animation] GIF: {gif_path}")
     print(f"[make_animation] 分类 {'正确' if cls_ok else '错误'}, 增益 +{gain_s:.0f}%")
 
@@ -163,7 +166,7 @@ if __name__ == "__main__":
     parser.add_argument("--irs_mode", choices=["none", "sat", "ground"], default="sat")
     parser.add_argument("--bs_ant", type=int, default=4)
     parser.add_argument("--ue_ant", type=int, default=4)
-    parser.add_argument("--tau", type=int, default=8)
+    parser.add_argument("--tau", type=int, default=16)
     parser.add_argument("--snr_db", type=float, default=20.0)
     parser.add_argument("--seed", type=int, default=7)
     args = parser.parse_args()
