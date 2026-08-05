@@ -171,6 +171,111 @@ class SatScenarioChannels:
 
 
 # ----------------------------------------------------------------------
+# 地面目标模板（星-地 ISAC 感知目标）
+# 在 8×8×8 体素内定义，放置到 16³ ROI 空间
+# ----------------------------------------------------------------------
+
+
+def _template_car():
+    """车辆：车身 + 4 轮"""
+    obj = np.zeros((8, 8, 8), dtype=np.uint8)
+    obj[2:6, 1:7, 2:4] = 1      # 车身
+    obj[1:3, 1:3, 0:2] = 1      # 前左轮
+    obj[1:3, 5:7, 0:2] = 1      # 前右轮
+    obj[5:7, 1:3, 0:2] = 1      # 后左轮
+    obj[5:7, 5:7, 0:2] = 1      # 后右轮
+    return obj
+
+
+def _template_uav():
+    """无人机：中心体 + 十字臂 + 4 旋翼"""
+    obj = np.zeros((8, 8, 8), dtype=np.uint8)
+    obj[3:5, 3:5, 4:6] = 1      # 中心体
+    obj[2:6, 3:5, 5:6] = 1      # 横臂
+    obj[3:5, 2:6, 5:6] = 1      # 纵臂
+    obj[1:3, 1:3, 6:7] = 1      # 旋翼 1
+    obj[1:3, 5:7, 6:7] = 1      # 旋翼 2
+    obj[5:7, 1:3, 6:7] = 1      # 旋翼 3
+    obj[5:7, 5:7, 6:7] = 1      # 旋翼 4
+    return obj
+
+
+def _template_building():
+    """建筑：底座 + 楼身"""
+    obj = np.zeros((8, 8, 8), dtype=np.uint8)
+    obj[0:8, 0:8, 0:2] = 1      # 底座
+    obj[2:6, 2:6, 2:8] = 1      # 楼身
+    return obj
+
+
+def _template_tank():
+    """储油罐：圆柱体（近似）"""
+    obj = np.zeros((8, 8, 8), dtype=np.uint8)
+    cx, cy, r = 3.5, 3.5, 2.5
+    for x in range(8):
+        for y in range(8):
+            if (x - cx) ** 2 + (y - cy) ** 2 <= r * r:
+                obj[x, y, 0:5] = 1
+    return obj
+
+
+def _template_tower():
+    """天线塔：细高塔身 + 横杆"""
+    obj = np.zeros((8, 8, 8), dtype=np.uint8)
+    obj[3:5, 3:5, 0:8] = 1      # 塔身
+    obj[0:8, 3:4, 3:4] = 1      # 横杆 1
+    obj[0:8, 4:5, 5:6] = 1      # 横杆 2
+    return obj
+
+
+def _template_cubesat():
+    """立方星：卫星体 + 太阳能板"""
+    obj = np.zeros((8, 8, 8), dtype=np.uint8)
+    obj[3:5, 3:5, 4:6] = 1      # 卫星体
+    obj[1:3, 3:5, 4:5] = 1      # 左板
+    obj[5:7, 3:5, 4:5] = 1      # 右板
+    obj[3:5, 1:3, 4:5] = 1      # 前板
+    obj[3:5, 5:7, 4:5] = 1      # 后板
+    return obj
+
+
+GROUND_TARGET_TEMPLATES = [
+    ("car", _template_car),
+    ("uav", _template_uav),
+    ("building", _template_building),
+    ("tank", _template_tank),
+    ("tower", _template_tower),
+    ("cubesat", _template_cubesat),
+]
+
+
+def generate_ground_roi():
+    """生成含 1-2 个随机地面目标的 ROI（16³ 体素）。
+
+    与 data.generate_ROI 结构兼容（返回 [16,16,16] float32）。
+    """
+    import random as _random
+    space = np.zeros((setup.ROI_Length, setup.ROI_Length, setup.ROI_Length), dtype=np.uint8)
+    num_objects = _random.randint(1, 2)
+    templates = list(GROUND_TARGET_TEMPLATES)
+    _random.shuffle(templates)
+    for i in range(min(num_objects, len(templates))):
+        _, maker = templates[i]
+        obj = maker()
+        placed = False
+        attempts = 0
+        while not placed and attempts < 100:
+            x = _random.randint(0, setup.ROI_Length - 8)
+            y = _random.randint(0, setup.ROI_Length - 8)
+            z = _random.randint(0, setup.ROI_Length - 8)
+            if np.all(space[x:x + 8, y:y + 8, z:z + 8] == 0):
+                space[x:x + 8, y:y + 8, z:z + 8] = obj
+                placed = True
+            attempts += 1
+    return space.astype(np.float32)
+
+
+# ----------------------------------------------------------------------
 # 信号计算
 # ----------------------------------------------------------------------
 
@@ -231,7 +336,7 @@ class SatROIDataset(Dataset):
 
     def __init__(self, n_samples, channels, num_points=2048, device="cpu",
                  tau=ss.TAU, p_snr=P_SNR, power_sigma=POWER_SIGMA,
-                 phase_mode="random"):
+                 phase_mode="random", target_source="ground"):
         self.n = n_samples
         self.ch = channels
         self.device = device
@@ -241,6 +346,7 @@ class SatROIDataset(Dataset):
         self.power_sigma = power_sigma
         self.a = channels.tensor_a
         self.phase_mode = phase_mode
+        self.target_source = target_source
         if phase_mode == "tracked" and channels.irs_mode == "none":
             self.phase_mode = "random"  # 无 IRS 时退回随机
         self._opt = PhaseOptimizerSat(channels, device=device) if self.phase_mode == "tracked" else None
@@ -270,8 +376,14 @@ class SatROIDataset(Dataset):
             seq.append(ph)
         return seq
 
+    def _make_roi(self):
+        """生成 ROI 体素（按 target_source 选择模板集）。"""
+        if self.target_source == "indoor":
+            return generate_ROI().astype("float32")
+        return generate_ground_roi()
+
     def __getitem__(self, idx):
-        ROI_np = generate_ROI().astype("float32")
+        ROI_np = self._make_roi()
         # 点云（地面目标区域，物理坐标 → [-1,1] 归一化）
         point_cloud = extract_point_cloud_from_voxel(
             ROI_np, num_points=self.num_points, voxel_size=self.ch.voxel_size)
@@ -323,7 +435,8 @@ class SatROIDataset(Dataset):
 # ----------------------------------------------------------------------
 
 def build_sat_dataset(n_samples=16, irs_mode="sat", num_points=512,
-                      tau=ss.TAU, device="cpu", seed=42):
+                      tau=ss.TAU, device="cpu", seed=42, phase_mode="random",
+                      target_source="ground"):
     """构建星-地 ISAC 数据集（smoke 用），返回 (dataset, scenario, channels)。"""
     if seed is not None:
         torch.manual_seed(seed)
@@ -332,7 +445,8 @@ def build_sat_dataset(n_samples=16, irs_mode="sat", num_points=512,
     frames = scenario.build_frames()
     channels = SatScenarioChannels(frames, irs_mode=irs_mode, device=device)
     dataset = SatROIDataset(n_samples=n_samples, channels=channels,
-                            num_points=num_points, device=device, tau=tau)
+                            num_points=num_points, device=device, tau=tau,
+                            phase_mode=phase_mode, target_source=target_source)
     return dataset, scenario, channels
 
 

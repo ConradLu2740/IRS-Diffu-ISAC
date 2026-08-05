@@ -101,11 +101,13 @@ The system considers 5 propagation paths:
 
 This project also includes a **Space ISAC** extension: LEO-satellite-aided integrated sensing and communication (ISAC-NTN) with dynamic geometry.
 
-- `setup_sat.py` — SGP4 orbit propagation (real ISS TLE), dynamic geometry, far-field channel with Doppler/delay
-- `data_sat.py` — dynamic data generation for 3 IRS modes: `none` / `sat` (spaceborne RIS) / `ground`
+- `setup_sat.py` — SGP4 orbit propagation (real ISS/Starlink TLE), dynamic geometry, far-field channel with Doppler/delay
+- `data_sat.py` — dynamic data generation for 3 IRS modes: `none` / `sat` (spaceborne RIS) / `ground`; ground target templates (car/uav/building/tank/tower/cubesat)
 - `train_sat.py` — comparative training across modes (reuses PointVAE + CondEncoder + DiT)
 - `eval_sat.py` — metrics: Chamfer Distance / F-Score / Voxel IoU + visualization
 - `verify_sat.py` — physics validation (orbit, overpass dynamics, channel formulas)
+- `phase_optimizer_sat.py` — dynamic RIS phase tracking (analytic alignment, segmented tracking)
+- `verify_tracking.py` / `verify_robustness.py` — phase tracking tradeoff & orbit/frequency robustness
 
 See [space_isac_design.md](space_isac_design.md) for full design details.
 
