@@ -156,7 +156,8 @@ def main(args):
 
     scenario = ss.SatISACScenario(tau=args.tau)
     frames = scenario.build_frames()
-    channels = SatScenarioChannels(frames, irs_mode=args.irs_mode, device=device)
+    channels = SatScenarioChannels(frames, irs_mode=args.irs_mode, device=device,
+                                   bs_ant=args.bs_ant, ue_ant=args.ue_ant)
     cond_dim = channels.frame_cond_dim()
     print(f"cond_dim={cond_dim}")
 
@@ -226,6 +227,8 @@ if __name__ == "__main__":
     parser.add_argument("--pose_weight", type=float, default=0.5)
     parser.add_argument("--tau", type=int, default=8)
     parser.add_argument("--save_dir", type=str, default="./sat_perception")
+    parser.add_argument("--bs_ant", type=int, default=4, help="卫星天线数")
+    parser.add_argument("--ue_ant", type=int, default=4, help="地面站天线数")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"

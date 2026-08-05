@@ -90,12 +90,14 @@ class SatScenarioChannels:
     """每帧预计算 5 路径信道矩阵（结构与 setup.py 的 H_dict 对齐）。"""
 
     def __init__(self, frames, irs_mode="sat", roi_res=ROI_RES,
-                 voxel_size=VOXEL_SIZE_M, device="cpu"):
+                 voxel_size=VOXEL_SIZE_M, device="cpu", bs_ant=BS_ANT, ue_ant=UE_ANT):
         self.frames = frames
         self.irs_mode = irs_mode
         self.device = device
         self.roi_res = roi_res
         self.voxel_size = voxel_size
+        self.bs_ant = bs_ant
+        self.ue_ant = ue_ant
         self.wavelength_m = ss.C_LIGHT_KM * 1000.0 / ss.FC_HZ
         self.roi_local = make_roi_local(roi_res, voxel_size)  # [R,3] 米
 
@@ -113,8 +115,8 @@ class SatScenarioChannels:
         target_center = frame["target_pos"]
         roi_ecef = target_center[None, :] + self.roi_local / 1000.0   # [R,3]
 
-        bs_ecef = _ant_positions(frame["sat_pos"], BS_ANT)
-        ue_ecef = _ant_positions(frame["ground_pos"], UE_ANT)
+        bs_ecef = _ant_positions(frame["sat_pos"], self.bs_ant)
+        ue_ecef = _ant_positions(frame["ground_pos"], self.ue_ant)
         irs_ecef = None
         if self.irs_mode == "sat":
             irs_ecef = _irs_panel_positions(frame["sat_ris_pos"], IRS_ELEMENTS, panel_m=10.0)
@@ -165,9 +167,9 @@ class SatScenarioChannels:
         return {k: (v.to(self.device) if isinstance(v, torch.Tensor) else v) for k, v in d.items()}
 
     def frame_cond_dim(self):
-        """每帧条件维度：12(X) + 12(Y) + 32(IRS) + 4(动态) + 1(RCS功率) 或去掉 IRS 项。"""
+        """每帧条件维度：3·BS_ANT(X) + 3·UE_ANT(Y) + 2·IRS + 4(动态) + 1(RCS)。"""
         irs_part = 2 * IRS_ELEMENTS if self.irs_mode != "none" else 0
-        return 12 + 12 + irs_part + 4 + 1
+        return 3 * self.bs_ant + 3 * self.ue_ant + irs_part + 4 + 1
 
 
 # ----------------------------------------------------------------------
@@ -396,8 +398,9 @@ class SatROIDataset(Dataset):
             self.phase_mode = "random"  # 无 IRS 时退回随机
         self._opt = PhaseOptimizerSat(channels, device=device) if self.phase_mode == "tracked" else None
 
-        # 导频 X（16QAM 前4符号 × 标定系数）
-        pilot = torch.tensor(_SIGNAL1[:4], dtype=torch.complex64).view(4, 1)
+        # 导频 X（16QAM 前 BS_ANT 个符号 × 标定系数）
+        n_bs = channels.bs_ant
+        pilot = torch.tensor(_SIGNAL1[:n_bs], dtype=torch.complex64).view(n_bs, 1)
         self.X_fixed = (self.a * pilot).to(device)
 
         # 每帧条件特征
