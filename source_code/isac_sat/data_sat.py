@@ -13,6 +13,10 @@ data_sat.py — 星-地 ISAC 动态数据生成
 import math
 import numpy as np
 import torch
+import sys, os
+_LEGACY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "legacy")
+if _LEGACY not in sys.path:
+    sys.path.insert(0, _LEGACY)
 from torch.utils.data import Dataset
 
 import setup

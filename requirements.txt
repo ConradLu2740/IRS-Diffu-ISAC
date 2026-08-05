@@ -1,0 +1,8 @@
+# IRS-Diffu-ISAC 依赖
+# Python 3.9+
+torch>=2.0
+numpy>=1.24
+scipy>=1.10
+matplotlib>=3.6
+sgp4>=2.20
+scikit-learn>=1.2

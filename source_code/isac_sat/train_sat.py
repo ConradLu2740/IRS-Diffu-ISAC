@@ -12,10 +12,16 @@ train_sat.py — 星-地 ISAC 对比训练（none / sat / ground 三种 IRS 模�
 """
 
 import os
+import math
 import argparse
 import numpy as np
 import torch
+import sys
 from torch.utils.data import DataLoader
+
+_LEGACY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "legacy")
+if _LEGACY not in sys.path:
+    sys.path.insert(0, _LEGACY)
 
 import setup_sat as ss
 from data_sat import SatROIDataset, SatScenarioChannels, P_SNR as SAT_P_SNR
