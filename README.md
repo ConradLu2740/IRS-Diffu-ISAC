@@ -97,6 +97,18 @@ The system considers 5 propagation paths:
 4. BS → IRS1 → ROI → UE (IRS1 forward scatter)
 5. BS → IRS2 → ROI → UE (IRS2 forward scatter)
 
+## Space ISAC Extension (Phase 1)
+
+This project also includes a **Space ISAC** extension: LEO-satellite-aided integrated sensing and communication (ISAC-NTN) with dynamic geometry.
+
+- `setup_sat.py` — SGP4 orbit propagation (real ISS TLE), dynamic geometry, far-field channel with Doppler/delay
+- `data_sat.py` — dynamic data generation for 3 IRS modes: `none` / `sat` (spaceborne RIS) / `ground`
+- `train_sat.py` — comparative training across modes (reuses PointVAE + CondEncoder + DiT)
+- `eval_sat.py` — metrics: Chamfer Distance / F-Score / Voxel IoU + visualization
+- `verify_sat.py` — physics validation (orbit, overpass dynamics, channel formulas)
+
+See [space_isac_design.md](space_isac_design.md) for full design details.
+
 ## Citation
 
 If you use this code, please cite:
