@@ -25,10 +25,10 @@ extended to **space-based ISAC** with LEO satellites, dynamic RIS tracking, and 
 
 **感知-通信闭环实时演示**：卫星过境 → 感知目标 → IRS 自动指向 → 通信质量提升。
 
-![ISAC Closed-Loop Demo](source_code/isac_demo/demo_animation.gif)
+![ISAC Closed-Loop Demo](source_code/isac_sat/isac_demo/demo_animation.gif)
 
-- 🖥️ 交互版（多场景切换）：`source_code/isac_demo/demo_live.html`
-- 🎬 视频版：`source_code/isac_demo/demo_animation.gif`
+- 🖥️ 交互版（多场景切换）：`source_code/isac_sat/isac_demo/demo_live.html`
+- 🎬 视频版：`source_code/isac_sat/isac_demo/demo_animation.gif`
 - 🔄 生成：`python demo_live.py` / `python make_animation.py`
 
 ---
@@ -87,26 +87,26 @@ LEO 卫星(BS) ──→ 地面目标(ROI) ──→ 地面站(UE)
 ```bash
 # 环境
 python3 -m venv .venv
-.venv/bin/pip install torch numpy scipy matplotlib sgp4 scikit-learn
+.venv/bin/pip install -r requirements.txt
 
-cd source_code
+cd source_code/isac_sat
 
 # 1. 物理验证（轨道/多普勒/信道，~1 min）
-../.venv/bin/python verify_sat.py
+../../.venv/bin/python verify_sat.py
 
 # 2. 一键闭环 demo（自动训练感知模型 + 运行闭环）
 bash run_demo.sh
 
 # 3. 实时演示（HTML 播放器 + GIF 动画）
-../.venv/bin/python demo_live.py --n_scenes 3
-../.venv/bin/python make_animation.py
+../../.venv/bin/python demo_live.py --n_scenes 3
+../../.venv/bin/python make_animation.py
 
 # 4. 多目标感知闭环
-../.venv/bin/python train_sensing_multi.py --wideband
-../.venv/bin/python demo_multi.py
+../../.venv/bin/python train_sensing_multi.py --wideband
+../../.venv/bin/python demo_multi.py
 
 # 5. RIS 动态跟踪权衡
-../.venv/bin/python verify_tracking.py
+../../.venv/bin/python verify_tracking.py
 ```
 
 ---
@@ -116,16 +116,17 @@ bash run_demo.sh
 ```
 IRS-Diffu-ISAC/
 ├── source_code/
-│   ├── setup.py / data.py / models.py      # 原项目：RIS 辅助 ISAC + 扩散模型重建
-│   ├── setup_sat.py                        # 星-地 ISAC 物理层（SGP4/信道/多普勒）
-│   ├── data_sat.py                         # 动态数据生成（IRS 模式/目标模板/距离像）
-│   ├── train_sat.py / eval_sat.py          # 重建训练与评估（CD/F-Score/IoU）
-│   ├── phase_optimizer_sat.py              # RIS 动态相位跟踪（解析对齐）
-│   ├── train_sensing*.py                   # 感知模型（分类 + 定位，单/多目标）
-│   ├── demo*.py / make_animation.py        # 闭环 demo + 动画/HTML
-│   ├── verify_*.py                         # 物理验证脚本
-│   └── isac_demo/                          # checkpoint + HTML 播放器 + GIF
-├── space_isac_design.md                    # 详细设计文档（物理/结果/教训）
+│   ├── isac_sat/                      # 星-地 ISAC + 感知 + demo（活跃工作区）
+│   │   ├── setup_sat.py / data_sat.py / train_sat.py / eval_sat.py
+│   │   ├── phase_optimizer_sat.py / task_sat.py
+│   │   ├── train_sensing*.py          # 感知（分类+定位）
+│   │   ├── demo*.py / make_animation.py / run_demo.sh
+│   │   └── isac_demo/                 # checkpoint + HTML 播放器 + GIF
+│   ├── legacy/                        # 原项目（RIS+扩散模型重建，归档）
+│   └── requirements.txt
+├── docs/                              # 原项目图（comparison_*.png）
+├── archive/                           # 历史打包
+├── space_isac_design.md               # 详细设计文档
 ├── README.md
 └── LICENSE
 ```

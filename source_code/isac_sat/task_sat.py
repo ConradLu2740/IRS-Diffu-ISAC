@@ -23,9 +23,14 @@ import math
 import argparse
 import numpy as np
 import torch
+import sys
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
+
+_LEGACY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "legacy")
+if _LEGACY not in sys.path:
+    sys.path.insert(0, _LEGACY)
 
 import matplotlib
 matplotlib.use("Agg")
