@@ -32,26 +32,41 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 import setup_sat as ss
-from data_sat import SatROIDataset, SatScenarioChannels, GROUND_TARGET_TEMPLATES
+from data_sat import (SatROIDataset, SatScenarioChannels, GROUND_TARGET_TEMPLATES,
+                      WIDEBAND_K)
 from models import AdvancedCondEncoder
 
 N_CLASSES = len(GROUND_TARGET_TEMPLATES)
 CLASS_NAMES = [n for n, _ in GROUND_TARGET_TEMPLATES]
 
 
-class MLPBackbone(nn.Module):
-    """MLP 骨干：接收特征 [B, tau, cond_dim] → 特征 [B, 128]。"""
+def ss_wb_dim():
+    return WIDEBAND_K
 
-    def __init__(self, in_dim, hidden=256):
+
+class MLPBackbone(nn.Module):
+    """MLP 骨干（双分支）：cond 分支 + 距离像分支 → 融合 → 特征。"""
+
+    def __init__(self, in_dim, rp_dim=0, hidden=256):
         super().__init__()
+        self.rp_dim = rp_dim
+        self.rp_net = None
+        if rp_dim > 0:
+            self.rp_net = nn.Sequential(
+                nn.Linear(rp_dim, 64), nn.BatchNorm1d(64), nn.ReLU())
         self.net = nn.Sequential(
-            nn.Linear(in_dim, hidden), nn.BatchNorm1d(hidden), nn.ReLU(), nn.Dropout(0.3),
+            nn.Linear(in_dim + (64 if rp_dim > 0 else 0), hidden),
+            nn.BatchNorm1d(hidden), nn.ReLU(), nn.Dropout(0.3),
             nn.Linear(hidden, hidden // 2), nn.BatchNorm1d(hidden // 2), nn.ReLU(),
         )
         self.out_dim = hidden // 2
 
-    def forward(self, cond):
-        return self.net(cond.flatten(1))
+    def forward(self, cond, rp=None):
+        x = cond.flatten(1) if cond is not None else torch.zeros(rp.size(0), 0)
+        if rp is not None and self.rp_net is not None:
+            r = self.rp_net(rp)          # [B, 64] 距离像独立编码
+            x = torch.cat([x, r], dim=1)
+        return self.net(x)
 
 
 class CondEncBackbone(nn.Module):
@@ -94,13 +109,16 @@ def angle_error_deg(pred_sc, angle_deg):
     return torch.abs(torch.rad2deg(diff))
 
 
-def make_fixed_samples(dataset, n):
+def make_fixed_samples(dataset, n, wideband=False):
     """预生成固定样本列表（可复现评估）。"""
     samples = [dataset[i] for i in range(n)]
     pcs = torch.stack([s[0] for s in samples])
     conds = torch.stack([s[1] for s in samples])
-    cls = torch.tensor([s[2] for s in samples], dtype=torch.long)
-    ang = torch.tensor([s[3] for s in samples], dtype=torch.float32)
+    cls = torch.tensor([s[2 + int(wideband)] for s in samples], dtype=torch.long)
+    ang = torch.tensor([s[3 + int(wideband)] for s in samples], dtype=torch.float32)
+    if wideband:
+        rps = torch.stack([s[2] for s in samples])
+        return TensorDataset(pcs, conds, rps, cls, ang)
     return TensorDataset(pcs, conds, cls, ang)
 
 
@@ -108,18 +126,23 @@ def make_online_train_loader(channels, args, device):
     """每 epoch 生成新训练样本（数据增强）。"""
     ds = SatROIDataset(args.train_data, channels, num_points=args.num_points,
                        device=device, tau=args.tau, phase_mode=args.phase_mode,
-                       with_label=True, target_source="ground")
+                       with_label=True, target_source="ground",
+                       wideband=args.wideband, wideband_snr_db=args.wideband_snr_db)
     return DataLoader(ds, batch_size=args.batch_size, shuffle=True)
 
 
 @torch.no_grad()
-def evaluate(model, head, loader, device):
+def evaluate(model, head, loader, device, wideband=False, rp_only=False):
     model.eval(); head.eval()
     correct, total, mae_sum = 0, 0, 0.0
     cm = np.zeros((N_CLASSES, N_CLASSES), dtype=int)
-    for pc, cond, cid, angle in loader:
-        cond = cond.to(device)
-        feat = model(cond)
+    for batch in loader:
+        if wideband:
+            pc, cond, rp, cid, angle = batch
+            feat = model(None if rp_only else cond.to(device), rp.to(device))
+        else:
+            pc, cond, cid, angle = batch
+            feat = model(cond.to(device))
         logits, pose_sc = head(feat)
         pred = logits.argmax(dim=1)
         for i in range(len(cid)):
@@ -162,16 +185,19 @@ def main(args):
     print(f"cond_dim={cond_dim}")
 
     # ---- 固定测试集（可复现） ----
-    print(f"预生成测试样本 ({args.test_data})...")
+    print(f"预生成测试样本 ({args.test_data}), wideband={args.wideband}...")
     test_ds = SatROIDataset(args.test_data, channels, num_points=args.num_points,
                             device=device, tau=args.tau, phase_mode=args.phase_mode,
-                            with_label=True, target_source="ground")
-    test_fixed = make_fixed_samples(test_ds, args.test_data)
+                            with_label=True, target_source="ground",
+                            wideband=args.wideband, wideband_snr_db=args.wideband_snr_db)
+    test_fixed = make_fixed_samples(test_ds, args.test_data, wideband=args.wideband)
     test_loader = DataLoader(test_fixed, batch_size=args.batch_size, shuffle=False)
 
     # ---- 模型 ----
+    rp_dim = ss_wb_dim() if args.wideband else 0
+    cond_used = args.tau * cond_dim if not args.rp_only else 0
     if args.backbone == "mlp":
-        model = MLPBackbone(in_dim=args.tau * cond_dim)
+        model = MLPBackbone(in_dim=cond_used, rp_dim=rp_dim)
     else:
         model = CondEncBackbone(seq_len=args.tau, input_size=cond_dim)
     head = PerceptionHead(in_dim=model.out_dim, n_classes=N_CLASSES).to(device)
@@ -185,9 +211,15 @@ def main(args):
         model.train(); head.train()
         train_loader = make_online_train_loader(channels, args, device)
         tot_loss = tot_cls = tot_pose = 0.0
-        for pc, cond, cid, angle in train_loader:
-            cond = cond.to(device); cid = cid.to(device); angle = angle.to(device)
-            feat = model(cond)
+        for batch in train_loader:
+            if args.wideband:
+                pc, cond, rp, cid, angle = batch
+                cond = cond.to(device); rp = rp.to(device)
+            else:
+                pc, cond, cid, angle = batch
+                cond = cond.to(device)
+            cid = cid.to(device); angle = angle.to(device)
+            feat = model(None if args.rp_only else cond, rp if args.wideband else None)
             logits, pose_sc = head(feat)
             loss_cls = F.cross_entropy(logits, cid)
             loss_pose = F.mse_loss(pose_sc, pose_target(angle).to(device))
@@ -195,7 +227,8 @@ def main(args):
             opt.zero_grad(); loss.backward(); opt.step()
             tot_loss += loss.item(); tot_cls += loss_cls.item(); tot_pose += loss_pose.item()
 
-        acc, mae, cm = evaluate(model, head, test_loader, device)
+        acc, mae, cm = evaluate(model, head, test_loader, device,
+                                wideband=args.wideband, rp_only=args.rp_only)
         if (ep + 1) % 5 == 0 or ep < 3:
             print(f"ep {ep+1:3d}/{args.epochs} loss={tot_loss/len(train_loader):.4f} "
                   f"| test acc={acc:.3f} pose MAE={mae:.1f}°")
@@ -229,6 +262,9 @@ if __name__ == "__main__":
     parser.add_argument("--save_dir", type=str, default="./sat_perception")
     parser.add_argument("--bs_ant", type=int, default=4, help="卫星天线数")
     parser.add_argument("--ue_ant", type=int, default=4, help="地面站天线数")
+    parser.add_argument("--rp_only", action="store_true", help="只用距离像特征（姿态最佳）")
+    parser.add_argument("--wideband", action="store_true", help="使用宽带距离像特征")
+    parser.add_argument("--wideband_snr_db", type=float, default=20.0)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"

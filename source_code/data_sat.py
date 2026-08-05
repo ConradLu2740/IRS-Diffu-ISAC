@@ -261,6 +261,59 @@ MICRO_DOPPLER_HZ = {
     "cubesat": 0.0,
 }
 
+# ----------------------------------------------------------------------
+# 宽带距离像（HRRP 物理基础）
+# ----------------------------------------------------------------------
+WIDEBAND_K = 512           # 子载波数（距离单元）；512@1GHz → 距离窗 ~154m 覆盖 80m ROI
+WIDEBAND_BW_HZ = 1e9       # 带宽 1GHz → 距离分辨率 ~0.15m
+
+
+def compute_range_profile(ROI_np, target_ecef, ground_ecef, wavelength_m,
+                          k=WIDEBAND_K, bw_hz=WIDEBAND_BW_HZ, snr_db=20.0,
+                          seed=0, bs_dist_km=695.0):
+    """宽带距离像：目标体素沿观测视线的散射分布（HRRP）。
+
+    物理：宽带信号（带宽 B）使不同距离的散射体可分（距离分辨率 c/2B），
+    目标姿态旋转改变体素距离分布 → 距离像变化 → 姿态可估。
+    ROI_np: [16,16,16] 体素；target/ground: ECEF km
+    返回 [k] 距离像幅度（归一化）。
+    """
+    C_MS = ss.C_LIGHT_KM * 1000.0
+    local = make_roi_local()                       # [4096, 3] 米
+    occ = np.argwhere(ROI_np > 0.5)
+    if len(occ) == 0:
+        return np.zeros(k, dtype=np.float32)
+    # 体素 ECEF 位置（km）
+    p = target_ecef[None, :] + local[occ[:, 0] * 256 + occ[:, 1] * 16 + occ[:, 2], :] / 1000.0
+    # 三维质心对齐：提取目标形状沿视线的分布（与位置无关）
+    p_center = p.mean(axis=0)
+    rel = p - p_center                              # km
+    u = ground_ecef - target_ecef
+    u = u / (np.linalg.norm(u) + 1e-12)             # 视线方向单位矢量
+    d_proj = (rel @ u) * 1000.0                     # 沿视线投影（米，相对质心）
+    # 总时延（常数偏移对距离像形状无影响，只平移——质心对齐后无影响）
+    d_bs = bs_dist_km * 1000.0 + d_proj * 0.1       # BS 端差异小（远场近似）
+    d_ue = 50e3 + d_proj                            # 体素到 UE 差异 ≈ 视线投影
+    tau = (d_bs + d_ue) / C_MS                        # 秒
+
+    f = np.linspace(-bw_hz / 2.0, bw_hz / 2.0, k)     # 基带子载波
+    H = np.exp(-2j * np.pi * f[:, None] * tau[None, :]).sum(axis=1)  # [k]
+    if snr_db is not None:
+        rng = np.random.RandomState(seed)
+        sig_pow = np.mean(np.abs(H) ** 2)
+        n_pow = sig_pow / (10.0 ** (snr_db / 10.0))
+        H = H + rng.randn(k) * np.sqrt(n_pow / 2) + 1j * rng.randn(k) * np.sqrt(n_pow / 2)
+    rp = np.abs(np.fft.ifft(H))
+    # 质心对齐（HRRP 经典处理）：去掉目标位置影响，提取形状/姿态信息
+    idx = np.arange(k)
+    total = np.sum(rp)
+    if total > 1e-12:
+        centroid = int(np.clip(np.sum(rp * idx) / total, 0, k - 1))
+        rp = np.roll(rp, k // 2 - centroid)
+    # 归一化（L2）
+    norm = np.linalg.norm(rp)
+    return (rp / (norm + 1e-12)).astype(np.float32)
+
 
 def generate_ground_target_sample(pose_angle_deg=None):
     """生成含 1 个随机地面目标的 ROI（16³ 体素），带类别与姿态标签。
@@ -382,7 +435,8 @@ class SatROIDataset(Dataset):
 
     def __init__(self, n_samples, channels, num_points=2048, device="cpu",
                  tau=ss.TAU, p_snr=P_SNR, power_sigma=POWER_SIGMA,
-                 phase_mode="random", target_source="ground", with_label=False):
+                 phase_mode="random", target_source="ground", with_label=False,
+                 wideband=False, wideband_snr_db=20.0):
         self.n = n_samples
         self.ch = channels
         self.device = device
@@ -394,9 +448,16 @@ class SatROIDataset(Dataset):
         self.phase_mode = phase_mode
         self.target_source = target_source
         self.with_label = with_label
+        self.wideband = wideband
+        self.wideband_snr_db = wideband_snr_db
         if phase_mode == "tracked" and channels.irs_mode == "none":
             self.phase_mode = "random"  # 无 IRS 时退回随机
         self._opt = PhaseOptimizerSat(channels, device=device) if self.phase_mode == "tracked" else None
+        # 宽带距离像几何（取中帧）
+        if wideband:
+            mid = channels.frames[len(channels.frames) // 2]
+            self._target_ecef = mid["target_pos"]
+            self._ground_ecef = mid["ground_pos"]
 
         # 导频 X（16QAM 前 BS_ANT 个符号 × 标定系数）
         n_bs = channels.bs_ant
@@ -478,6 +539,13 @@ class SatROIDataset(Dataset):
             cond_list.append(cond_t)
 
         cond = torch.stack(cond_list).float()        # [Tau, cond_dim]
+        if self.wideband:
+            rp = torch.from_numpy(compute_range_profile(
+                ROI_np, self._target_ecef, self._ground_ecef, self.ch.wavelength_m,
+                snr_db=self.wideband_snr_db, seed=idx)).float()
+            if self.with_label:
+                return point_cloud.float(), cond, rp, class_id, float(angle)
+            return point_cloud.float(), cond, rp
         if self.with_label:
             return point_cloud.float(), cond, class_id, float(angle)
         return point_cloud.float(), cond
