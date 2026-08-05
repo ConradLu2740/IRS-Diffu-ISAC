@@ -36,12 +36,19 @@ MIN_ELEVATION_DEG = 20.0         # 过境窗口的最低仰角（度）
 SEARCH_HOURS = 48                # 过境窗口搜索时长（小时）
 
 # ----------------------------------------------------------------------
-# 真实 TLE：ISS (ZARYA), NORAD 25544（2026-08 历元，Celestrak 获取）
+# 真实 TLE 选项：ISS (NORAD 25544) 与 Starlink (NORAD 44714)
+# 历元均约 2026-08-03（Celestrak 获取）
 # ----------------------------------------------------------------------
 ISS_TLE = [
     "ISS (ZARYA)             ",
     "1 25544U 98067A   26215.79638706  .00007444  00000+0  14146-3 0  9999",
     "2 25544  51.6316  64.4821 0007224   9.2337 350.8783 15.49332738579132",
+]
+
+STARLINK_TLE = [
+    "STARLINK-1008           ",
+    "1 44714U 19074B   26215.97871058  .00029734  00000+0  37585-3 0  9997",
+    "2 44714  53.1486 198.6893 0006328  18.4929 341.6313 15.59291253371649",
 ]
 
 # 场景地面位置（默认：目标区域与地面站位于中国东部附近）
@@ -184,8 +191,9 @@ class SatISACScenario:
                  target_lat=TARGET_LAT_DEG, target_lon=TARGET_LON_DEG,
                  ground_lat=GROUND_LAT_DEG, ground_lon=GROUND_LON_DEG,
                  min_elevation_deg=MIN_ELEVATION_DEG,
-                 search_hours=SEARCH_HOURS, start_utc=None):
+                 search_hours=SEARCH_HOURS, start_utc=None, sat_name="ISS"):
         self.tle_lines = tle_lines
+        self.sat_name = sat_name
         self.sat = load_satrec(tle_lines)
         self.fc_hz = fc_hz
         self.wavelength_m = C_LIGHT_KM * 1000 / fc_hz

@@ -117,7 +117,22 @@ python eval_sat.py --modes none sat ground --save_dir ./sat_model
 - 修复前：IRS 路径功率仅为直达的 0.04%（相位优化无意义）
 - 修复后：IRS 路径主导（~876%），相位优化效果显著
 
-## 6. 已验证结果（小规模 smoke）
+## 6. 多轨道 / Ka 频段鲁棒性（已完成）
+
+`verify_robustness.py` — 轨道（ISS / Starlink）× 频段（30GHz / 28GHz）4 组合验证。
+
+| 轨道 | 频段 | 高度 km | 速度 km/s | 多普勒 kHz | 时延 ms |
+|------|------|--------|----------|-----------|--------|
+| ISS | 30 GHz | 418.4 | 7.659 | [-506.6, 517.4] | 2.48 |
+| ISS | 28 GHz | 418.4 | 7.659 | [-472.8, 482.9] | 2.48 |
+| Starlink | 30 GHz | 389.1 | 7.675 | [-556.6, 576.3] | 2.08 |
+| Starlink | 28 GHz | 389.1 | 7.675 | [-519.5, 537.9] | 2.08 |
+
+- 物理一致性验证：多普勒随频率线性缩放（30→28GHz 下降 28/30 倍）；低轨 Starlink 时延更小
+- 训练级鲁棒性：Starlink + 28GHz + tracked + 地面目标 → CD=0.183（管线稳定）
+- 地面目标模板：car / uav / building / tank / tower / cubesat 6 类（`generate_ground_roi`）
+
+## 7. 已验证结果（小规模 smoke）
 
 - 轨道：高度 418km / 速度 7.66 km/s / 周期 92.88 min（与 ISS 真实值吻合）
 - 过境动力学：仰角单峰（12°→33°→12°）、距离 U 型、多普勒 S 型曲线（-610→+610 kHz）
@@ -126,7 +141,7 @@ python eval_sat.py --modes none sat ground --save_dir ./sat_model
 - 12 VAE + 10 LDM epochs（32 训练样本）：训练 CD none 0.233 / **sat 0.137** / ground 0.169
   （注：小样本评估有波动，正式对比需更大训练集与更多评估样本）
 
-## 7. 已知限制与下一步
+## 8. 已知限制与下一步
 
 - [ ] 评估样本太少（8 个），指标波动大 → 需统一评估协议（50-100 评估样本）
 - [ ] 小规模训练预测只恢复"位置和大致形状"，细节缺失 → 正式训练规模
@@ -135,7 +150,7 @@ python eval_sat.py --modes none sat ground --save_dir ./sat_model
 - [ ] 轨道用单一 TLE（ISS）→ 可扩展 Starlink 等其他 LEO 轨道做鲁棒性实验
 - [ ] 载频 30GHz → 可对比 Ka 28GHz / 星间链路频段
 
-## 8. 文件清单
+## 9. 文件清单
 
 | 文件 | 说明 | 状态 |
 |------|------|------|
