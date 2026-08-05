@@ -321,12 +321,11 @@ def compute_isar_sequence(ROI_np, target_ecef, ground_ecef, wavelength_m,
 
 def compute_range_profile(ROI_np, target_ecef, ground_ecef, wavelength_m,
                           k=WIDEBAND_K, bw_hz=WIDEBAND_BW_HZ, snr_db=20.0,
-                          seed=0, bs_dist_km=695.0):
+                          seed=0, bs_dist_km=695.0, align=True):
     """宽带距离像：目标体素沿观测视线的散射分布（HRRP）。
 
-    物理：宽带信号（带宽 B）使不同距离的散射体可分（距离分辨率 c/2B），
-    目标姿态旋转改变体素距离分布 → 距离像变化 → 姿态可估。
-    ROI_np: [16,16,16] 体素；target/ground: ECEF km
+    align=True：质心对齐（提取形状/姿态信息，位置无关）
+    align=False：保留原始距离像（包含目标位置信息，用于定位）
     返回 [k] 距离像幅度（归一化）。
     """
     C_MS = ss.C_LIGHT_KM * 1000.0
@@ -355,12 +354,13 @@ def compute_range_profile(ROI_np, target_ecef, ground_ecef, wavelength_m,
         n_pow = sig_pow / (10.0 ** (snr_db / 10.0))
         H = H + rng.randn(k) * np.sqrt(n_pow / 2) + 1j * rng.randn(k) * np.sqrt(n_pow / 2)
     rp = np.abs(np.fft.ifft(H))
-    # 质心对齐（HRRP 经典处理）：去掉目标位置影响，提取形状/姿态信息
-    idx = np.arange(k)
-    total = np.sum(rp)
-    if total > 1e-12:
-        centroid = int(np.clip(np.sum(rp * idx) / total, 0, k - 1))
-        rp = np.roll(rp, k // 2 - centroid)
+    if align:
+        # 质心对齐（HRRP 经典处理）：去掉目标位置影响，提取形状/姿态信息
+        idx = np.arange(k)
+        total = np.sum(rp)
+        if total > 1e-12:
+            centroid = int(np.clip(np.sum(rp * idx) / total, 0, k - 1))
+            rp = np.roll(rp, k // 2 - centroid)
     # 归一化（L2）
     norm = np.linalg.norm(rp)
     return (rp / (norm + 1e-12)).astype(np.float32)
@@ -487,7 +487,7 @@ class SatROIDataset(Dataset):
     def __init__(self, n_samples, channels, num_points=2048, device="cpu",
                  tau=ss.TAU, p_snr=P_SNR, power_sigma=POWER_SIGMA,
                  phase_mode="random", target_source="ground", with_label=False,
-                 wideband=False, wideband_snr_db=20.0, isar=False):
+                 wideband=False, wideband_snr_db=20.0, isar=False, rp_align=True):
         self.n = n_samples
         self.ch = channels
         self.device = device
@@ -502,6 +502,7 @@ class SatROIDataset(Dataset):
         self.wideband = wideband or isar   # ISAR 隐含宽带
         self.wideband_snr_db = wideband_snr_db
         self.isar = isar
+        self.rp_align = rp_align
         if phase_mode == "tracked" and channels.irs_mode == "none":
             self.phase_mode = "random"  # 无 IRS 时退回随机
         self._opt = PhaseOptimizerSat(channels, device=device) if self.phase_mode == "tracked" else None
@@ -599,7 +600,7 @@ class SatROIDataset(Dataset):
             else:
                 feat = torch.from_numpy(compute_range_profile(
                     ROI_np, self._target_ecef, self._ground_ecef, self.ch.wavelength_m,
-                    snr_db=self.wideband_snr_db, seed=idx)).float()  # [K]
+                    snr_db=self.wideband_snr_db, seed=idx, align=self.rp_align)).float()  # [K]
             if self.with_label:
                 return point_cloud.float(), cond, feat, class_id, float(angle)
             return point_cloud.float(), cond, feat
