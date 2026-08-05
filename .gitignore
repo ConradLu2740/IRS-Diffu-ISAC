@@ -1,6 +1,8 @@
 # Python
 __pycache__/
 *.py[cod]
+.venv/
+venv/
 *$py.class
 *.so
 .Python
@@ -31,6 +33,8 @@ wheels/
 # Outputs
 outputs_*/
 experiments/
+sat_model*/
+sat_verify/
 analysis/
 *.npy
 *.png

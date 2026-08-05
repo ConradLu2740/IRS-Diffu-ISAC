@@ -41,7 +41,7 @@ def chamfer_distance_loss(p1, p2):
     return torch.mean(min_dist_1) + torch.mean(min_dist_2)
 
 
-def point_vae_loss(x, reconstructed_x, mu, logvar, kl_weight=1e-6):
+def point_vae_loss(x, reconstructed_x, mu, logvar, kl_weight=1e-4):
     cd_loss = chamfer_distance_loss(x, reconstructed_x)
     kl_loss = -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
     total = cd_loss + kl_weight * kl_loss
@@ -62,7 +62,7 @@ def save_loss_curve(train_losses, test_losses, title, save_path):
     plt.close()
 
 
-def evaluate_vae(vae, loader, device="cuda", kl_weight=1e-6):
+def evaluate_vae(vae, loader, device="cuda", kl_weight=1e-4):
     vae.eval()
     total_loss = 0.0
     total_cd = 0.0
@@ -89,7 +89,8 @@ def train_PointVAE(
     device="cuda",
     epochs=100,
     lr=1e-3,
-    kl_weight=1e-6,
+    kl_weight=1e-4,
+    kl_warmup_epochs=0,
     save_dir="./model"
 ):
     vae.train()
@@ -109,6 +110,10 @@ def train_PointVAE(
 
     for ep in range(1, epochs + 1):
         vae.train()
+        # KL 退火：前 kl_warmup_epochs 个 epoch 线性升至 kl_weight（防后验坍缩）
+        current_kl = kl_weight
+        if kl_warmup_epochs > 0:
+            current_kl = kl_weight * min(1.0, ep / kl_warmup_epochs)
         train_total = 0.0
         train_cd = 0.0
         train_kl = 0.0
@@ -117,7 +122,7 @@ def train_PointVAE(
             pc = pc.to(device)
 
             rec_pc, mu, logvar, _ = vae(pc)
-            loss, cd_loss, kl_loss = point_vae_loss(pc, rec_pc, mu, logvar, kl_weight=kl_weight)
+            loss, cd_loss, kl_loss = point_vae_loss(pc, rec_pc, mu, logvar, kl_weight=current_kl)
 
             opt.zero_grad()
             loss.backward()
@@ -132,7 +137,7 @@ def train_PointVAE(
         train_kl /= len(train_loader)
 
         test_total, test_cd, test_kl = evaluate_vae(
-            vae, test_loader, device=device, kl_weight=kl_weight
+            vae, test_loader, device=device, kl_weight=current_kl
         )
 
         history["train_total"].append(train_total)
