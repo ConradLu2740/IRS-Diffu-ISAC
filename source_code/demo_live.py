@@ -1,11 +1,13 @@
 """
-demo_live.py — 星-地 ISAC 感知-通信闭环实时演示（数据生成器）
+demo_live.py — 星-地 ISAC 感知-通信闭环实时演示（数据生成器 + HTML 播放器）
 
-跑一次卫星过境仿真，收集每帧数据（卫星几何/感知结果/三种策略功率），
-生成单文件 HTML 播放器（demo_live.html）：动画 + 时间轴 + 交互控制。
+跑多次卫星过境仿真（不同 seed/目标），生成单文件 HTML 播放器：
+  - 顶部下拉：切换场景（不同目标/感知结果）
+  - 动画 + 时间轴 + 播放控制
+  - 每帧含真实过境 UTC 时间
 
 用法：
-  python demo_live.py [--checkpoint ./isac_demo/sensing_best.pth]
+  python demo_live.py [--checkpoint ./isac_demo/sensing_best.pth] [--n_scenes 3]
   输出：./isac_demo/demo_live.html（浏览器直接打开）
 """
 
@@ -27,9 +29,9 @@ OUT_DIR = "./isac_demo"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 
-def main(args):
-    torch.manual_seed(args.seed)
-    np.random.seed(args.seed)
+def run_scene(args, seed):
+    """跑一个场景，返回单场景 payload。"""
+    torch.manual_seed(seed); np.random.seed(seed)
     device = args.device
 
     ckpt = torch.load(args.checkpoint, map_location=device)
@@ -46,24 +48,20 @@ def main(args):
     X = channels.tensor_a * torch.tensor(_SIGNAL1[:channels.bs_ant],
                                          dtype=torch.complex64).view(channels.bs_ant, 1)
 
-    # 真实目标
     roi, cid_true, ang_true = generate_ground_target_sample()
     pos_true = np.argwhere(roi > 0.5).astype(np.float32).mean(axis=0)
-    pos_true = pos_true / 16.0 * 2.0 - 1.0
-    pos_true = pos_true[:2].tolist()
+    pos_true = (pos_true / 16.0 * 2.0 - 1.0)[:2].tolist()
 
-    # 感知（宽带距离像，质心对齐用于形状；定位用未对齐——demo 用对齐+未对齐折中：用未对齐）
     rp = compute_range_profile(roi, mid["target_pos"], mid["ground_pos"],
                                channels.wavelength_m, snr_db=args.snr_db, seed=0,
                                align=False)
     with torch.no_grad():
         logits, pred_pos = model(torch.from_numpy(rp).float().unsqueeze(0))
     cid_pred = logits.argmax(1).item()
-    pos_pred = pred_pos[0].numpy().tolist()
+    pos_pred = pred_pos[0].numpy()[:2].tolist()
     cls_ok = cid_pred == cid_true
     pos_err = float(np.linalg.norm(np.array(pos_pred) - np.array(pos_true)))
 
-    # 估计 ROI（用于感知驱动 IRS 配置）
     res = 16
     roi_est = np.zeros((res, res, res), dtype=np.float32)
     cx = int((pos_pred[0] + 1) / 2 * res); cy = int((pos_pred[1] + 1) / 2 * res)
@@ -71,25 +69,19 @@ def main(args):
     roi_true_t = torch.tensor(roi.astype(np.float32)).reshape(-1)
     roi_est_t = torch.tensor(roi_est.astype(np.float32)).reshape(-1)
 
-    # 每帧数据
     n_frames = len(frames)
     elevs = [f["elevation_deg"] for f in frames]
     powers = {"random": [], "sensed": [], "oracle": []}
-    for t, Ht in enumerate(channels.channels_per_frame):
+    for Ht in channels.channels_per_frame:
         n_irs = Ht["H_ROI_IRS"].shape[1]
-        ph_rand = torch.rand(n_irs) * 2 * np.pi
-        powers["random"].append(opt._power(Ht, roi_true_t, X, ph_rand))
-        ph_s = opt.optimize_frame(Ht, roi_est_t, X)
-        powers["sensed"].append(opt._power(Ht, roi_true_t, X, ph_s))
-        ph_o = opt.optimize_frame(Ht, roi_true_t, X)
-        powers["oracle"].append(opt._power(Ht, roi_true_t, X, ph_o))
+        powers["random"].append(opt._power(Ht, roi_true_t, X, torch.rand(n_irs) * 2 * np.pi))
+        powers["sensed"].append(opt._power(Ht, roi_true_t, X, opt.optimize_frame(Ht, roi_est_t, X)))
+        powers["oracle"].append(opt._power(Ht, roi_true_t, X, opt.optimize_frame(Ht, roi_true_t, X)))
 
-    # 归一化功率到 [0,1]（显示用）
     all_p = [p for v in powers.values() for p in v]
     p_min, p_max = min(all_p), max(all_p)
     p_norm = {k: [(p - p_min) / (p_max - p_min + 1e-9) for p in v]
               for k, v in powers.items()}
-
     gain_sensed = 100 * (np.mean(powers["sensed"]) / np.mean(powers["random"]) - 1)
     gain_oracle = 100 * (np.mean(powers["oracle"]) / np.mean(powers["random"]) - 1)
 
@@ -98,49 +90,43 @@ def main(args):
     for i in range(n_frames):
         utc = (t0 + timedelta(seconds=frames[i]["t_abs_sec"])).strftime("%H:%M:%S")
         frame_data.append({
-            "t": i,
-            "utc": utc,
-            "elev": round(elevs[i], 1),
+            "t": i, "utc": utc, "elev": round(elevs[i], 1),
             "progress": round(i / max(n_frames - 1, 1), 3),
             "pr": round(p_norm["random"][i], 3),
             "ps": round(p_norm["sensed"][i], 3),
             "po": round(p_norm["oracle"][i], 3),
         })
 
-    payload = {
+    return {
         "meta": {
-            "sat": scenario.sat_name,
-            "freq": f"{scenario.fc_hz/1e9:.1f} GHz",
-            "frames": n_frames,
-            "target_lat": scenario.target_lat,
-            "target_lon": scenario.target_lon,
-            "irs": args.irs_mode,
+            "sat": scenario.sat_name, "freq": f"{scenario.fc_hz/1e9:.1f} GHz",
+            "frames": n_frames, "target_lat": scenario.target_lat,
+            "target_lon": scenario.target_lon, "irs": args.irs_mode,
         },
         "target": {
-            "cls_true": CLASS_NAMES[cid_true],
-            "cls_pred": CLASS_NAMES[cid_pred],
+            "cls_true": CLASS_NAMES[cid_true], "cls_pred": CLASS_NAMES[cid_pred],
             "cls_ok": cls_ok,
             "pos_true": [round(v, 2) for v in pos_true],
             "pos_pred": [round(v, 2) for v in pos_pred],
             "pos_err": round(pos_err, 3),
         },
         "frames": frame_data,
-        "summary": {
-            "gain_sensed": round(gain_sensed, 1),
-            "gain_oracle": round(gain_oracle, 1),
-            "cls_acc_30": 0.83,  # 30 次试验统计（预计算）
-        },
+        "summary": {"gain_sensed": round(gain_sensed, 1),
+                    "gain_oracle": round(gain_oracle, 1)},
     }
 
-    # 生成 HTML
+
+def main(args):
+    scenes = [run_scene(args, args.seed + i) for i in range(args.n_scenes)]
+    payload = {"scenes": scenes}
     html = render_html(payload)
     out_path = os.path.join(OUT_DIR, "demo_live.html")
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"[demo_live] 数据帧: {n_frames}")
-    print(f"[demo_live] 分类: {payload['target']['cls_pred']} "
-          f"(正确:{cls_ok}) 位置误差: {pos_err:.3f}")
-    print(f"[demo_live] 感知辅助增益: {gain_sensed:+.1f}% / oracle: {gain_oracle:+.1f}%")
+    for i, s in enumerate(scenes):
+        t = s["target"]
+        print(f"[scene {i}] {t['cls_pred']} (正确:{t['cls_ok']}) 位置误差 {t['pos_err']} "
+              f"增益 {s['summary']['gain_sensed']:+.1f}%")
     print(f"[demo_live] HTML: {out_path}")
 
 
@@ -159,6 +145,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
          background: #0f1420; color: #e8ecf4; margin: 0; padding: 16px; }
   h1 { font-size: 20px; margin: 4px 0 12px; color: #7fd1ff; }
   .meta { font-size: 13px; color: #9aa7bd; margin-bottom: 12px; }
+  .topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }
+  .topbar select, .topbar label { font-size: 14px; }
+  .topbar select { background: #1a2233; color: #e8ecf4; border: 1px solid #2a3550;
+                   border-radius: 6px; padding: 6px 10px; }
   .grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; }
   .card { background: #1a2233; border: 1px solid #2a3550; border-radius: 10px; padding: 12px; }
   .card h2 { font-size: 14px; margin: 0 0 8px; color: #b8c6de; }
@@ -179,7 +169,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
   <h1>🛰️ 星-地 ISAC 感知-通信闭环 · 实时演示</h1>
-  <div class="meta" id="meta"></div>
+  <div class="topbar">
+    <label>场景：<select id="sceneSel"></select></label>
+    <span class="meta" id="meta"></span>
+  </div>
   <div class="grid">
     <div class="card">
       <h2>卫星过境场景</h2>
@@ -207,14 +200,23 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <span id="timeLabel" style="font-size:13px">帧 0</span>
   </div>
 <script>
-const DATA = __DATA__;
-const frames = DATA.frames;
-const meta = DATA.meta;
+const SCENES = __DATA__.scenes;
+let DATA = SCENES[0], frames = DATA.frames, meta = DATA.meta;
 let idx = 0, playing = true, speed = 1.0, timer = null;
 
-// meta
-document.getElementById('meta').textContent =
-  `卫星: ${meta.sat} · 载频: ${meta.freq} · 目标区域: (${meta.target_lat}°N, ${meta.target_lon}°E) · IRS: ${meta.irs}`;
+// 场景下拉
+const sel = document.getElementById('sceneSel');
+SCENES.forEach((s, i) => {
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = `场景 ${i+1} · ${s.target.cls_true} (${s.target.cls_ok?'✓':'✗'}) · +${s.summary.gain_sensed}%`;
+  sel.appendChild(opt);
+});
+sel.onchange = () => { DATA = SCENES[parseInt(sel.value)]; frames = DATA.frames; meta = DATA.meta; idx = 0; step(); };
+function updateMeta() {
+  document.getElementById('meta').textContent =
+    `卫星: ${meta.sat} · 载频: ${meta.freq} · 目标区域: (${meta.target_lat}°N, ${meta.target_lon}°E) · IRS: ${meta.irs}`;
+}
 
 const scene = document.getElementById('scene'), sctx = scene.getContext('2d');
 const power = document.getElementById('power'), pctx = power.getContext('2d');
@@ -223,21 +225,19 @@ const info = document.getElementById('info');
 function drawScene(i) {
   const f = frames[i], W = scene.width, H = scene.height;
   sctx.clearRect(0, 0, W, H);
-  // 天空
   const skyY = H * 0.42, groundY = H * 0.78;
   const grad = sctx.createLinearGradient(0, 0, 0, groundY);
   grad.addColorStop(0, '#0a1226'); grad.addColorStop(1, '#16233d');
   sctx.fillStyle = grad; sctx.fillRect(0, 0, W, groundY);
-  // 地面
   sctx.fillStyle = '#1d2c1d'; sctx.fillRect(0, groundY, W, H - groundY);
   sctx.strokeStyle = '#3a5a3a'; sctx.lineWidth = 2;
   sctx.beginPath(); sctx.moveTo(0, groundY); sctx.lineTo(W, groundY); sctx.stroke();
-  // 地面站（固定）
+  // 地面站
   sctx.fillStyle = '#ffb74d';
   sctx.beginPath(); sctx.arc(W*0.55, groundY-4, 7, 0, 2*Math.PI); sctx.fill();
   sctx.fillStyle = '#9aa7bd'; sctx.font = '11px sans-serif';
   sctx.fillText('地面站', W*0.55-20, groundY+16);
-  // 目标（固定）
+  // 目标（真实）
   const tpos = DATA.target.pos_true;
   const tx = W*0.45 + tpos[0]*30, ty = groundY - 4;
   sctx.fillStyle = '#7fd151';
@@ -249,7 +249,7 @@ function drawScene(i) {
   sctx.strokeStyle = '#ff5252'; sctx.lineWidth = 2;
   sctx.beginPath(); sctx.moveTo(pxx-6, pyy-6); sctx.lineTo(pxx+6, pyy+6);
   sctx.moveTo(pxx+6, pyy-6); sctx.lineTo(pxx-6, pyy+6); sctx.stroke();
-  // 卫星（沿过境弧）
+  // 卫星
   const prog = f.progress, elev = f.elev;
   const satX = W * (0.12 + 0.76 * prog);
   const satY = skyY + (1 - elev / 60) * (groundY - skyY - 30);
@@ -266,20 +266,18 @@ function drawScene(i) {
     j === 0 ? sctx.moveTo(x, y) : sctx.lineTo(x, y);
   }
   sctx.stroke(); sctx.setLineDash([]);
-  // 感知链路（卫星→目标）
+  // 感知链路
   sctx.strokeStyle = 'rgba(255,82,82,0.5)'; sctx.lineWidth = 1.5;
   sctx.beginPath(); sctx.moveTo(satX, satY); sctx.lineTo(tx, ty); sctx.stroke();
-  // IRS 波束（朝目标）
+  // IRS 波束
   if (f.ps > 0.2) {
     sctx.strokeStyle = 'rgba(206,147,216,0.6)'; sctx.lineWidth = 3;
     sctx.beginPath();
     sctx.moveTo(W*0.55, groundY-4);
     sctx.lineTo(tx-10, groundY-60); sctx.lineTo(tx+10, groundY-60);
     sctx.closePath(); sctx.stroke();
-    sctx.fillStyle = 'rgba(206,147,216,0.15)';
-    sctx.fill();
+    sctx.fillStyle = 'rgba(206,147,216,0.15)'; sctx.fill();
   }
-  // 仰角
   sctx.fillStyle = '#7fd1ff'; sctx.font = '12px sans-serif';
   sctx.fillText(`仰角 ${elev.toFixed(1)}° · UTC ${f.utc} · 帧 ${i}`, 10, 22);
 }
@@ -303,10 +301,8 @@ function drawPower(i) {
     pctx.fillStyle = colors[n]; pctx.font = '11px sans-serif';
     pctx.fillText(labels[n], pad + (W-2*pad)*0.5 - 15, 14);
   });
-  // 当前帧标记
   const x = pad + (W - 2*pad) * (frames.length === 1 ? 0 : i/(frames.length-1));
-  pctx.fillStyle = '#fff';
-  pctx.fillRect(x-1, H-20-(H-40), 2, H-40);
+  pctx.fillStyle = '#fff'; pctx.fillRect(x-1, H-20-(H-40), 2, H-40);
 }
 
 function drawInfo(i) {
@@ -328,19 +324,12 @@ function step() {
   document.getElementById('timeLabel').textContent = `帧 ${idx}`;
 }
 
-function next() {
-  idx = (idx + 1) % frames.length;
-  step();
-}
-
-function tick() {
-  if (playing) next();
-}
+function next() { idx = (idx + 1) % frames.length; step(); }
+function tick() { if (playing) next(); }
 timer = setInterval(tick, 700 / speed);
 
 document.getElementById('playBtn').onclick = function() {
-  playing = !playing;
-  this.textContent = playing ? '⏸ 暂停' : '▶ 播放';
+  playing = !playing; this.textContent = playing ? '⏸ 暂停' : '▶ 播放';
 };
 document.getElementById('speedBtn').onclick = function() {
   speed = speed === 1 ? 2 : speed === 2 ? 4 : 1;
@@ -352,6 +341,7 @@ document.getElementById('timeline').oninput = function() {
 };
 document.getElementById('timeline').max = frames.length - 1;
 
+updateMeta();
 step();
 </script>
 </body>
@@ -360,14 +350,14 @@ step();
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="生成 ISAC 闭环实时演示 HTML")
+    parser = argparse.ArgumentParser(description="生成 ISAC 闭环实时演示 HTML（多场景）")
     parser.add_argument("--checkpoint", type=str, default="./isac_demo/sensing_best.pth")
     parser.add_argument("--irs_mode", choices=["none", "sat", "ground"], default="sat")
-    parser.add_argument("--phase_mode", choices=["random", "tracked"], default="tracked")
     parser.add_argument("--bs_ant", type=int, default=4)
     parser.add_argument("--ue_ant", type=int, default=4)
     parser.add_argument("--tau", type=int, default=16)
     parser.add_argument("--snr_db", type=float, default=20.0)
+    parser.add_argument("--n_scenes", type=int, default=3)
     parser.add_argument("--seed", type=int, default=7)
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"

@@ -231,7 +231,32 @@ python eval_sat.py --modes none sat ground --save_dir ./sat_model
 - 探针/验证脚本的几何必须与正式实现完全一致（近场/双倍旋转会产生虚假乐观）
 - 任何"突破性"结果都要用独立实现交叉验证
 
-## 10. 文件清单
+## 10. 工程化 Demo（感知-通信闭环）
+
+工程导向（非论文）交付：`source_code/` 下的可运行闭环系统。
+
+| 文件 | 作用 |
+|------|------|
+| `train_sensing.py` | 单目标感知（分类+定位），宽带距离像，CPU 实时 |
+| `train_sensing_multi.py` | 多目标感知（K=2 组分类+定位） |
+| `demo.py` | 闭环 demo：感知→IRS 配置→通信增益（静态 4 图） |
+| `demo_live.py` | 生成单文件 HTML 播放器（多场景切换+动画+UTC 时间轴） |
+| `make_animation.py` | 生成 GIF 动画（matplotlib，无 ffmpeg 依赖） |
+| `demo_multi.py` | 多目标闭环：检测多目标 + IRS 指向 |
+| `run_demo.sh` | 一键启动 |
+
+### 已验证结果
+- 单目标闭环：感知分类 83%（30 次试验），IRS 感知辅助增益 +233%（oracle 达成率 98%）
+- 多目标闭环：检测 2/2，IRS 指向增益 +289%（oracle 达成率 94%）
+- 感知即使分类错，粗定位仍带来大部分通信增益（工程价值）
+- 多目标分类难（0.24）：单站观测信号混合，物理限制（检测/定位可用）
+
+### 演示形态
+- `isac_demo/demo_live.html`：交互播放器（场景下拉/播放/速度/时间轴/UTC）
+- `isac_demo/demo_animation.gif`：直接可看的动画
+- 运行：`bash run_demo.sh` / `python demo_live.py` / `python make_animation.py`
+
+## 11. 文件清单
 
 | 文件 | 说明 | 状态 |
 |------|------|------|
