@@ -165,9 +165,9 @@ class SatScenarioChannels:
         return {k: (v.to(self.device) if isinstance(v, torch.Tensor) else v) for k, v in d.items()}
 
     def frame_cond_dim(self):
-        """每帧条件维度：12(X) + 12(Y) + 32(IRS) + 4(动态) 或去掉 IRS 项。"""
+        """每帧条件维度：12(X) + 12(Y) + 32(IRS) + 4(动态) + 1(RCS功率) 或去掉 IRS 项。"""
         irs_part = 2 * IRS_ELEMENTS if self.irs_mode != "none" else 0
-        return 12 + 12 + irs_part + 4
+        return 12 + 12 + irs_part + 4 + 1
 
 
 # ----------------------------------------------------------------------
@@ -248,45 +248,85 @@ GROUND_TARGET_TEMPLATES = [
     ("cubesat", _template_cubesat),
 ]
 
+# 微多普勒特征（雷达目标识别 RATR 物理基础）：运动部件对回波的频率调制
+# 无人机旋翼高速旋转 → 大扩展；车辆移动 → 中；静止目标 → 0
+MICRO_DOPPLER_HZ = {
+    "car": 800.0,
+    "uav": 3000.0,
+    "building": 0.0,
+    "tank": 0.0,
+    "tower": 0.0,
+    "cubesat": 0.0,
+}
 
-def generate_ground_roi():
-    """生成含 1-2 个随机地面目标的 ROI（16³ 体素）。
 
-    与 data.generate_ROI 结构兼容（返回 [16,16,16] float32）。
+def generate_ground_target_sample(pose_angle_deg=None):
+    """生成含 1 个随机地面目标的 ROI（16³ 体素），带类别与姿态标签。
+
+    物理：目标绕竖直轴（z）随机旋转 → 体素分布/散射中心改变 →
+    接收信号的幅度/相位模式随姿态变化（雷达目标姿态敏感性）。
+    返回 (ROI float32, class_id int, angle_deg float)
     """
     import random as _random
-    space = np.zeros((setup.ROI_Length, setup.ROI_Length, setup.ROI_Length), dtype=np.uint8)
-    num_objects = _random.randint(1, 2)
-    templates = list(GROUND_TARGET_TEMPLATES)
-    _random.shuffle(templates)
-    for i in range(min(num_objects, len(templates))):
-        _, maker = templates[i]
-        obj = maker()
-        placed = False
-        attempts = 0
-        while not placed and attempts < 100:
-            x = _random.randint(0, setup.ROI_Length - 8)
-            y = _random.randint(0, setup.ROI_Length - 8)
-            z = _random.randint(0, setup.ROI_Length - 8)
-            if np.all(space[x:x + 8, y:y + 8, z:z + 8] == 0):
-                space[x:x + 8, y:y + 8, z:z + 8] = obj
-                placed = True
-            attempts += 1
-    return space.astype(np.float32)
+    from scipy.ndimage import rotate as ndi_rotate
+
+    name, maker = _random.choice(GROUND_TARGET_TEMPLATES)
+    class_id = [n for n, _ in GROUND_TARGET_TEMPLATES].index(name)
+    angle = pose_angle_deg if pose_angle_deg is not None else _random.uniform(0.0, 360.0)
+
+    space = np.zeros((setup.ROI_Length, setup.ROI_Length, setup.ROI_Length), dtype=np.float32)
+    obj = maker().astype(np.float32)
+    placed = False
+    attempts = 0
+    while not placed and attempts < 100:
+        x = _random.randint(0, setup.ROI_Length - 8)
+        y = _random.randint(0, setup.ROI_Length - 8)
+        z = _random.randint(0, setup.ROI_Length - 8)
+        if np.all(space[x:x + 8, y:y + 8, z:z + 8] == 0):
+            space[x:x + 8, y:y + 8, z:z + 8] = obj
+            placed = True
+        attempts += 1
+
+    # 绕 z 轴（竖直轴）旋转整个 ROI：姿态改变散射体分布
+    if abs(angle) > 1e-6:
+        space = ndi_rotate(space, angle, axes=(0, 1), reshape=False,
+                           order=1, mode="constant", cval=0.0)
+        space = (space > 0.5).astype(np.float32)
+    return space, class_id, float(angle)
+
+
+def generate_ground_roi():
+    """兼容旧接口：只返回 ROI（默认随机姿态）。"""
+    roi, _, _ = generate_ground_target_sample()
+    return roi
 
 
 # ----------------------------------------------------------------------
+def data_progress_amp_phase_db(data_complex: torch.Tensor) -> torch.Tensor:
+    """复数信号 → [幅值(dB), sin(相位), cos(相位)] 特征。
+
+    dB 尺度是通信工程标准（幅度/功率用对数表示），避免星-地场景
+    功率标定系数（~1e11）造成特征尺度爆炸。
+    """
+    amp = torch.abs(data_complex).reshape(-1)
+    phase = torch.angle(data_complex).reshape(-1)
+    return torch.cat([20.0 * torch.log10(amp + 1e-12),
+                      torch.sin(phase), torch.cos(phase)], dim=0).float()
+
+
 # 信号计算
 # ----------------------------------------------------------------------
 
-def calculate_value_sat(ROI_voxel, phase, X, Ht, Power_sigma, t_rel, wavelength_m):
-    """单帧接收信号（5 路径结构 + 多普勒注入）。
+def calculate_value_sat(ROI_voxel, phase, X, Ht, Power_sigma, t_rel, wavelength_m,
+                        micro_fd_hz=0.0):
+    """单帧接收信号（5 路径结构 + 多普勒注入 + 可选微多普勒）。
 
     ROI_voxel: [R] 体素占据（0/1）
     phase:     [N] 或 []（无IRS）RIS 相位
     X:         [4,1] 发射导频
     Ht:        该帧信道 dict
     t_rel:     相对帧0时间（秒），多普勒相位累积用
+    micro_fd_hz: 目标微动多普勒（RATR 微多普勒特征），0 表示静止目标
     """
     S = ROI_voxel.reshape(-1)
     S_f = S.to(torch.float32)
@@ -317,6 +357,10 @@ def calculate_value_sat(ROI_voxel, phase, X, Ht, Power_sigma, t_rel, wavelength_
         H_total = H_total + H_BS_ROI_IRS_UE + H_BS_IRS_ROI_UE
 
     receive = H_total.matmul(X)                          # [4, 1]
+    # 目标微动对回波的整体频率调制（微多普勒，物理：运动部件旋转/振动）
+    if micro_fd_hz != 0.0:
+        receive = receive * torch.exp(torch.tensor(
+            1j * 2 * math.pi * micro_fd_hz * t_rel, dtype=torch.complex64))
     std = math.sqrt(Power_sigma)
     noise = torch.complex(torch.randn_like(receive.real) * std, torch.randn_like(receive.imag) * std)
     return receive + noise
@@ -336,7 +380,7 @@ class SatROIDataset(Dataset):
 
     def __init__(self, n_samples, channels, num_points=2048, device="cpu",
                  tau=ss.TAU, p_snr=P_SNR, power_sigma=POWER_SIGMA,
-                 phase_mode="random", target_source="ground"):
+                 phase_mode="random", target_source="ground", with_label=False):
         self.n = n_samples
         self.ch = channels
         self.device = device
@@ -347,6 +391,7 @@ class SatROIDataset(Dataset):
         self.a = channels.tensor_a
         self.phase_mode = phase_mode
         self.target_source = target_source
+        self.with_label = with_label
         if phase_mode == "tracked" and channels.irs_mode == "none":
             self.phase_mode = "random"  # 无 IRS 时退回随机
         self._opt = PhaseOptimizerSat(channels, device=device) if self.phase_mode == "tracked" else None
@@ -377,13 +422,13 @@ class SatROIDataset(Dataset):
         return seq
 
     def _make_roi(self):
-        """生成 ROI 体素（按 target_source 选择模板集）。"""
+        """生成 ROI 体素（按 target_source 选择模板集），返回 (ROI, class_id, angle)。"""
         if self.target_source == "indoor":
-            return generate_ROI().astype("float32")
-        return generate_ground_roi()
+            return generate_ROI().astype("float32"), None, 0.0
+        return generate_ground_target_sample()
 
     def __getitem__(self, idx):
-        ROI_np = self._make_roi()
+        ROI_np, class_id, angle = self._make_roi()
         # 点云（地面目标区域，物理坐标 → [-1,1] 归一化）
         point_cloud = extract_point_cloud_from_voxel(
             ROI_np, num_points=self.num_points, voxel_size=self.ch.voxel_size)
@@ -394,9 +439,9 @@ class SatROIDataset(Dataset):
         ROI_voxel = torch.tensor(ROI_np).reshape(-1)
         # X 特征（12 维）
         X_cpu = self.X_fixed.detach().cpu()
-        X_amp = torch.abs(X_cpu).reshape(-1)
+        X_amp_db = 20.0 * torch.log10(torch.abs(X_cpu).reshape(-1) + 1e-12)
         X_phase = torch.angle(X_cpu).reshape(-1)
-        X_feat = torch.cat([X_amp, torch.sin(X_phase), torch.cos(X_phase)], dim=0).float()
+        X_feat = torch.cat([X_amp_db, torch.sin(X_phase), torch.cos(X_phase)], dim=0).float()
 
         cond_list = []
         phases_seq = self._frame_phases(ROI_voxel)
@@ -408,7 +453,7 @@ class SatROIDataset(Dataset):
             Y_t = calculate_value_sat(
                 ROI_voxel, phases, self.X_fixed, frame, self.power_sigma,
                 t_rel, self.ch.wavelength_m)
-            Y_feat = data_progress_amp_phase(Y_t.detach().cpu())     # 12 维
+            Y_feat = data_progress_amp_phase_db(Y_t.detach().cpu())     # 12 维（dB）
 
             if len(phases) > 0:
                 IRS_feat = torch.cat([torch.sin(phases), torch.cos(phases)], dim=0).float()  # 2N
@@ -423,10 +468,15 @@ class SatROIDataset(Dataset):
                 frame["elevation_deg"] / 90.0,      # [0,1]
             ], dtype=torch.float32)
 
-            cond_t = torch.cat([X_feat, Y_feat, IRS_feat, dyn], dim=0).float()
+            # RCS 功率特征（物理：目标散射截面 → 回波功率，类别可分主特征）
+            y_pow = torch.log10(Y_t.abs().pow(2).mean() + 1e-12)
+
+            cond_t = torch.cat([X_feat, Y_feat, IRS_feat, dyn, y_pow.view(1)], dim=0).float()
             cond_list.append(cond_t)
 
         cond = torch.stack(cond_list).float()        # [Tau, cond_dim]
+        if self.with_label:
+            return point_cloud.float(), cond, class_id, float(angle)
         return point_cloud.float(), cond
 
 
