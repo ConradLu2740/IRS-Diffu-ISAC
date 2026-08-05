@@ -407,6 +407,29 @@ def generate_ground_roi():
     return roi
 
 
+def generate_multi_target_sample(n_max=2, max_tries=40):
+    """生成含 1-n_max 个地面目标的 ROI（16³ 体素），返回 (ROI, targets)。
+
+    targets: [(class_id, (cx, cy)), ...]，cx/cy 为归一化质心 [-1,1]。
+    工程用途：多目标感知（分类+定位每个目标）。
+    """
+    import random as _random
+    n_obj = _random.randint(1, n_max)
+    space = np.zeros((setup.ROI_Length, setup.ROI_Length, setup.ROI_Length), dtype=np.float32)
+    targets = []
+    for _ in range(n_obj):
+        for _ in range(max_tries):
+            roi, cid, _ = generate_ground_target_sample()
+            if not np.any((space > 0.5) & (roi > 0.5)):
+                space = np.maximum(space, roi)
+                occ = np.argwhere(roi > 0.5)
+                cx = occ[:, 0].mean() / setup.ROI_Length * 2.0 - 1.0
+                cy = occ[:, 1].mean() / setup.ROI_Length * 2.0 - 1.0
+                targets.append((cid, (float(cx), float(cy))))
+                break
+    return space, targets
+
+
 # ----------------------------------------------------------------------
 def data_progress_amp_phase_db(data_complex: torch.Tensor) -> torch.Tensor:
     """复数信号 → [幅值(dB), sin(相位), cos(相位)] 特征。
@@ -487,7 +510,8 @@ class SatROIDataset(Dataset):
     def __init__(self, n_samples, channels, num_points=2048, device="cpu",
                  tau=ss.TAU, p_snr=P_SNR, power_sigma=POWER_SIGMA,
                  phase_mode="random", target_source="ground", with_label=False,
-                 wideband=False, wideband_snr_db=20.0, isar=False, rp_align=True):
+                 wideband=False, wideband_snr_db=20.0, isar=False, rp_align=True,
+                 multi=False):
         self.n = n_samples
         self.ch = channels
         self.device = device
@@ -503,6 +527,7 @@ class SatROIDataset(Dataset):
         self.wideband_snr_db = wideband_snr_db
         self.isar = isar
         self.rp_align = rp_align
+        self.multi = multi
         if phase_mode == "tracked" and channels.irs_mode == "none":
             self.phase_mode = "random"  # 无 IRS 时退回随机
         self._opt = PhaseOptimizerSat(channels, device=device) if self.phase_mode == "tracked" else None
@@ -539,13 +564,17 @@ class SatROIDataset(Dataset):
         return seq
 
     def _make_roi(self):
-        """生成 ROI 体素（按 target_source 选择模板集），返回 (ROI, class_id, angle)。"""
+        """生成 ROI 体素，返回 (ROI, class_id, angle, targets)。"""
         if self.target_source == "indoor":
-            return generate_ROI().astype("float32"), None, 0.0
-        return generate_ground_target_sample()
+            return generate_ROI().astype("float32"), None, 0.0, None
+        if self.multi:
+            roi, targets = generate_multi_target_sample()
+            return roi, None, 0.0, targets
+        roi, cid, ang = generate_ground_target_sample()
+        return roi, cid, ang, None
 
     def __getitem__(self, idx):
-        ROI_np, class_id, angle = self._make_roi()
+        ROI_np, class_id, angle, targets = self._make_roi()
         # 点云（地面目标区域，物理坐标 → [-1,1] 归一化）
         point_cloud = extract_point_cloud_from_voxel(
             ROI_np, num_points=self.num_points, voxel_size=self.ch.voxel_size)
@@ -602,9 +631,13 @@ class SatROIDataset(Dataset):
                     ROI_np, self._target_ecef, self._ground_ecef, self.ch.wavelength_m,
                     snr_db=self.wideband_snr_db, seed=idx, align=self.rp_align)).float()  # [K]
             if self.with_label:
+                if self.multi:
+                    return point_cloud.float(), cond, feat, targets
                 return point_cloud.float(), cond, feat, class_id, float(angle)
             return point_cloud.float(), cond, feat
         if self.with_label:
+            if self.multi:
+                return point_cloud.float(), cond, targets
             return point_cloud.float(), cond, class_id, float(angle)
         return point_cloud.float(), cond
 
