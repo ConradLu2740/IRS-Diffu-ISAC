@@ -55,9 +55,14 @@ class MLPBackbone(nn.Module):
         super().__init__()
         self.rp_dim = rp_dim
         self.rp_net = None
+        self.pose_rp_net = None
         if rp_dim > 0:
             self.rp_net = nn.Sequential(
                 nn.Linear(rp_dim, 64), nn.BatchNorm1d(64), nn.ReLU())
+            # 姿态独立编码器（不与分类共享，避免分类主导）
+            self.pose_rp_net = nn.Sequential(
+                nn.Linear(rp_dim, 128), nn.BatchNorm1d(128), nn.ReLU(),
+                nn.Linear(128, 64), nn.BatchNorm1d(64), nn.ReLU())
         self.net = nn.Sequential(
             nn.Linear(in_dim + (64 if rp_dim > 0 else 0), hidden),
             nn.BatchNorm1d(hidden), nn.ReLU(), nn.Dropout(0.3),
@@ -68,13 +73,15 @@ class MLPBackbone(nn.Module):
     def forward(self, cond, rp=None):
         x = cond.flatten(1) if cond is not None else torch.zeros(rp.size(0), 0)
         r = None
+        rp_pose = None
         if rp is not None and self.rp_net is not None:
             if rp.dim() > 2:
                 rp = rp.flatten(1)      # [B, M*K] ISAR 序列展平
-            r = self.rp_net(rp)          # [B, 64] 距离像/ISAR 独立编码
+            r = self.rp_net(rp)          # [B, 64] 分类用 rp 编码
+            rp_pose = self.pose_rp_net(rp)  # [B, 64] 姿态独立编码
             x = torch.cat([x, r], dim=1)
         fused = self.net(x)
-        return fused, r                   # (融合特征, rp特征) 供分类/姿态分离
+        return fused, rp_pose             # (融合特征, 姿态专用特征)
 
 
 class CondEncBackbone(nn.Module):

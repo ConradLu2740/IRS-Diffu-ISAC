@@ -268,9 +268,10 @@ WIDEBAND_K = 512           # 子载波数（距离单元）；512@1GHz → 距�
 WIDEBAND_BW_HZ = 1e9       # 带宽 1GHz → 距离分辨率 ~0.15m
 
 # ISAR 参数（目标转动 → 距离-时间序列，合成孔径积累）
-ISAR_M = 16                # 观测帧数
-ISAR_OMEGA_DEG = 30.0      # 目标自转角速度（°/s）
-ISAR_DT = 0.02             # 帧间隔（s）→ 总转角 ω·dt·(M-1) ≈ 9°
+# 物理规律：总转角 = ω·dt·(M-1) 决定姿态可估性（转角越大横向分辨率越高）
+ISAR_M = 32                # 观测帧数
+ISAR_OMEGA_DEG = 60.0      # 目标自转角速度（°/s）
+ISAR_DT = 0.03             # 帧间隔（s）→ 总转角 ≈ 56°
 
 
 def compute_isar_sequence(ROI_np, target_ecef, ground_ecef, wavelength_m,
