@@ -17,6 +17,7 @@ extended to **space-based ISAC** with LEO satellites, dynamic RIS tracking, and 
 | 📡 **RIS 动态相位跟踪** | 解析相位对齐，逐帧跟踪功率 **+283%**；分段跟踪量化"RIS 重构速率 vs 信道相干时间"权衡 |
 | 🎯 **感知-通信闭环** | 通信信号感知目标（分类 + 定位）→ 自动配置 IRS → 通信功率 **+233%**（达成理想优化 98%） |
 | 🖥️ **实时演示** | 单文件 HTML 播放器（多场景切换 / 时间轴 / UTC 真实过境时间）+ GIF 动画 |
+| 📻 **SDR 接口** | IQ 数据格式 + 导入管线（时域 IQ → FFT → 距离像，保真 0.998），硬件预留（RTL-SDR/USRP） |
 | 🧪 **可复现验证** | 物理验证、跟踪权衡、多目标感知、多轨道/Ka 频段鲁棒性——全部脚本可一键运行 |
 
 ---
@@ -107,6 +108,9 @@ bash run_demo.sh
 
 # 5. RIS 动态跟踪权衡
 ../../.venv/bin/python verify_tracking.py
+
+# 6. SDR 数据管线（无硬件：模拟 IQ → 回放感知）
+../../.venv/bin/python demo_sdr.py
 ```
 
 ---
@@ -120,6 +124,7 @@ IRS-Diffu-ISAC/
 │   │   ├── setup_sat.py / data_sat.py / train_sat.py / eval_sat.py
 │   │   ├── phase_optimizer_sat.py / task_sat.py
 │   │   ├── train_sensing*.py          # 感知（分类+定位）
+│   │   ├── sdr_io.py / sdr_ingest.py  # SDR 数据接口（IQ 格式/导入）
 │   │   ├── demo*.py / make_animation.py / run_demo.sh
 │   │   └── isac_demo/                 # checkpoint + HTML 播放器 + GIF
 │   ├── legacy/                        # 原项目（RIS+扩散模型重建，归档）
