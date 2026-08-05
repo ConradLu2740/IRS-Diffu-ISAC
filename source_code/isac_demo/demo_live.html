@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>星-地 ISAC 感知-通信闭环 · 实时演示</title>
+<style>
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+         background: #0f1420; color: #e8ecf4; margin: 0; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 12px; color: #7fd1ff; }
+  .meta { font-size: 13px; color: #9aa7bd; margin-bottom: 12px; }
+  .grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; }
+  .card { background: #1a2233; border: 1px solid #2a3550; border-radius: 10px; padding: 12px; }
+  .card h2 { font-size: 14px; margin: 0 0 8px; color: #b8c6de; }
+  canvas { width: 100%; height: auto; background: #0d1320; border-radius: 8px; }
+  .panel { display: flex; flex-direction: column; gap: 10px; }
+  .stat { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 8px;
+          background: #141c2c; border-radius: 6px; }
+  .stat .v { color: #7fd1ff; font-weight: bold; }
+  .controls { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+  button { background: #2a67c4; border: none; color: #fff; padding: 8px 16px; border-radius: 6px;
+           cursor: pointer; font-size: 14px; }
+  button:hover { background: #3a77d4; }
+  input[type=range] { flex: 1; }
+  .legend { display: flex; gap: 14px; font-size: 12px; color: #9aa7bd; flex-wrap: wrap; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <h1>🛰️ 星-地 ISAC 感知-通信闭环 · 实时演示</h1>
+  <div class="meta" id="meta"></div>
+  <div class="grid">
+    <div class="card">
+      <h2>卫星过境场景</h2>
+      <canvas id="scene" width="640" height="400"></canvas>
+      <div class="legend">
+        <span><span class="dot" style="background:#4fc3f7"></span>卫星</span>
+        <span><span class="dot" style="background:#7fd151"></span>目标</span>
+        <span><span class="dot" style="background:#ffb74d"></span>地面站</span>
+        <span><span class="dot" style="background:#ce93d8"></span>IRS 波束</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>实时感知与状态</h2>
+      <div class="panel" id="info"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <h2>通信功率（三种 IRS 策略）</h2>
+    <canvas id="power" width="980" height="180"></canvas>
+  </div>
+  <div class="controls">
+    <button id="playBtn">⏸ 暂停</button>
+    <button id="speedBtn">1.0×</button>
+    <input type="range" id="timeline" min="0" value="0">
+    <span id="timeLabel" style="font-size:13px">帧 0</span>
+  </div>
+<script>
+const DATA = {"meta": {"sat": "ISS", "freq": "30.0 GHz", "frames": 8, "target_lat": 30.0, "target_lon": 120.0, "irs": "sat"}, "target": {"cls_true": "car", "cls_pred": "cubesat", "cls_ok": false, "pos_true": [0.05, 0.28], "pos_pred": [-0.06, 0.45], "pos_err": 0.2}, "frames": [{"t": 0, "elev": 33.7, "progress": 0.0, "pr": 0.063, "ps": 0.107, "po": 0.176}, {"t": 1, "elev": 33.8, "progress": 0.143, "pr": 0.0, "ps": 0.0, "po": 0.0}, {"t": 2, "elev": 33.7, "progress": 0.286, "pr": 0.115, "ps": 0.217, "po": 0.25}, {"t": 3, "elev": 33.7, "progress": 0.429, "pr": 0.002, "ps": 0.008, "po": 0.012}, {"t": 4, "elev": 33.7, "progress": 0.571, "pr": 0.101, "ps": 0.519, "po": 0.535}, {"t": 5, "elev": 33.7, "progress": 0.714, "pr": 0.009, "ps": 0.026, "po": 0.028}, {"t": 6, "elev": 33.7, "progress": 0.857, "pr": 0.008, "ps": 0.031, "po": 0.021}, {"t": 7, "elev": 33.7, "progress": 1.0, "pr": 0.439, "ps": 1.0, "po": 0.97}], "summary": {"gain_sensed": 158.5, "gain_oracle": 169.9, "cls_acc_30": 0.83}};
+const frames = DATA.frames;
+const meta = DATA.meta;
+let idx = 0, playing = true, speed = 1.0, timer = null;
+
+// meta
+document.getElementById('meta').textContent =
+  `卫星: ${meta.sat} · 载频: ${meta.freq} · 目标区域: (${meta.target_lat}°N, ${meta.target_lon}°E) · IRS: ${meta.irs}`;
+
+const scene = document.getElementById('scene'), sctx = scene.getContext('2d');
+const power = document.getElementById('power'), pctx = power.getContext('2d');
+const info = document.getElementById('info');
+
+function drawScene(i) {
+  const f = frames[i], W = scene.width, H = scene.height;
+  sctx.clearRect(0, 0, W, H);
+  // 天空
+  const skyY = H * 0.42, groundY = H * 0.78;
+  const grad = sctx.createLinearGradient(0, 0, 0, groundY);
+  grad.addColorStop(0, '#0a1226'); grad.addColorStop(1, '#16233d');
+  sctx.fillStyle = grad; sctx.fillRect(0, 0, W, groundY);
+  // 地面
+  sctx.fillStyle = '#1d2c1d'; sctx.fillRect(0, groundY, W, H - groundY);
+  sctx.strokeStyle = '#3a5a3a'; sctx.lineWidth = 2;
+  sctx.beginPath(); sctx.moveTo(0, groundY); sctx.lineTo(W, groundY); sctx.stroke();
+  // 地面站（固定）
+  sctx.fillStyle = '#ffb74d';
+  sctx.beginPath(); sctx.arc(W*0.55, groundY-4, 7, 0, 2*Math.PI); sctx.fill();
+  sctx.fillStyle = '#9aa7bd'; sctx.font = '11px sans-serif';
+  sctx.fillText('地面站', W*0.55-20, groundY+16);
+  // 目标（固定）
+  const tpos = DATA.target.pos_true;
+  const tx = W*0.45 + tpos[0]*30, ty = groundY - 4;
+  sctx.fillStyle = '#7fd151';
+  sctx.beginPath(); sctx.arc(tx, ty, 8, 0, 2*Math.PI); sctx.fill();
+  sctx.fillText(DATA.target.cls_true, tx-14, ty-14);
+  // 感知位置
+  const pp = DATA.target.pos_pred;
+  const pxx = W*0.45 + pp[0]*30, pyy = groundY - 4;
+  sctx.strokeStyle = '#ff5252'; sctx.lineWidth = 2;
+  sctx.beginPath(); sctx.moveTo(pxx-6, pyy-6); sctx.lineTo(pxx+6, pyy+6);
+  sctx.moveTo(pxx+6, pyy-6); sctx.lineTo(pxx-6, pyy+6); sctx.stroke();
+  // 卫星（沿过境弧）
+  const prog = f.progress, elev = f.elev;
+  const satX = W * (0.12 + 0.76 * prog);
+  const satY = skyY + (1 - elev / 60) * (groundY - skyY - 30);
+  sctx.fillStyle = '#4fc3f7';
+  sctx.beginPath(); sctx.arc(satX, satY, 9, 0, 2*Math.PI); sctx.fill();
+  sctx.fillText(meta.sat, satX-18, satY-16);
+  // 轨迹
+  sctx.strokeStyle = 'rgba(79,195,247,0.4)'; sctx.lineWidth = 2;
+  sctx.setLineDash([5, 5]);
+  sctx.beginPath();
+  for (let j = 0; j <= idx; j++) {
+    const p = frames[j].progress, e = frames[j].elev;
+    const x = W*(0.12+0.76*p), y = skyY + (1 - e/60)*(groundY-skyY-30);
+    j === 0 ? sctx.moveTo(x, y) : sctx.lineTo(x, y);
+  }
+  sctx.stroke(); sctx.setLineDash([]);
+  // 感知链路（卫星→目标）
+  sctx.strokeStyle = 'rgba(255,82,82,0.5)'; sctx.lineWidth = 1.5;
+  sctx.beginPath(); sctx.moveTo(satX, satY); sctx.lineTo(tx, ty); sctx.stroke();
+  // IRS 波束（朝目标）
+  if (f.ps > 0.2) {
+    sctx.strokeStyle = 'rgba(206,147,216,0.6)'; sctx.lineWidth = 3;
+    sctx.beginPath();
+    sctx.moveTo(W*0.55, groundY-4);
+    sctx.lineTo(tx-10, groundY-60); sctx.lineTo(tx+10, groundY-60);
+    sctx.closePath(); sctx.stroke();
+    sctx.fillStyle = 'rgba(206,147,216,0.15)';
+    sctx.fill();
+  }
+  // 仰角
+  sctx.fillStyle = '#7fd1ff'; sctx.font = '12px sans-serif';
+  sctx.fillText(`仰角 ${elev.toFixed(1)}° · 帧 ${i}`, 10, 22);
+}
+
+function drawPower(i) {
+  const W = power.width, H = power.height;
+  pctx.clearRect(0, 0, W, H);
+  const colors = { pr: '#9aa7bd', ps: '#ff5252', po: '#4fc3f7' };
+  const labels = { pr: 'random', ps: 'sensed', po: 'oracle' };
+  const names = ['pr', 'ps', 'po'];
+  const pad = 30;
+  names.forEach(n => {
+    pctx.strokeStyle = colors[n]; pctx.lineWidth = 2;
+    pctx.beginPath();
+    frames.forEach((f, j) => {
+      const x = pad + (W - 2*pad) * (frames.length === 1 ? 0 : j/(frames.length-1));
+      const y = H - 20 - (H - 40) * f[n];
+      j === 0 ? pctx.moveTo(x, y) : pctx.lineTo(x, y);
+    });
+    pctx.stroke();
+    pctx.fillStyle = colors[n]; pctx.font = '11px sans-serif';
+    pctx.fillText(labels[n], pad + (W-2*pad)*0.5 - 15, 14);
+  });
+  // 当前帧标记
+  const x = pad + (W - 2*pad) * (frames.length === 1 ? 0 : i/(frames.length-1));
+  pctx.fillStyle = '#fff';
+  pctx.fillRect(x-1, H-20-(H-40), 2, H-40);
+}
+
+function drawInfo(i) {
+  const t = DATA.target;
+  info.innerHTML = `
+    <div class="stat"><span>帧 / 过境进度</span><span class="v">${i+1}/${frames.length} (${Math.round(frames[i].progress*100)}%)</span></div>
+    <div class="stat"><span>目标分类</span><span class="v" style="color:${t.cls_ok?'#7fd151':'#ff5252'}">${t.cls_pred} ${t.cls_ok?'✓':'✗'} (真实: ${t.cls_true})</span></div>
+    <div class="stat"><span>位置估计</span><span class="v">(${t.pos_pred[0]}, ${t.pos_pred[1]}) 误差 ${t.pos_err}</span></div>
+    <div class="stat"><span>感知辅助功率</span><span class="v">${frames[i].ps.toFixed(2)}</span></div>
+    <div class="stat"><span>随机基线功率</span><span class="v">${frames[i].pr.toFixed(2)}</span></div>
+    <div class="stat"><span>理想上界功率</span><span class="v">${frames[i].po.toFixed(2)}</span></div>
+    <div class="stat"><span>闭环增益</span><span class="v" style="color:#7fd151">+${DATA.summary.gain_sensed}% (oracle +${DATA.summary.gain_oracle}%)</span></div>
+  `;
+}
+
+function step() {
+  drawScene(idx); drawPower(idx); drawInfo(idx);
+  document.getElementById('timeline').value = idx;
+  document.getElementById('timeLabel').textContent = `帧 ${idx}`;
+}
+
+function next() {
+  idx = (idx + 1) % frames.length;
+  step();
+}
+
+function tick() {
+  if (playing) next();
+}
+timer = setInterval(tick, 700 / speed);
+
+document.getElementById('playBtn').onclick = function() {
+  playing = !playing;
+  this.textContent = playing ? '⏸ 暂停' : '▶ 播放';
+};
+document.getElementById('speedBtn').onclick = function() {
+  speed = speed === 1 ? 2 : speed === 2 ? 4 : 1;
+  this.textContent = speed + '×';
+  clearInterval(timer); timer = setInterval(tick, 700 / speed);
+};
+document.getElementById('timeline').oninput = function() {
+  idx = parseInt(this.value); step();
+};
+document.getElementById('timeline').max = frames.length - 1;
+
+step();
+</script>
+</body>
+</html>
