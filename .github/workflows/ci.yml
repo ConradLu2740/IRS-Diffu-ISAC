@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Module import check (isac_sat + legacy)
+        run: |
+          python - <<'EOF'
+          import importlib, sys
+          sys.path.insert(0, 'source_code/isac_sat')
+          sys.path.insert(0, 'source_code/legacy')
+          mods = ['setup_sat','data_sat','train_sat','eval_sat','task_sat',
+                  'phase_optimizer_sat','verify_sat','verify_tracking',
+                  'verify_robustness','train_sensing','train_sensing_multi',
+                  'demo','demo_live','demo_multi','make_animation','demo_sdr',
+                  'sdr_io','sdr_ingest',
+                  'setup','data','data_no_irs','models','train','phase_optimizer']
+          for m in mods:
+              importlib.import_module(m)
+          print(f'OK: {len(mods)} modules importable')
+          EOF
+
+      - name: Physics smoke test (orbit / Doppler / channel)
+        run: |
+          cd source_code/isac_sat
+          python verify_sat.py 2>&1 | tail -3
+          python verify_sat.py | grep -q "ALL PASS" && echo "PHYSICS OK"
+
+      - name: SDR pipeline smoke
+        run: |
+          cd source_code/isac_sat
+          python - <<'EOF'
+          import setup_sat as ss
+          from data_sat import SatScenarioChannels, generate_ground_target_sample
+          from sdr_ingest import verify_pipeline
+          sc = ss.SatISACScenario()
+          frames = sc.build_frames()
+          ch = SatScenarioChannels(frames, irs_mode='sat', device='cpu')
+          mid = frames[len(frames)//2]
+          roi, _, _ = generate_ground_target_sample()
+          corr, _, _ = verify_pipeline(roi, mid['target_pos'], mid['ground_pos'], ch.wavelength_m)
+          assert corr > 0.9, f'fidelity low: {corr}'
+          print(f'SDR fidelity: {corr:.4f} OK')
+          EOF
