@@ -12,6 +12,7 @@ demo_live.py — 星-地 ISAC 感知-通信闭环实时演示（数据生成器�
 import os
 import json
 import argparse
+from datetime import datetime, timedelta
 import numpy as np
 import torch
 
@@ -93,9 +94,12 @@ def main(args):
     gain_oracle = 100 * (np.mean(powers["oracle"]) / np.mean(powers["random"]) - 1)
 
     frame_data = []
+    t0 = datetime(*scenario.start_utc)
     for i in range(n_frames):
+        utc = (t0 + timedelta(seconds=frames[i]["t_abs_sec"])).strftime("%H:%M:%S")
         frame_data.append({
             "t": i,
+            "utc": utc,
             "elev": round(elevs[i], 1),
             "progress": round(i / max(n_frames - 1, 1), 3),
             "pr": round(p_norm["random"][i], 3),
@@ -277,7 +281,7 @@ function drawScene(i) {
   }
   // 仰角
   sctx.fillStyle = '#7fd1ff'; sctx.font = '12px sans-serif';
-  sctx.fillText(`仰角 ${elev.toFixed(1)}° · 帧 ${i}`, 10, 22);
+  sctx.fillText(`仰角 ${elev.toFixed(1)}° · UTC ${f.utc} · 帧 ${i}`, 10, 22);
 }
 
 function drawPower(i) {
@@ -308,7 +312,7 @@ function drawPower(i) {
 function drawInfo(i) {
   const t = DATA.target;
   info.innerHTML = `
-    <div class="stat"><span>帧 / 过境进度</span><span class="v">${i+1}/${frames.length} (${Math.round(frames[i].progress*100)}%)</span></div>
+    <div class="stat"><span>帧 / UTC</span><span class="v">${i+1}/${frames.length} · ${frames[i].utc} (${Math.round(frames[i].progress*100)}%)</span></div>
     <div class="stat"><span>目标分类</span><span class="v" style="color:${t.cls_ok?'#7fd151':'#ff5252'}">${t.cls_pred} ${t.cls_ok?'✓':'✗'} (真实: ${t.cls_true})</span></div>
     <div class="stat"><span>位置估计</span><span class="v">(${t.pos_pred[0]}, ${t.pos_pred[1]}) 误差 ${t.pos_err}</span></div>
     <div class="stat"><span>感知辅助功率</span><span class="v">${frames[i].ps.toFixed(2)}</span></div>
@@ -362,7 +366,7 @@ if __name__ == "__main__":
     parser.add_argument("--phase_mode", choices=["random", "tracked"], default="tracked")
     parser.add_argument("--bs_ant", type=int, default=4)
     parser.add_argument("--ue_ant", type=int, default=4)
-    parser.add_argument("--tau", type=int, default=8)
+    parser.add_argument("--tau", type=int, default=16)
     parser.add_argument("--snr_db", type=float, default=20.0)
     parser.add_argument("--seed", type=int, default=7)
     args = parser.parse_args()
