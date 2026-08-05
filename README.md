@@ -1,11 +1,27 @@
 # 🛰️ IRS-Diffu-ISAC
 
+[![CI](https://github.com/ConradLu2740/IRS-Diffu-ISAC/actions/workflows/ci.yml/badge.svg)](https://github.com/ConradLu2740/IRS-Diffu-ISAC/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ConradLu2740/IRS-Diffu-ISAC/blob/main/colab/isac_demo.ipynb)
+
 **RIS 辅助通感一体化（ISAC）· 从扩散模型 3D 重建到太空 ISAC（ISAC-NTN）工程闭环**
 
 Intelligent Reflecting Surface (RIS) aided **Integrated Sensing and Communication (ISAC)**
 — powered by Conditional Latent Diffusion Models for 3D point cloud reconstruction,
 extended to **space-based ISAC** with LEO satellites, dynamic RIS tracking, and an
 **end-to-end sensing–communication closed-loop demo**.
+
+---
+
+## 🚀 60 秒体验（零配置）
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ConradLu2740/IRS-Diffu-ISAC/blob/main/colab/isac_demo.ipynb)
+
+点击上方按钮在 **Google Colab** 打开体验笔记本，自动完成：
+克隆仓库 → 装依赖 → 真实卫星轨道验证 → 感知-通信闭环 demo → 生成演示 GIF。无需本地环境。
+
+也可以本地运行（[快速开始](#-快速开始)）。
 
 ---
 
