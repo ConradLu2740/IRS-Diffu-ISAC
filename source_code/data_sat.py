@@ -267,6 +267,56 @@ MICRO_DOPPLER_HZ = {
 WIDEBAND_K = 512           # 子载波数（距离单元）；512@1GHz → 距离窗 ~154m 覆盖 80m ROI
 WIDEBAND_BW_HZ = 1e9       # 带宽 1GHz → 距离分辨率 ~0.15m
 
+# ISAR 参数（目标转动 → 距离-时间序列，合成孔径积累）
+ISAR_M = 16                # 观测帧数
+ISAR_OMEGA_DEG = 30.0      # 目标自转角速度（°/s）
+ISAR_DT = 0.02             # 帧间隔（s）→ 总转角 ω·dt·(M-1) ≈ 9°
+
+
+def compute_isar_sequence(ROI_np, target_ecef, ground_ecef, wavelength_m,
+                          m_frames=ISAR_M, omega_deg=ISAR_OMEGA_DEG, dt=ISAR_DT,
+                          k=WIDEBAND_K, bw_hz=WIDEBAND_BW_HZ, snr_db=20.0, seed=0):
+    """ISAR 距离-时间序列：目标自转 ω，M 帧宽带距离像。
+
+    物理：目标自转（如卫星自旋/无人机盘旋）产生不同视角的距离像，
+    转角越大横向分辨率越高（ISAR 合成孔径），姿态可估性越强。
+    返回 [M, K]（每帧距离像，L2 归一化）。
+    """
+    from scipy.ndimage import rotate as ndi_rotate
+    C_MS = ss.C_LIGHT_KM * 1000.0
+    local = make_roi_local()
+    u = ground_ecef - target_ecef
+    u = u / (np.linalg.norm(u) + 1e-12)
+    f = np.linspace(-bw_hz / 2.0, bw_hz / 2.0, k)
+    rng = np.random.RandomState(seed)
+
+    seq = []
+    for m in range(m_frames):
+        theta = omega_deg * m * dt
+        if abs(theta) > 1e-6:
+            rotated = ndi_rotate(ROI_np, theta, axes=(0, 1), reshape=False,
+                                 order=1, mode="constant", cval=0.0)
+            rotated = (rotated > 0.5)
+        else:
+            rotated = ROI_np > 0.5
+        occ = np.argwhere(rotated)
+        if len(occ) == 0:
+            seq.append(np.zeros(k, dtype=np.float32))
+            continue
+        p = target_ecef[None, :] + local[occ[:, 0] * 256 + occ[:, 1] * 16 + occ[:, 2], :] / 1000.0
+        rel = p - p.mean(axis=0)
+        d_proj = (rel @ u) * 1000.0                     # 米
+        tau = (d_proj + 50e3 + 695e3) / C_MS
+        H = np.exp(-2j * np.pi * f[:, None] * tau[None, :]).sum(axis=1)
+        if snr_db is not None:
+            sig_pow = np.mean(np.abs(H) ** 2)
+            n_pow = sig_pow / (10.0 ** (snr_db / 10.0))
+            H = H + rng.randn(k) * np.sqrt(n_pow / 2) + 1j * rng.randn(k) * np.sqrt(n_pow / 2)
+        rp = np.abs(np.fft.ifft(H))
+        norm = np.linalg.norm(rp)
+        seq.append((rp / (norm + 1e-12)).astype(np.float32))
+    return np.array(seq)
+
 
 def compute_range_profile(ROI_np, target_ecef, ground_ecef, wavelength_m,
                           k=WIDEBAND_K, bw_hz=WIDEBAND_BW_HZ, snr_db=20.0,
@@ -436,7 +486,7 @@ class SatROIDataset(Dataset):
     def __init__(self, n_samples, channels, num_points=2048, device="cpu",
                  tau=ss.TAU, p_snr=P_SNR, power_sigma=POWER_SIGMA,
                  phase_mode="random", target_source="ground", with_label=False,
-                 wideband=False, wideband_snr_db=20.0):
+                 wideband=False, wideband_snr_db=20.0, isar=False):
         self.n = n_samples
         self.ch = channels
         self.device = device
@@ -448,13 +498,14 @@ class SatROIDataset(Dataset):
         self.phase_mode = phase_mode
         self.target_source = target_source
         self.with_label = with_label
-        self.wideband = wideband
+        self.wideband = wideband or isar   # ISAR 隐含宽带
         self.wideband_snr_db = wideband_snr_db
+        self.isar = isar
         if phase_mode == "tracked" and channels.irs_mode == "none":
             self.phase_mode = "random"  # 无 IRS 时退回随机
         self._opt = PhaseOptimizerSat(channels, device=device) if self.phase_mode == "tracked" else None
         # 宽带距离像几何（取中帧）
-        if wideband:
+        if self.wideband:
             mid = channels.frames[len(channels.frames) // 2]
             self._target_ecef = mid["target_pos"]
             self._ground_ecef = mid["ground_pos"]
@@ -540,12 +591,17 @@ class SatROIDataset(Dataset):
 
         cond = torch.stack(cond_list).float()        # [Tau, cond_dim]
         if self.wideband:
-            rp = torch.from_numpy(compute_range_profile(
-                ROI_np, self._target_ecef, self._ground_ecef, self.ch.wavelength_m,
-                snr_db=self.wideband_snr_db, seed=idx)).float()
+            if self.isar:
+                feat = torch.from_numpy(compute_isar_sequence(
+                    ROI_np, self._target_ecef, self._ground_ecef, self.ch.wavelength_m,
+                    snr_db=self.wideband_snr_db, seed=idx)).float()  # [M, K]
+            else:
+                feat = torch.from_numpy(compute_range_profile(
+                    ROI_np, self._target_ecef, self._ground_ecef, self.ch.wavelength_m,
+                    snr_db=self.wideband_snr_db, seed=idx)).float()  # [K]
             if self.with_label:
-                return point_cloud.float(), cond, rp, class_id, float(angle)
-            return point_cloud.float(), cond, rp
+                return point_cloud.float(), cond, feat, class_id, float(angle)
+            return point_cloud.float(), cond, feat
         if self.with_label:
             return point_cloud.float(), cond, class_id, float(angle)
         return point_cloud.float(), cond
