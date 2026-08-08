@@ -32,6 +32,7 @@ extended to **space-based ISAC** with LEO satellites, dynamic RIS tracking, and 
 | 🛰️ **真实轨道仿真** | SGP4 传播真实 LEO 卫星（ISS / Starlink TLE），动态几何 + 多普勒 + 时延，物理验证与真实轨道吻合 |
 | 📡 **RIS 动态相位跟踪** | 解析相位对齐，逐帧跟踪功率 **+283%**；分段跟踪量化"RIS 重构速率 vs 信道相干时间"权衡 |
 | 🎯 **感知-通信闭环** | 通信信号感知目标（分类 + 定位）→ 自动配置 IRS → 通信功率 **+233%**（达成理想优化 98%） |
+| 👥 **多目标追踪（MOT）** | 同时追踪 10 个移动目标（轿车/无人机/自行车/行人/火车 5 类），检测召回 81%、轨迹聚合提升类别准确率 |
 | 🖥️ **实时演示** | 单文件 HTML 播放器（多场景切换 / 时间轴 / UTC 真实过境时间）+ GIF 动画 |
 | 📻 **SDR 接口** | IQ 数据格式 + 导入管线（时域 IQ → FFT → 距离像，保真 0.998），硬件预留（RTL-SDR/USRP） |
 | 🧪 **可复现验证** | 物理验证、跟踪权衡、多目标感知、多轨道/Ka 频段鲁棒性——全部脚本可一键运行 |
@@ -127,6 +128,10 @@ bash run_demo.sh
 
 # 6. SDR 数据管线（无硬件：模拟 IQ → 回放感知）
 ../../.venv/bin/python demo_sdr.py
+
+# 7. 多目标追踪（10 个移动目标，检测+追踪+动画）
+../../.venv/bin/python train_detect.py --n_scenes 25 --epochs 50
+../../.venv/bin/python demo_mot.py
 ```
 
 ---
@@ -140,6 +145,7 @@ IRS-Diffu-ISAC/
 │   │   ├── setup_sat.py / data_sat.py / train_sat.py / eval_sat.py
 │   │   ├── phase_optimizer_sat.py / task_sat.py
 │   │   ├── train_sensing*.py          # 感知（分类+定位）
+│   │   ├── mot_data.py / mot_tracker.py / train_detect.py / demo_mot.py  # 多目标追踪
 │   │   ├── sdr_io.py / sdr_ingest.py  # SDR 数据接口（IQ 格式/导入）
 │   │   ├── demo*.py / make_animation.py / run_demo.sh
 │   │   └── isac_demo/                 # checkpoint + HTML 播放器 + GIF

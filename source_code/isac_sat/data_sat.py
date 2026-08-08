@@ -245,14 +245,47 @@ def _template_cubesat():
     return obj
 
 
+def _template_bicycle():
+    """自行车：两轮 + 车架 + 车把"""
+    obj = np.zeros((8, 8, 8), dtype=np.uint8)
+    obj[1:2, 1:3, 0:2] = 1      # 前轮
+    obj[6:7, 1:3, 0:2] = 1      # 后轮
+    obj[2:6, 1:2, 0:1] = 1      # 车架下梁
+    obj[2:6, 2:3, 1:2] = 1      # 车架上梁
+    obj[1:3, 3:4, 1:3] = 1      # 前叉/车把
+    return obj
+
+
+def _template_pedestrian():
+    """行人：头 + 躯干 + 双腿"""
+    obj = np.zeros((8, 8, 8), dtype=np.uint8)
+    obj[3:5, 3:5, 6:8] = 1      # 头
+    obj[2:6, 2:6, 4:6] = 1      # 躯干
+    obj[2:3, 2:3, 2:4] = 1      # 左腿
+    obj[2:3, 5:6, 2:4] = 1      # 右腿
+    return obj
+
+
+def _template_train():
+    """火车（车厢）：长条车身 + 车顶"""
+    obj = np.zeros((8, 8, 8), dtype=np.uint8)
+    obj[0:8, 0:8, 2:5] = 1      # 车身（拉长）
+    obj[0:8, 2:6, 5:6] = 1      # 车顶
+    obj[0:8, 0:1, 0:2] = 1      # 轮子带
+    obj[0:8, 7:8, 0:2] = 1
+    return obj
+
+
 GROUND_TARGET_TEMPLATES = [
     ("car", _template_car),
     ("uav", _template_uav),
-    ("building", _template_building),
-    ("tank", _template_tank),
-    ("tower", _template_tower),
-    ("cubesat", _template_cubesat),
+    ("bicycle", _template_bicycle),
+    ("pedestrian", _template_pedestrian),
+    ("train", _template_train),
 ]
+
+# 移动目标类别（供多目标追踪场景使用）
+MOBILE_CLASSES = ["car", "uav", "bicycle", "pedestrian", "train"]
 
 # 微多普勒特征（雷达目标识别 RATR 物理基础）：运动部件对回波的频率调制
 # 无人机旋翼高速旋转 → 大扩展；车辆移动 → 中；静止目标 → 0
