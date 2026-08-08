@@ -78,6 +78,36 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 
 ---
 
+## 📊 Comparison with Related Open-Source Projects
+
+**Feature coverage vs. representative open-source projects** in ISAC / RIS / diffusion-3D (checked Aug 2026):
+
+| Capability | **IRS-Diffu-ISAC** | [5G ISAC Sys-Level](https://github.com/xds0112/5G_based_System_level_Integrated_Sensing_and_Communication_Simulator) | [ISAC-PLM (802.11ay)](https://github.com/wigig-tools/isac-plm) | [PassiveDOA-ISAC-RIS](https://github.com/chenpengseu/PassiveDOA-ISAC-RIS) | [Diffusion 3D (PVD)](https://github.com/luost26/diffusion-point-cloud) |
+|---|---|---|---|---|---|
+| Scenario | **Space ISAC (LEO/NTN)** | 5G NR cellular | 60 GHz WiGig | Ground RIS sensing | Generic 3D point cloud |
+| Language / Stack | **Python · PyTorch** | MATLAB | MATLAB | MATLAB | PyTorch |
+| RIS modeling | ✅ **dynamic phase tracking** | ❌ | ❌ | ✅ passive DOA | ❌ |
+| Diffusion 3D reconstruction | ✅ **conditional LDM** | ❌ | ❌ | ❌ | ✅ |
+| Sensing–communication closed loop | ✅ **end-to-end demo** | ⚠️ framework | ⚠️ PHY-level | ❌ | ❌ |
+| Real LEO orbit (SGP4) | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Multi-object 3D tracking | ✅ | ❌ | ❌ | ❌ | ❌ |
+| SDR data interface | ✅ | ❌ | ⚠️ | ❌ | ❌ |
+| Reproducible physics verification | ✅ (CI) | ✅ | ✅ | ⚠️ | ✅ |
+| Instant demo (Colab / HTML / GIF) | ✅ | ❌ | ⚠️ | ❌ | ✅ |
+
+> ⚠️ **Fairness note**: each project runs its own simulation setup, so absolute metric values are **not directly comparable across rows** — the table above compares *feature coverage and engineering depth*, not benchmark scores.
+
+**Reported metrics** (each project's own setting, for reference only):
+
+| Project | Reported metrics |
+|---|---|
+| **IRS-Diffu-ISAC** | HRRP classification **0.867** · closed-loop comm gain **+233%** (98% of oracle) · RIS tracking **+283%** · MOT recall **0.812** (10 targets / 5 classes) · 3D reconstruction CD 0.137–0.183 (space ISAC; vs 0.233 without RIS) |
+| PVD (ShapeNet) | CD ~1.5e-3 on ShapeNet — standard *generation* benchmark, different task (unconditional 3D generation, no channel/ISAC physics) |
+| ISAC-PLM | Link-level sensing MSE / NMSE for 60 GHz 802.11ay (short-range PHY layer) |
+| 5G ISAC System-Level | 5G NR system-level simulation (sensing via 2D-CFAR / MUSIC, cellular scenario) |
+
+---
+
 ## 🧭 Architecture
 
 ```mermaid
