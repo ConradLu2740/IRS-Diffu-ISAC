@@ -12,6 +12,7 @@ train_sensing_multi.py — 多目标感知模型训练（分类 + 定位，最�
 import os
 import argparse
 import numpy as np
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -113,7 +114,8 @@ def evaluate(model, feats, targets, device, wideband):
 
 
 def main(args):
-    torch.manual_seed(args.seed); np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    random.seed(args.seed); np.random.seed(args.seed)
     device = args.device
     print(f"Device: {device}, irs={args.irs_mode}, wideband={args.wideband}, K={K_MAX}")
 

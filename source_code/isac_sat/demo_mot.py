@@ -18,6 +18,7 @@ MOT 用轨迹连续性补足漏检并稳定 ID——追踪价值即在此。
 import os
 import argparse
 import numpy as np
+import random
 import torch
 import matplotlib
 matplotlib.use("Agg")
@@ -49,7 +50,8 @@ def run_detector(model, rp, device):
 
 
 def main(args):
-    torch.manual_seed(args.seed); np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    random.seed(args.seed); np.random.seed(args.seed)
     device = args.device
 
     # 模型

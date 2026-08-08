@@ -11,6 +11,7 @@ ROI 内 1-2 个目标 → 感知（K=2 组分类+定位）→ IRS 指向检测�
 import os
 import argparse
 import numpy as np
+import random
 import torch
 
 import setup_sat as ss
@@ -25,7 +26,8 @@ os.makedirs(OUT_DIR, exist_ok=True)
 
 
 def main(args):
-    torch.manual_seed(args.seed); np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    random.seed(args.seed); np.random.seed(args.seed)
     device = args.device
 
     ckpt = torch.load(args.checkpoint, map_location=device)

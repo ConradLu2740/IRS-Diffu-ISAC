@@ -18,6 +18,7 @@ demo.py — 星-地 ISAC 端到端感知-通信闭环演示
 import os
 import argparse
 import numpy as np
+import random
 import torch
 import matplotlib
 matplotlib.use("Agg")
@@ -48,6 +49,7 @@ def estimate_roi_from_pos(pos_xy, res=16):
 
 def main(args):
     torch.manual_seed(args.seed)
+    random.seed(args.seed)
     np.random.seed(args.seed)
     device = args.device
 

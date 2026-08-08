@@ -16,6 +16,7 @@ import json
 import argparse
 from datetime import datetime, timedelta
 import numpy as np
+import random
 import torch
 
 import setup_sat as ss
@@ -31,7 +32,8 @@ os.makedirs(OUT_DIR, exist_ok=True)
 
 def run_scene(args, seed):
     """跑一个场景，返回单场景 payload。"""
-    torch.manual_seed(seed); np.random.seed(seed)
+    torch.manual_seed(seed)
+    random.seed(seed); np.random.seed(seed)
     device = args.device
 
     ckpt = torch.load(args.checkpoint, map_location=device)

@@ -15,6 +15,7 @@ import os
 import json
 import argparse
 import numpy as np
+import random
 import torch
 
 import data_sat
@@ -27,7 +28,8 @@ os.makedirs(OUT_DIR, exist_ok=True)
 
 
 def main(args):
-    torch.manual_seed(args.seed); np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    random.seed(args.seed); np.random.seed(args.seed)
     device = args.device
 
     ckpt = torch.load(args.checkpoint, map_location=device)

@@ -15,6 +15,7 @@ import os
 import json
 import argparse
 import numpy as np
+import random
 import torch
 import sys
 from torch.utils.data import DataLoader
@@ -173,6 +174,7 @@ def evaluate_mode(mode, args):
 
 def main(args):
     torch.manual_seed(args.seed)
+    random.seed(args.seed)
     np.random.seed(args.seed)
     os.makedirs(args.save_dir, exist_ok=True)
 

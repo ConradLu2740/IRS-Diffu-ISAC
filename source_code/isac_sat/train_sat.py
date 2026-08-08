@@ -15,6 +15,7 @@ import os
 import math
 import argparse
 import numpy as np
+import random
 import torch
 import sys
 from torch.utils.data import DataLoader
@@ -101,6 +102,7 @@ def run_mode(args, irs_mode):
 
 def main(args):
     torch.manual_seed(args.seed)
+    random.seed(args.seed)
     np.random.seed(args.seed)
 
     results = {}

@@ -16,6 +16,7 @@ train_detect.py — 10 目标检测器训练（分类 + 定位）
 import os
 import argparse
 import numpy as np
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -114,7 +115,8 @@ def evaluate(model, rps, targets, device, iou_thr=0.25):
 
 
 def main(args):
-    torch.manual_seed(args.seed); np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    random.seed(args.seed); np.random.seed(args.seed)
     device = args.device
     print(f"Device: {device}, classes={CLASS_NAMES}, K={K_MAX}")
 
