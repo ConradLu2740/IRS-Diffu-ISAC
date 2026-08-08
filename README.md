@@ -80,6 +80,10 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 
 ## 📊 Comparison with Related Open-Source Projects
 
+![Capability coverage radar](assets/comparison_radar.svg)
+
+*Capability coverage across 8 dimensions (full coverage = 2/2). Radar source: [`assets/make_comparison_radar.py`](assets/make_comparison_radar.py).*
+
 **Feature coverage vs. representative open-source projects** in ISAC / RIS / diffusion-3D (checked Aug 2026):
 
 | Capability | **IRS-Diffu-ISAC** | [5G ISAC Sys-Level](https://github.com/xds0112/5G_based_System_level_Integrated_Sensing_and_Communication_Simulator) | [ISAC-PLM (802.11ay)](https://github.com/wigig-tools/isac-plm) | [PassiveDOA-ISAC-RIS](https://github.com/chenpengseu/PassiveDOA-ISAC-RIS) | [Diffusion 3D (PVD)](https://github.com/luost26/diffusion-point-cloud) |
