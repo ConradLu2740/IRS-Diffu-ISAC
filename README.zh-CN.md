@@ -78,6 +78,36 @@ Intelligent Reflecting Surface (RIS) aided **Integrated Sensing and Communicatio
 
 ---
 
+## 📊 同类开源项目对比
+
+**功能覆盖对比**（与 ISAC / RIS / 扩散 3D 方向的代表性开源项目，2026-08 核实）：
+
+| 能力 | **IRS-Diffu-ISAC** | [5G ISAC 系统级仿真](https://github.com/xds0112/5G_based_System_level_Integrated_Sensing_and_Communication_Simulator) | [ISAC-PLM (802.11ay)](https://github.com/wigig-tools/isac-plm) | [PassiveDOA-ISAC-RIS](https://github.com/chenpengseu/PassiveDOA-ISAC-RIS) | [扩散 3D (PVD)](https://github.com/luost26/diffusion-point-cloud) |
+|---|---|---|---|---|---|
+| 场景 | **太空 ISAC（LEO/NTN）** | 地面 5G NR | 60 GHz WiGig | 地面 RIS 感知 | 通用 3D 点云 |
+| 语言 / 技术栈 | **Python · PyTorch** | MATLAB | MATLAB | MATLAB | PyTorch |
+| RIS 建模 | ✅ **动态相位跟踪** | ❌ | ❌ | ✅ 被动 DOA | ❌ |
+| 扩散模型 3D 重建 | ✅ **条件潜扩散 LDM** | ❌ | ❌ | ❌ | ✅ |
+| 感知-通信闭环 | ✅ **端到端演示** | ⚠️ 框架 | ⚠️ PHY 层 | ❌ | ❌ |
+| 真实 LEO 轨道（SGP4） | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 多目标 3D 追踪 | ✅ | ❌ | ❌ | ❌ | ❌ |
+| SDR 数据接口 | ✅ | ❌ | ⚠️ | ❌ | ❌ |
+| 可复现物理验证 | ✅（CI） | ✅ | ✅ | ⚠️ | ✅ |
+| 即开即用演示（Colab / HTML / GIF） | ✅ | ❌ | ⚠️ | ❌ | ✅ |
+
+> ⚠️ **公平性说明**：各项目仿真设置不同，**指标绝对值不可跨行直接比较**——上表对比的是*功能覆盖与工程深度*，而非基准分数。
+
+**各项目公开指标**（各自设置下，仅供参考）：
+
+| 项目 | 公开指标 |
+|---|---|
+| **IRS-Diffu-ISAC** | 宽带 HRRP 分类 **0.867** · 闭环通信增益 **+233%**（oracle 达成率 98%）· RIS 跟踪 **+283%** · MOT 召回 **0.812**（10 目标 / 5 类）· 3D 重建 CD 0.137–0.183（无 RIS 时 0.233） |
+| PVD（ShapeNet） | CD ~1.5e-3 @ShapeNet——标准*生成*基准，任务不同（无条件 3D 生成，无信道/ISAC 物理） |
+| ISAC-PLM | 60 GHz 802.11ay 链路级感知 MSE / NMSE（短距 PHY 层） |
+| 5G ISAC 系统级 | 5G NR 系统级仿真（2D-CFAR / MUSIC 感知，蜂窝场景） |
+
+---
+
 ## 🧭 架构
 
 ```mermaid
