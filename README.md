@@ -192,8 +192,10 @@ IRS-Diffu-ISAC/
 │   │   └── isac_demo/                 # checkpoints + HTML players + GIFs
 │   ├── legacy/                        # Original project (RIS + diffusion 3D recon, archived)
 │   └── requirements.txt
-├── docs/                              # Original project figures
 ├── colab/                             # One-click Colab notebook
+├── archive/
+│   ├── source_code.zip                # Historical snapshot
+│   └── original-docs/                 # Original project docs (architecture.md / Code_Wiki.md / figures)
 ├── space_isac_design.md               # Full design document (physics, results, pitfalls)
 ├── CONTRIBUTING.md
 ├── README.md / README.zh-CN.md
@@ -205,7 +207,7 @@ IRS-Diffu-ISAC/
 ## 📚 Documentation
 
 - **[space_isac_design.md](space_isac_design.md)** — complete design: physical model, experiments, physical conclusions, pitfalls
-- Original project docs: [`architecture.md`](architecture.md) / [`Code_Wiki.md`](Code_Wiki.md)
+- Original project docs (archived): [`archive/original-docs/`](archive/original-docs/) — [`architecture.md`](archive/original-docs/architecture.md) / [`Code_Wiki.md`](archive/original-docs/Code_Wiki.md)
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — how to contribute
 
 ## Tech Stack
