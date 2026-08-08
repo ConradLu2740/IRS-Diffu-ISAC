@@ -6,6 +6,7 @@
 import os
 import math
 import numpy as np
+import random
 import torch
 import matplotlib
 matplotlib.use("Agg")
@@ -28,6 +29,9 @@ def make_roi_voxel():
 def main():
     device = "cpu"
     print(f"Device: {device}")
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    random.seed(args.seed)
     scenario = ss.SatISACScenario()
     frames = scenario.build_frames()
     channels = SatScenarioChannels(frames, irs_mode="sat", device=device)
@@ -100,6 +104,7 @@ def main():
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
+    parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--n_iter", type=int, default=5)
     parser.add_argument("--intervals", nargs="+", type=int, default=[1, 2, 4, 8])
     args = parser.parse_args()

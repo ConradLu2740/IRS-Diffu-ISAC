@@ -32,8 +32,8 @@ Run locally? See [Quick Start](#-quick-start).
 | | |
 |---|---|
 | 🛰️ **Real Orbit Simulation** | SGP4 propagation of real LEO satellites (ISS / Starlink TLE), dynamic geometry + Doppler + delay, physics-verified against real values |
-| 📡 **Dynamic RIS Phase Tracking** | Analytical phase alignment, frame-by-frame tracking power **+283%**; segmented tracking quantifies the "RIS reconfiguration rate vs channel coherence time" trade-off |
-| 🎯 **Sensing–Communication Closed-Loop** | Sense targets from communication signals (classification + localization) → auto-configure IRS → communication power **+233%** (98% of ideal oracle) |
+| 📡 **Dynamic RIS Phase Tracking** | Analytical phase alignment, frame-by-frame tracking power **+89%** (K=1); segmented tracking (K=2/4/8) quantifies the "RIS reconfiguration rate vs channel coherence time" trade-off — K=8 gain vanishes (even negative) |
+| 🎯 **Sensing–Communication Closed-Loop** | Sense targets from communication signals (classification + localization) → auto-configure IRS → communication power **+309%** (98% of ideal oracle) |
 | 🚁 **Multi-Object Tracking in 3D** | Simultaneously track **10 moving targets** (car / drone / bicycle / pedestrian / train) with **full 3D trajectories** — drones in the air, ground targets locked to the ground |
 | 🖥️ **Interactive Demos** | Single-file HTML players (scene switching / timeline / real UTC overpass time) + GIF animations, shareable with a double-click |
 | 📻 **SDR Interface** | IQ data format + ingest pipeline (time-domain IQ → FFT → range profile, fidelity 0.998), hardware-ready (RTL-SDR / USRP) |
@@ -67,14 +67,14 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 |------------|--------|
 | Orbit physics verification (ISS) | Altitude 418 km / velocity 7.66 km/s / period 92.9 min (matches real values) |
 | Overpass Doppler (30 GHz) | −610 ~ +610 kHz (S-curve, real LEO order of magnitude) |
-| RIS dynamic tracking | Frame-by-frame power **+283%**; K=8 segmented (reconfiguration-limited) gain vanishes |
-| Wideband HRRP classification | **0.867** (narrowband 0.383 → wideband 0.867 → ISAR sequence 0.933) |
-| Sensing–comm closed-loop (single) | Classification 83%, comm gain **+233%** (98% of oracle) |
-| Sensing–comm closed-loop (multi) | Detection 2/2, IRS pointing gain **+289%** (94% of oracle) |
-| Multi-target tracking (MOT) | 10 targets / 5 classes, detection recall 81%, trajectory aggregation boosts class accuracy |
-| Classic baseline (2D-CFAR) | Detection **100%** (P_fa=1e-4), along-line-of-sight localization RMSE **7.0 m** — no training needed |
-| Classic baseline (MUSIC) | ULA-8 target direction MAE **0.017°**; far-field angle resolution physically insufficient for intra-ROI localization |
-| ML vs classic (fair) | ML (absolute-range feature) LOS RMSE **3.1 m** vs CFAR 7.0 m; feature bug fixed (`center='roi'`), localization 2D MAE 20.4→12.2 m |
+| RIS dynamic tracking | Frame-by-frame power **+89%** (K=1); K=8 segmented (reconfiguration-limited) gain vanishes (K=8: −42%, even harmful) |
+| Wideband HRRP classification | **0.80** (9-class templates; early 6-class experiments: 0.383 → 0.867 → ISAR 0.933) |
+| Sensing–comm closed-loop (single) | Classification 80%, comm gain **+309%** (97.6% of oracle) |
+| Sensing–comm closed-loop (multi) | Detection 1/2, IRS pointing gain **+444%** (93% of oracle) |
+| Multi-target tracking (MOT) | 10 targets / 5 classes, detection recall **0.60**, trajectory class accuracy 0.73 |
+| Classic baseline (2D-CFAR) | Detection **100%** (P_fa=1e-4), along-line-of-sight localization RMSE **8.1 m** — no training needed |
+| Classic baseline (MUSIC) | ULA-8 target direction MAE **0.017°** (synthetic snapshots); far-field angle resolution physically insufficient for intra-ROI localization |
+| ML vs classic (fair) | ML (absolute-range feature) LOS RMSE **2.3 m** vs CFAR 8.1 m; centroid-relative feature = class prior only (2D RMSE 22.6 m); feature bug fixed (`center='roi'`) |
 | Multi-orbit / Ka-band | ISS / Starlink ×30 / 28 GHz all PASS, physics consistency verified |
 
 > ⚠️ **Honest notes**: absolute attitude estimation is **not feasible** (physical upper bound) for far-field star–ground links with simple symmetric templates; single-station multi-target **classification** is limited by signal mixing (detection/localization works).
@@ -108,7 +108,7 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 
 | Project | Reported metrics |
 |---|---|
-| **IRS-Diffu-ISAC** | HRRP classification **0.867** · closed-loop comm gain **+233%** (98% of oracle) · RIS tracking **+283%** · MOT recall **0.812** (10 targets / 5 classes) · 3D reconstruction CD 0.137–0.183 (space ISAC; vs 0.233 without RIS) |
+| **IRS-Diffu-ISAC** | HRRP classification **0.80** (9-class) · closed-loop comm gain **+309%** (97.6% of oracle) · RIS tracking **+89%** (K=1) · MOT recall **0.60** (10 targets / 5 classes) · 2D-CFAR detection 100%, LOS RMSE 8.1 m · 3D reconstruction CD 0.137–0.183 (space ISAC; vs 0.233 without RIS) |
 | PVD (ShapeNet) | CD ~1.5e-3 on ShapeNet — standard *generation* benchmark, different task (unconditional 3D generation, no channel/ISAC physics) |
 | ISAC-PLM | Link-level sensing MSE / NMSE for 60 GHz 802.11ay (short-range PHY layer) |
 | 5G ISAC System-Level | 5G NR system-level simulation (sensing via 2D-CFAR / MUSIC, cellular scenario) |

@@ -16,6 +16,7 @@ demo_sdr.py — SDR 数据管线演示（无硬件，文件回放）
 import os
 import argparse
 import numpy as np
+import random
 import torch
 
 import setup_sat as ss
@@ -31,7 +32,8 @@ os.makedirs(OUT_DIR, exist_ok=True)
 
 
 def main(args):
-    torch.manual_seed(args.seed); np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    random.seed(args.seed); np.random.seed(args.seed)
     device = args.device
 
     scenario = ss.SatISACScenario(tau=args.tau)

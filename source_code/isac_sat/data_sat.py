@@ -557,7 +557,9 @@ class SatROIDataset(Dataset):
                  tau=ss.TAU, p_snr=P_SNR, power_sigma=POWER_SIGMA,
                  phase_mode="random", target_source="ground", with_label=False,
                  wideband=False, wideband_snr_db=20.0, isar=False, rp_align=True,
-                 multi=False):
+                 center=None, multi=False):
+        """center: 显式指定距离像投影中心（'roi' 保留位置 / 'centroid' 形状特征）。
+        None 时由 rp_align 决定：align=False → 'roi'（定位），align=True → 'centroid'。"""
         self.n = n_samples
         self.ch = channels
         self.device = device
@@ -573,6 +575,7 @@ class SatROIDataset(Dataset):
         self.wideband_snr_db = wideband_snr_db
         self.isar = isar
         self.rp_align = rp_align
+        self.rp_center = center if center is not None else ("roi" if not rp_align else "centroid")
         self.multi = multi
         if phase_mode == "tracked" and channels.irs_mode == "none":
             self.phase_mode = "random"  # 无 IRS 时退回随机
@@ -676,7 +679,7 @@ class SatROIDataset(Dataset):
                 feat = torch.from_numpy(compute_range_profile(
                     ROI_np, self._target_ecef, self._ground_ecef, self.ch.wavelength_m,
                     snr_db=self.wideband_snr_db, seed=idx, align=self.rp_align,
-                    center=("roi" if not self.rp_align else "centroid"))).float()  # [K]
+                    center=self.rp_center)).float()  # [K]
             if self.with_label:
                 if self.multi:
                     return point_cloud.float(), cond, feat, targets
@@ -700,6 +703,7 @@ def build_sat_dataset(n_samples=16, irs_mode="sat", num_points=512,
     if seed is not None:
         torch.manual_seed(seed)
         np.random.seed(seed)
+        random.seed(seed)
     scenario = ss.SatISACScenario(tau=tau)
     frames = scenario.build_frames()
     channels = SatScenarioChannels(frames, irs_mode=irs_mode, device=device)

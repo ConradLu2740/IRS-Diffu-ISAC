@@ -16,6 +16,7 @@ baseline_classic.py — 2D-CFAR + MUSIC 经典感知基线，与 ML 感知方法
 import os
 import argparse
 import numpy as np
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -408,6 +409,7 @@ def train_eval(model, tr_ds, te_ds, device, epochs=20):
 
 def main(args):
     torch.manual_seed(args.seed)
+    random.seed(args.seed)
     np.random.seed(args.seed)
     device = args.device
     print(f"=== 2D-CFAR + MUSIC vs ML 公平对比 (n_test={args.n_test}, snr={args.snr_db}dB) ===")
@@ -427,12 +429,12 @@ def main(args):
         rois.append(roi); cls_ids.append(cid); angles.append(ang)
 
     # --- 1. 经典：2D-CFAR（绝对距离）+ MUSIC ---
-    print("[1/3] 校准（bin→米回归）...")
+    print("[1/4] 校准（bin→米回归）...")
     bin0, s, r2 = fit_range_calibration(n_cal=20, channels=channels,
                                         target_ecef=target_ecef0, ground_ecef=ground_ecef0,
                                         snr_db=args.snr_db, seed=args.seed + 500)
     print(f"      校准: bin0={bin0:.2f}, s={s:.4f} bins/m, R2={r2:.4f}")
-    print("[1/3] 运行经典基线（绝对距离 RD 图 + 2D-CFAR + MUSIC）...")
+    print("[1/4] 运行经典基线（绝对距离 RD 图 + 2D-CFAR + MUSIC）...")
     classic = []
     for i, roi in enumerate(rois):
         c = evaluate_classic(roi, target_ecef0, ground_ecef0, channels.wavelength_m,
@@ -453,7 +455,7 @@ def main(args):
     az_mae = float(np.mean(az_err))
 
     # --- 2. ML（绝对距离特征）：公平对比 ---
-    print("[2/3] 训练 ML（绝对距离特征）...")
+    print("[2/4] 训练 ML（绝对距离特征）...")
     tr_abs = build_abs_ds(args.train_data, channels, target_ecef0, ground_ecef0,
                           args.snr_db, args.seed)
     te_abs = build_abs_ds(args.n_test, channels, target_ecef0, ground_ecef0,
@@ -461,16 +463,31 @@ def main(args):
     model_abs = SensingMLP(in_dim=WIDEBAND_K_ABS).to(device)
     ml_abs = train_eval(model_abs, tr_abs, te_abs, device, args.epochs)
 
-    # --- 3. ML（旧特征=相对质心）：验证“类别先验”假设 ---
-    print("[3/3] 训练 ML（旧距离像特征，预期仅类别先验）...")
+    # --- 3. ML（旧特征=相对质心，bug 版）：验证“类别先验”假设 ---
+    print("[3/4] 训练 ML（旧特征 center='centroid'，预期仅类别先验）...")
     tr_old = SatROIDataset(args.train_data, channels, num_points=128, device=device,
-                           tau=args.tau, with_label=True, wideband=True, rp_align=False)
+                           tau=args.tau, with_label=True, wideband=True,
+                           rp_align=False, center="centroid")   # 旧 bug 行为：相对质心
     te_old = SatROIDataset(args.n_test, channels, num_points=128, device=device,
-                           tau=args.tau, with_label=True, wideband=True, rp_align=False)
+                           tau=args.tau, with_label=True, wideband=True,
+                           rp_align=False, center="centroid")
     tr_old_ds = make_fixed(tr_old, args.train_data, wideband=True)
     te_old_ds = make_fixed(te_old, args.n_test, wideband=True)
     model_old = SensingMLP(in_dim=WIDEBAND_K).to(device)
     ml_old = train_eval(model_old, tr_old_ds, te_old_ds, device, args.epochs)
+
+    # --- 4. ML（形状特征=质心对齐）：分类最优、定位=先验的参照 ---
+    print("[4/4] 训练 ML（形状特征 center='centroid'+align，分类参照）...")
+    tr_shp = SatROIDataset(args.train_data, channels, num_points=128, device=device,
+                           tau=args.tau, with_label=True, wideband=True,
+                           rp_align=True, center="centroid")
+    te_shp = SatROIDataset(args.n_test, channels, num_points=128, device=device,
+                           tau=args.tau, with_label=True, wideband=True,
+                           rp_align=True, center="centroid")
+    tr_shp_ds = make_fixed(tr_shp, args.train_data, wideband=True)
+    te_shp_ds = make_fixed(te_shp, args.n_test, wideband=True)
+    model_shp = SensingMLP(in_dim=WIDEBAND_K).to(device)
+    ml_shp = train_eval(model_shp, tr_shp_ds, te_shp_ds, device, args.epochs)
 
     # --- 输出报告 ---
     print("\n" + "=" * 74)
@@ -483,18 +500,23 @@ def main(args):
     print(f"[ML(绝对)] 2D 定位 RMSE     : {ml_abs['rmse_2d']:.2f} m")
     print(f"[ML(绝对)] 沿视线 RMSE      : {ml_abs['rmse_los']:.2f} m    横向 RMSE {ml_abs['rmse_cross']:.2f} m")
     print(f"[ML(旧特)] 分类准确率       : {ml_old['acc']:.3f}")
-    print(f"[ML(旧特)] 2D 定位 RMSE     : {ml_old['rmse_2d']:.2f} m  (≈类别先验)")
+    print(f"[ML(旧特)] 2D 定位 RMSE     : {ml_old['rmse_2d']:.2f} m  (center='centroid'，无位置信息)")
+    print(f"[ML(形状)] 分类准确率       : {ml_shp['acc']:.3f}")
+    print(f"[ML(形状)] 2D 定位 RMSE     : {ml_shp['rmse_2d']:.2f} m  (质心对齐，定位=先验)")
     print("-" * 74)
     slant_bs = 695.0 * 1000.0
     ang_per_m = np.rad2deg(np.arctan(1.0 / slant_bs))
     print("物理/工程结论：")
     print(f"  1. 远场角度分辨：斜距 {slant_bs/1000:.0f} km → 1m 横向偏移 {ang_per_m:.5f} deg；")
     print(f"     80m ROI 全宽 {80*ang_per_m:.4f} deg << ULA8 分辨力 {180/8:.1f} deg → 角度无 ROI 内定位信息")
-    print(f"  2. 特征构造缺陷：data_sat.compute_range_profile 的 d_proj 相对体素质心，")
-    print(f"     目标绝对位置在特征层被丢弃（实测单体素 bin 恒定）→ 旧 ML 定位≈类别先验")
-    print(f"     旧特征 ML 2D RMSE {ml_old['rmse_2d']:.1f} m vs 绝对特征 {ml_abs['rmse_2d']:.1f} m")
+    print(f"  2. 特征构造缺陷：center='centroid' 的 d_proj 相对体素质心，目标绝对位置在")
+    print(f"     特征层被丢弃（实测单体素 bin 恒定）→ 旧/形状特征 ML 定位≈类别先验")
+    print(f"     旧特征 2D RMSE {ml_old['rmse_2d']:.1f} m / 形状特征 {ml_shp['rmse_2d']:.1f} m vs 绝对特征 {ml_abs['rmse_2d']:.1f} m")
     print(f"  3. 经典 2D-CFAR 在绝对距离像上可检测+沿视线定位（RMSE {cfar_los_rmse:.1f} m），")
     print(f"     横向定位仍需先验/多普勒（物理墙）")
+    print(f"  4. MUSIC 测向（合成点源快照，ULA-8）：MAE {az_mae:.3f} deg 验证算法自洽；")
+    print(f"     但目标在 ROI 内 ±40m 对应角度 ±{40*ang_per_m:.4f} deg << 搜索步长 0.1 deg，")
+    print(f"     测向对 ROI 内定位无实际分辨力（几何物理墙，非算法限制）")
 
     # --- 保存示例图 ---
     try:
