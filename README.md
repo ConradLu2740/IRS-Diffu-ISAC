@@ -1,180 +1,236 @@
 # 🛰️ IRS-Diffu-ISAC
 
+**English** · [简体中文](README.zh-CN.md)
+
 [![CI](https://github.com/ConradLu2740/IRS-Diffu-ISAC/actions/workflows/ci.yml/badge.svg)](https://github.com/ConradLu2740/IRS-Diffu-ISAC/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ConradLu2740/IRS-Diffu-ISAC/blob/main/colab/isac_demo.ipynb)
 
-**RIS 辅助通感一体化（ISAC）· 从扩散模型 3D 重建到太空 ISAC（ISAC-NTN）工程闭环**
+**RIS-Aided Integrated Sensing and Communication (ISAC) — from Conditional Diffusion 3D Reconstruction to Space ISAC (ISAC-NTN) Engineering Loop**
 
-Intelligent Reflecting Surface (RIS) aided **Integrated Sensing and Communication (ISAC)**
-— powered by Conditional Latent Diffusion Models for 3D point cloud reconstruction,
-extended to **space-based ISAC** with LEO satellites, dynamic RIS tracking, and an
-**end-to-end sensing–communication closed-loop demo**.
+Intelligent Reflecting Surface (RIS) aided **Integrated Sensing and Communication (ISAC)**, powered by Conditional Latent Diffusion Models for 3D point cloud reconstruction, and extended to **space-based ISAC**: real LEO satellite orbits (SGP4), dynamic RIS tracking, multi-target 3D tracking (MOT), SDR data interface, and an **end-to-end sensing–communication closed-loop demo**.
+
+> 🎯 **A school research project turned engineering showcase** — physics-grounded, reproducible, and demo-ready.
 
 ---
 
-## 🚀 60 秒体验（零配置）
+## 🚀 60-Second Experience (Zero Setup)
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ConradLu2740/IRS-Diffu-ISAC/blob/main/colab/isac_demo.ipynb)
 
-点击上方按钮在 **Google Colab** 打开体验笔记本，自动完成：
-克隆仓库 → 装依赖 → 真实卫星轨道验证 → 感知-通信闭环 demo → 生成演示 GIF。无需本地环境。
+Click the badge to run in **Google Colab** — clone → install → real satellite orbit verification → sensing–communication closed-loop demo → animated GIF. No local environment needed.
 
-也可以本地运行（[快速开始](#-快速开始)）。
+Run locally? See [Quick Start](#-quick-start).
 
 ---
 
-## ✨ 核心亮点
+## ✨ Highlights
 
 | | |
 |---|---|
-| 🛰️ **真实轨道仿真** | SGP4 传播真实 LEO 卫星（ISS / Starlink TLE），动态几何 + 多普勒 + 时延，物理验证与真实轨道吻合 |
-| 📡 **RIS 动态相位跟踪** | 解析相位对齐，逐帧跟踪功率 **+283%**；分段跟踪量化"RIS 重构速率 vs 信道相干时间"权衡 |
-| 🎯 **感知-通信闭环** | 通信信号感知目标（分类 + 定位）→ 自动配置 IRS → 通信功率 **+233%**（达成理想优化 98%） |
-| 👥 **多目标追踪（MOT）** | 同时追踪 10 个移动目标（轿车/无人机/自行车/行人/火车 5 类），检测召回 81%、轨迹聚合提升类别准确率 |
-| 🖥️ **实时演示** | 单文件 HTML 播放器（多场景切换 / 时间轴 / UTC 真实过境时间）+ GIF 动画 |
-| 📻 **SDR 接口** | IQ 数据格式 + 导入管线（时域 IQ → FFT → 距离像，保真 0.998），硬件预留（RTL-SDR/USRP） |
-| 🧪 **可复现验证** | 物理验证、跟踪权衡、多目标感知、多轨道/Ka 频段鲁棒性——全部脚本可一键运行 |
+| 🛰️ **Real Orbit Simulation** | SGP4 propagation of real LEO satellites (ISS / Starlink TLE), dynamic geometry + Doppler + delay, physics-verified against real values |
+| 📡 **Dynamic RIS Phase Tracking** | Analytical phase alignment, frame-by-frame tracking power **+283%**; segmented tracking quantifies the "RIS reconfiguration rate vs channel coherence time" trade-off |
+| 🎯 **Sensing–Communication Closed-Loop** | Sense targets from communication signals (classification + localization) → auto-configure IRS → communication power **+233%** (98% of ideal oracle) |
+| 🚁 **Multi-Object Tracking in 3D** | Simultaneously track **10 moving targets** (car / drone / bicycle / pedestrian / train) with **full 3D trajectories** — drones in the air, ground targets locked to the ground |
+| 🖥️ **Interactive Demos** | Single-file HTML players (scene switching / timeline / real UTC overpass time) + GIF animations, shareable with a double-click |
+| 📻 **SDR Interface** | IQ data format + ingest pipeline (time-domain IQ → FFT → range profile, fidelity 0.998), hardware-ready (RTL-SDR / USRP) |
+| 🧪 **Reproducible Verification** | Physics checks, tracking trade-offs, multi-target sensing, multi-orbit / Ka-band robustness — all one-command scripts |
 
 ---
 
-## 🎬 Demo
+## 🎬 Demos
 
-**感知-通信闭环实时演示**：卫星过境 → 感知目标 → IRS 自动指向 → 通信质量提升。
+### 1. Sensing–Communication Closed-Loop
+Satellite overpass → sense the target → IRS auto-pointing → communication power boost.
 
 ![ISAC Closed-Loop Demo](source_code/isac_sat/isac_demo/demo_animation.gif)
 
-- 🖥️ 交互版（多场景切换）：`source_code/isac_sat/isac_demo/demo_live.html`
-- 🎬 视频版：`source_code/isac_sat/isac_demo/demo_animation.gif`
-- 🔄 生成：`python demo_live.py` / `python make_animation.py`
+- 🖥️ Interactive (multi-scene): [`demo_live.html`](source_code/isac_sat/isac_demo/demo_live.html)
+- 🎬 Generate: `python demo_live.py` / `python make_animation.py`
+
+### 2. Multi-Object Tracking in 3D (MOT)
+10 moving targets of 5 types — **drones fly in the air, ground targets stay locked to the ground** (z-constrained).
+
+![3D Multi-Object Tracking](source_code/isac_sat/isac_demo/mot_animation.gif)
+
+- 🖥️ Interactive 3D (rotate / zoom / hover): [`mot_3d.html`](source_code/isac_sat/isac_demo/mot_3d.html) — **open this file and see the full 3D scene!**
+- 🎬 Generate: `python demo_mot_html.py`
 
 ---
 
-## 📊 关键结果
+## 📊 Key Results
 
-| 实验 | 结果 |
-|------|------|
-| 轨道物理验证（ISS） | 高度 418 km / 速度 7.66 km/s / 周期 92.9 min（与真实值吻合） |
-| 过境多普勒（30 GHz） | -610 ~ +610 kHz（S 型曲线，真实 LEO 量级） |
-| RIS 动态跟踪 | 逐帧跟踪功率 **+283%**；K=8 分段（重构受限）增益消失 |
-| 宽带 HRRP 目标分类 | **0.867**（窄带 0.383 → 宽带 0.867 → ISAR 序列 0.933） |
-| 感知-通信闭环（单目标） | 分类 83%，通信增益 **+233%**（oracle 达成率 98%） |
-| 感知-通信闭环（多目标） | 检测 2/2，IRS 指向增益 **+289%**（oracle 达成率 94%） |
-| 多轨道 / Ka 频段 | ISS / Starlink × 30 / 28 GHz 全 PASS，物理一致性验证 |
+| Experiment | Result |
+|------------|--------|
+| Orbit physics verification (ISS) | Altitude 418 km / velocity 7.66 km/s / period 92.9 min (matches real values) |
+| Overpass Doppler (30 GHz) | −610 ~ +610 kHz (S-curve, real LEO order of magnitude) |
+| RIS dynamic tracking | Frame-by-frame power **+283%**; K=8 segmented (reconfiguration-limited) gain vanishes |
+| Wideband HRRP classification | **0.867** (narrowband 0.383 → wideband 0.867 → ISAR sequence 0.933) |
+| Sensing–comm closed-loop (single) | Classification 83%, comm gain **+233%** (98% of oracle) |
+| Sensing–comm closed-loop (multi) | Detection 2/2, IRS pointing gain **+289%** (94% of oracle) |
+| Multi-target tracking (MOT) | 10 targets / 5 classes, detection recall 81%, trajectory aggregation boosts class accuracy |
+| Multi-orbit / Ka-band | ISS / Starlink ×30 / 28 GHz all PASS, physics consistency verified |
 
-> ⚠️ 诚实标注：星-地远场 + 简单对称模板下，**绝对姿态估计不可行**（物理上界）；单站多目标**分类**受信号混合限制（检测/定位可用）。
-
----
-
-## 🧭 架构
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ 物理仿真层（setup_sat.py）                                    │
-│  SGP4 轨道 → ECI/ECEF → 动态几何 → 远场信道 → 多普勒/时延       │
-├─────────────────────────────────────────────────────────────┤
-│ 数据层（data_sat.py）                                         │
-│  5 路径信道 · 3 种 IRS 模式 · 地面目标模板 · 距离像/ISAR 序列     │
-├─────────────────────────────────────────────────────────────┤
-│ 感知层                                                        │
-│  扩散模型 3D 重建（train_sat.py）                               │
-│  目标分类 + 定位（train_sensing*.py，CPU 实时）                  │
-├─────────────────────────────────────────────────────────────┤
-│ 通信层（phase_optimizer_sat.py）                              │
-│  RIS 动态相位跟踪（解析对齐 + 分段优化）                        │
-├─────────────────────────────────────────────────────────────┤
-│ 闭环演示层（demo*.py）                                         │
-│  感知 → IRS 配置 → 通信增益 → HTML/GIF 可视化                  │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**信号模型**（5 条传播路径）：
-
-```
-LEO 卫星(BS) ──→ 地面目标(ROI) ──→ 地面站(UE)
-    │                 │
-    └──── RIS（星载/地面）───┘
-路径: 直达散射 + 2×IRS反射 + 2×IRS前向
-```
+> ⚠️ **Honest notes**: absolute attitude estimation is **not feasible** (physical upper bound) for far-field star–ground links with simple symmetric templates; single-station multi-target **classification** is limited by signal mixing (detection/localization works).
 
 ---
 
-## 🚀 快速开始
+## 🧭 Architecture
+
+```mermaid
+flowchart TB
+    subgraph PHYS["Physics Layer (setup_sat.py)"]
+        A1[SGP4 Orbit Propagation] --> A2[ECI/ECEF Frame] --> A3[Dynamic Geometry]
+        A3 --> A4[Far-field Channel] --> A5[Doppler / Delay]
+    end
+
+    subgraph DATA["Data Layer (data_sat.py)"]
+        B1[5-Path Channel] --> B2[3 IRS Modes]
+        B3[Ground Target Templates] --> B4[Range Profile / ISAR]
+    end
+
+    subgraph SENSE["Sensing Layer"]
+        C1[Diffusion 3D Reconstruction<br/>train_sat.py]
+        C2[Classification + Localization<br/>train_sensing*.py, CPU real-time]
+        C3[Multi-Object Tracking<br/>MOT 3D]
+    end
+
+    subgraph COMM["Communication Layer (phase_optimizer_sat.py)"]
+        D1[Dynamic RIS Phase Tracking] --> D2[Analytical Alignment + Segmented Opt]
+    end
+
+    subgraph LOOP["Closed-Loop Demo (demo*.py)"]
+        E1[Sensing] --> E2[IRS Configuration] --> E3[Comm Gain] --> E4[HTML / GIF Viz]
+    end
+
+    PHYS --> DATA --> SENSE --> COMM --> LOOP
+```
+
+**Signal model** (5 propagation paths):
+
+```mermaid
+flowchart LR
+    SAT["LEO Satellite (BS)"] -->|direct scatter| TGT["Ground Target (ROI)"]
+    SAT -->|direct| UE["Ground Station (UE)"]
+    TGT -->|scatter| UE
+    SAT --> RIS["RIS (spaceborne / ground)"]
+    RIS --> TGT
+    RIS --> UE
+    SAT -->|forward| RIS
+```
+
+---
+
+## 🚀 Quick Start
 
 ```bash
-# 环境
+# Environment
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 
 cd source_code/isac_sat
 
-# 1. 物理验证（轨道/多普勒/信道，~1 min）
+# 1. Physics verification (orbit / Doppler / channel, ~1 min)
 ../../.venv/bin/python verify_sat.py
 
-# 2. 一键闭环 demo（自动训练感知模型 + 运行闭环）
+# 2. One-shot closed-loop demo (auto-train sensing + run loop)
 bash run_demo.sh
 
-# 3. 实时演示（HTML 播放器 + GIF 动画）
+# 3. Live demos (HTML player + GIF animation)
 ../../.venv/bin/python demo_live.py --n_scenes 3
 ../../.venv/bin/python make_animation.py
 
-# 4. 多目标感知闭环
+# 4. Multi-target sensing closed-loop
 ../../.venv/bin/python train_sensing_multi.py --wideband
 ../../.venv/bin/python demo_multi.py
 
-# 5. RIS 动态跟踪权衡
+# 5. RIS dynamic tracking trade-off
 ../../.venv/bin/python verify_tracking.py
 
-# 6. SDR 数据管线（无硬件：模拟 IQ → 回放感知）
+# 6. SDR data pipeline (no hardware: simulated IQ → playback sensing)
 ../../.venv/bin/python demo_sdr.py
 
-# 7. 多目标追踪（10 个移动目标，检测+追踪+动画）
+# 7. Multi-object tracking (10 moving targets, detect + track + animate)
 ../../.venv/bin/python train_detect.py --n_scenes 25 --epochs 50
 ../../.venv/bin/python demo_mot.py
+../../.venv/bin/python demo_mot_html.py   # interactive 3D HTML
 ```
 
 ---
 
-## 📁 项目结构
+## 🗺️ Roadmap
+
+- [x] LEO satellite dynamic simulation (SGP4 real TLE, Doppler, delay)
+- [x] Dynamic RIS phase tracking + reconfiguration-rate trade-off
+- [x] Sensing–communication closed loop (single / multi-target)
+- [x] Wideband HRRP / ISAR sequence sensing
+- [x] 3D multi-object tracking (10 targets, 5 classes)
+- [x] SDR IQ data interface + ingest pipeline
+- [x] Colab one-click experience + CI + GitHub promotion
+- [ ] **GEO / MEO orbit support** (currently LEO-focused)
+- [ ] **Real SDR over-the-air capture** (RTL-SDR / USRP backend)
+- [ ] **Space debris / satellite geometry targets** (replace simple templates)
+- [ ] **On-board computational constraints**: model distillation / quantization
+- [ ] **Low-SNR robustness** evaluation suite
+
+---
+
+## 📁 Project Structure
 
 ```
 IRS-Diffu-ISAC/
 ├── source_code/
-│   ├── isac_sat/                      # 星-地 ISAC + 感知 + demo（活跃工作区）
+│   ├── isac_sat/                      # Space-ground ISAC + sensing + demo (active)
 │   │   ├── setup_sat.py / data_sat.py / train_sat.py / eval_sat.py
 │   │   ├── phase_optimizer_sat.py / task_sat.py
-│   │   ├── train_sensing*.py          # 感知（分类+定位）
-│   │   ├── mot_data.py / mot_tracker.py / train_detect.py / demo_mot.py  # 多目标追踪
-│   │   ├── sdr_io.py / sdr_ingest.py  # SDR 数据接口（IQ 格式/导入）
+│   │   ├── train_sensing*.py          # Sensing (classification + localization)
+│   │   ├── mot_data.py / mot_tracker.py / train_detect.py / demo_mot*.py  # 3D MOT
+│   │   ├── sdr_io.py / sdr_ingest.py  # SDR data interface (IQ / ingest)
 │   │   ├── demo*.py / make_animation.py / run_demo.sh
-│   │   └── isac_demo/                 # checkpoint + HTML 播放器 + GIF
-│   ├── legacy/                        # 原项目（RIS+扩散模型重建，归档）
+│   │   └── isac_demo/                 # checkpoints + HTML players + GIFs
+│   ├── legacy/                        # Original project (RIS + diffusion 3D recon, archived)
 │   └── requirements.txt
-├── docs/                              # 原项目图（comparison_*.png）
-├── archive/                           # 历史打包
-├── space_isac_design.md               # 详细设计文档
-├── README.md
+├── docs/                              # Original project figures
+├── colab/                             # One-click Colab notebook
+├── space_isac_design.md               # Full design document (physics, results, pitfalls)
+├── CONTRIBUTING.md
+├── README.md / README.zh-CN.md
 └── LICENSE
 ```
 
 ---
 
-## 📚 文档
+## 📚 Documentation
 
-- **[space_isac_design.md](space_isac_design.md)** — 完整设计：物理模型、实验结果、物理结论、踩坑记录
-- 原项目文档：`architecture.md` / `Code_Wiki.md`
+- **[space_isac_design.md](space_isac_design.md)** — complete design: physical model, experiments, physical conclusions, pitfalls
+- Original project docs: [`architecture.md`](architecture.md) / [`Code_Wiki.md`](Code_Wiki.md)
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — how to contribute
 
-## 技术栈
+## Tech Stack
 
 `Python · PyTorch · SGP4 · NumPy/SciPy · Matplotlib · scikit-learn`
 
+## 🤝 Contributing
+
+Found a bug? Have an idea? Check out [CONTRIBUTING.md](CONTRIBUTING.md) and open an [issue](https://github.com/ConradLu2740/IRS-Diffu-ISAC/issues) or [PR](https://github.com/ConradLu2740/IRS-Diffu-ISAC/pulls). All contributions welcome!
+
+**If this project is useful for your research or engineering, give it a ⭐ — it helps more people find it!**
+
 ## Citation
 
+If you use this project in your research:
+
 ```bibtex
-IRS-Diffu-ISAC: IRS-Aided ISAC via Diffusion Models for 3D Point Cloud Reconstruction
+@misc{irsdiffuisac2026,
+  title  = {IRS-Diffu-ISAC: RIS-Aided ISAC via Diffusion Models for 3D Point Cloud Reconstruction},
+  author = {Lu, Conrad},
+  year   = {2026},
+  howpublished = {\url{https://github.com/ConradLu2740/IRS-Diffu-ISAC}}
+}
 ```
 
 ## License
 
-MIT License
+[MIT](LICENSE) © 2026 Conrad Lu
