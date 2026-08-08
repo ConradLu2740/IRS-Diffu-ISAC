@@ -42,7 +42,7 @@ class DetectNet(nn.Module):
             [nn.Sequential(nn.Linear(hidden // 2, 128), nn.ReLU(), nn.Linear(128, N_CLASSES))
              for _ in range(k)])
         self.pos_heads = nn.ModuleList(
-            [nn.Sequential(nn.Linear(hidden // 2, 128), nn.ReLU(), nn.Linear(128, 2))
+            [nn.Sequential(nn.Linear(hidden // 2, 128), nn.ReLU(), nn.Linear(128, 3))  # 3D
              for _ in range(k)])
 
     def forward(self, x):
@@ -65,15 +65,15 @@ def match_loss(clss, poss, targets, device):
         pred_pos, pred_cls = pred_pos[order], pred_cls[order]
         for k in range(K_MAX):
             if k < n_t:
-                cid, (cx, cy) = tg[k]
+                cid, (cx, cy, cz) = tg[k]
                 loss_cls = loss_cls + F.cross_entropy(
                     pred_cls[k].unsqueeze(0), torch.tensor([cid], device=device))
                 loss_pos = loss_pos + F.mse_loss(
-                    pred_pos[k], torch.tensor([cx, cy], dtype=torch.float32, device=device))
+                    pred_pos[k], torch.tensor([cx, cy, cz], dtype=torch.float32, device=device))
             else:
                 # 空槽：推远位置 + 均匀类别（弱正则）
                 loss_pos = loss_pos + 4.0 * F.mse_loss(
-                    pred_pos[k], torch.tensor([2.0, 2.0], device=device))
+                    pred_pos[k], torch.tensor([2.0, 2.0, 2.0], device=device))
     return loss_cls / B, loss_pos / B
 
 
@@ -103,12 +103,12 @@ def evaluate(model, rps, targets, device, iou_thr=0.25):
         order = np.argsort(pred_pos[:, 0])
         pred_pos, pred_cls = pred_pos[order], pred_cls[order]
         for k in range(min(K_MAX, len(tg))):
-            cid, (cx, cy) = tg[k]
+            cid, (cx, cy, cz) = tg[k]
             total_t += 1
-            if np.linalg.norm(pred_pos[k] - np.array([cx, cy])) < iou_thr:
+            if np.linalg.norm(pred_pos[k] - np.array([cx, cy, cz])) < iou_thr:
                 detected += 1
                 cls_ok += (pred_cls[k] == cid)
-                pos_err += np.linalg.norm(pred_pos[k] - np.array([cx, cy]))
+                pos_err += np.linalg.norm(pred_pos[k] - np.array([cx, cy, cz]))
     return (detected / max(total_t, 1), cls_ok / max(total_t, 1),
             pos_err / max(total_t, 1))
 

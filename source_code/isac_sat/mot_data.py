@@ -27,20 +27,26 @@ def _template_by_name(name):
 
 
 class MovingTarget:
-    """单个移动目标：类别 + 位置（体素坐标）+ 速度（体素/帧）。"""
+    """单个移动目标：类别 + 3D 位置（体素坐标）+ 3D 速度。
 
-    def __init__(self, cls_id, pos, vel, roi_res=16):
+    无人机（uav）在三维空间飞行（带高度）；地面目标（car/bicycle/
+    pedestrian/train）贴地（z=0）。
+    """
+
+    def __init__(self, cls_id, pos3d, vel3d, roi_res=16, uav_alt=0):
         self.cls_id = cls_id
         self.cls_name = CLASS_NAMES[cls_id]
-        self.pos = np.array(pos, dtype=float)   # ROI 体素坐标（连续）
-        self.vel = np.array(vel, dtype=float)   # 体素/帧
+        self.pos = np.array(pos3d, dtype=float)   # [x, y, z] ROI 体素坐标
+        self.vel = np.array(vel3d, dtype=float)   # 体素/帧
         self.roi_res = roi_res
+        self.is_air = (self.cls_name == "uav")
+        self.uav_alt = uav_alt                     # 无人机飞行高度（体素）
         self.template = _template_by_name(self.cls_name)
 
     def step(self):
-        """更新位置，边界反弹。"""
+        """更新位置，边界反弹（地面目标 z 固定，无人机 z 在高度区间）。"""
         self.pos = self.pos + self.vel
-        # 反弹（目标模板 8³，位置范围 [0, res-8]）
+        # x/y 边界反弹（模板 8³ 占位，范围 [0, res-8]）
         low, high = 0.0, self.roi_res - 8.0
         for d in range(2):
             if self.pos[d] < low:
@@ -49,20 +55,31 @@ class MovingTarget:
             elif self.pos[d] > high:
                 self.pos[d] = high - (self.pos[d] - high)
                 self.vel[d] = -abs(self.vel[d])
+        # z：地面目标固定贴地；无人机在 [uav_alt, uav_alt+4] 区间反弹
+        if self.is_air:
+            z_lo, z_hi = self.uav_alt, self.uav_alt + 4.0
+            if self.pos[2] < z_lo:
+                self.pos[2] = z_lo + (z_lo - self.pos[2]); self.vel[2] = abs(self.vel[2])
+            elif self.pos[2] > z_hi:
+                self.pos[2] = z_hi - (self.pos[2] - z_hi); self.vel[2] = -abs(self.vel[2])
+        else:
+            self.pos[2] = 0.0
+            self.vel[2] = 0.0
 
     def place(self, roi, t):
-        """把目标模板放到 ROI 当前帧位置。"""
+        """把目标模板放到 ROI 当前帧位置（底部 z = pos[2]）。"""
         x, y = int(round(self.pos[0])), int(round(self.pos[1]))
-        z = 4  # 目标贴地（z 固定）
+        z = int(round(self.pos[2]))
         x = min(max(x, 0), self.roi_res - 8)
         y = min(max(y, 0), self.roi_res - 8)
+        z = min(max(z, 0), self.roi_res - 8)
         roi[x:x + 8, y:y + 8, z:z + 8] = np.maximum(
             roi[x:x + 8, y:y + 8, z:z + 8], self.template)
         return roi
 
     def center(self):
-        """目标中心（归一化 [-1,1]）。"""
-        return (self.pos[:2] + 4.0) / self.roi_res * 2.0 - 1.0
+        """目标中心（归一化 [-1,1]，3D）。"""
+        return (self.pos + 4.0) / self.roi_res * 2.0 - 1.0
 
 
 class MovingTargetScene:
@@ -83,7 +100,7 @@ class MovingTargetScene:
         self.frames = self.scenario.build_frames()
         self.mid = self.frames[len(self.frames) // 2]
 
-        # 目标初始化：随机类别 + 随机位置 + 类别速度
+        # 目标初始化：随机类别 + 随机 3D 位置 + 类别速度
         self.targets = []
         for i in range(n_targets):
             cls_id = rng.randint(len(GROUND_TARGET_TEMPLATES))
@@ -92,7 +109,17 @@ class MovingTargetScene:
             speed_vox = SPEEDS_MPS[cls_name] * dt_s / 5.0   # 5m/体素
             ang = rng.uniform(0, 2 * np.pi)
             vel = speed_vox * np.array([np.cos(ang), np.sin(ang)])
-            self.targets.append(MovingTarget(cls_id, pos, vel, roi_res))
+            if cls_name == "uav":
+                # 无人机：空中高度 + 3D 速度
+                alt = rng.uniform(3, 6)
+                vel_z = rng.uniform(-0.5, 0.5) * speed_vox
+                self.targets.append(MovingTarget(
+                    cls_id, np.array([pos[0], pos[1], alt]),
+                    np.array([vel[0], vel[1], vel_z]), roi_res, uav_alt=3))
+            else:
+                self.targets.append(MovingTarget(
+                    cls_id, np.array([pos[0], pos[1], 0.0]),
+                    np.array([vel[0], vel[1], 0.0]), roi_res))
 
     # ------------------------------------------------------------------
     def render_roi(self, t):

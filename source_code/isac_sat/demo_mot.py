@@ -125,47 +125,47 @@ def main(args):
                 cls_ok += (trs[j][1] == g[0])
     print(f"  轨迹类别准确率: {cls_ok/max(cls_tot,1):.3f} ({cls_ok}/{cls_tot})")
 
-    # ---- 可视化 ----
-    fig, ax = plt.subplots(figsize=(10, 8))
-    ax.set_xlim(-1.1, 1.1); ax.set_ylim(-1.1, 1.1)
-    ax.set_xlabel("x (normalized)"); ax.set_ylabel("y (normalized)")
-    ax.set_title(f"MOT: {args.n_targets} Moving Targets (detection + tracking)")
-    ax.grid(True, ls="--", alpha=0.4)
+    # ---- 可视化（3D：无人机在空中，地面目标贴地） ----
+    fig = plt.figure(figsize=(11, 8))
+    ax = fig.add_subplot(111, projection="3d")
+    ax.set_xlim(-1.1, 1.1); ax.set_ylim(-1.1, 1.1); ax.set_zlim(-1.1, 1.1)
+    ax.set_xlabel("x"); ax.set_ylabel("y"); ax.set_zlabel("z (altitude)")
+    ax.set_title(f"MOT: {args.n_targets} Moving Targets (3D, uav in air)")
     colors = plt.cm.tab10(np.linspace(0, 1, 20))
     track_lines = {}
     gt_lines = []
-    info_text = ax.text(0.02, 0.98, "", transform=ax.transAxes, va="top",
-                        fontsize=10, family="monospace")
+    info_text = ax.text2D(0.02, 0.98, "", transform=ax.transAxes, va="top",
+                          fontsize=10, family="monospace")
+    # 地面参考面（z=-1 平面）
+    gx, gy = np.meshgrid(np.linspace(-1, 1, 3), np.linspace(-1, 1, 3))
+    ax.plot_surface(gx, gy, np.full_like(gx, -1.0), alpha=0.08, color="gray")
 
     def init():
         return []
 
     def update(t):
-        # 清理动态元素
         for line in gt_lines:
             line.remove()
         gt_lines.clear()
         for tid, line in track_lines.items():
             line.remove()
         track_lines.clear()
-
-        # GT（灰色叉）
-        for gid, (c, (cx, cy)) in enumerate(gt_all[t]):
-            pt = ax.plot(cx, cy, "x", color="gray", ms=6, mew=1.5)
+        # GT（灰色叉，3D）
+        for gid, (c, (cx, cy, cz)) in enumerate(gt_all[t]):
+            pt = ax.plot([cx], [cy], [cz], "x", color="gray", ms=6, mew=1.5)
             gt_lines.append(pt[0])
-        # 轨迹（彩色，按 ID）
+        # 轨迹（彩色，按 ID，3D）
         for tid, cid, pos, conf in track_all[t]:
             color = colors[tid % 20]
-            pt = ax.plot(pos[0], pos[1], "o", color=color, ms=7)
+            px, py, pz = pos[0], pos[1], pos[2]
+            pt = ax.plot([px], [py], [pz], "o", color=color, ms=7)
             track_lines[tid] = pt[0]
-            # 轨迹历史（虚线）
             hist = [tr for tt in range(t + 1) for tr in track_all[tt] if tr[0] == tid]
             if len(hist) > 1:
-                xs = [h[2][0] for h in hist]; ys = [h[2][1] for h in hist]
-                ln = ax.plot(xs, ys, "-", color=color, alpha=0.5, lw=1.2)
+                xs = [h[2][0] for h in hist]; ys = [h[2][1] for h in hist]; zs = [h[2][2] for h in hist]
+                ln = ax.plot(xs, ys, zs, "-", color=color, alpha=0.5, lw=1.2)
                 gt_lines.append(ln[0])
-            ax.text(pos[0] + 0.03, pos[1] + 0.03, f"T{tid}", fontsize=8, color=color)
-
+            ax.text(px + 0.03, py + 0.03, pz + 0.03, f"T{tid}", fontsize=8, color=color)
         info_text.set_text(
             f"帧 {t+1}/{len(gt_all)} · 目标 {len(gt_all[t])} · 轨迹 {len(track_all[t])} · "
             f"召回 {recall:.2f} · ID切换 {id_sw}")
@@ -175,23 +175,24 @@ def main(args):
                          blit=False, repeat=True)
     gif_path = os.path.join(OUT_DIR, "mot_animation.gif")
     anim.save(gif_path, writer=PillowWriter(fps=2.0))
-    print(f"\n[mot] 动画: {gif_path}")
+    print(f"\n[mot] 3D 动画: {gif_path}")
 
-    # 静态轨迹图（全部帧）
-    fig2, ax2 = plt.subplots(figsize=(10, 8))
-    ax2.set_xlim(-1.1, 1.1); ax2.set_ylim(-1.1, 1.1)
-    ax2.set_xlabel("x"); ax2.set_ylabel("y")
-    ax2.set_title(f"MOT Track Trajectories (recall={recall:.2f}, ID switches={id_sw})")
-    ax2.grid(True, ls="--", alpha=0.4)
+    # 静态 3D 轨迹图
+    fig2 = plt.figure(figsize=(11, 8))
+    ax2 = fig2.add_subplot(111, projection="3d")
+    ax2.set_xlim(-1.1, 1.1); ax2.set_ylim(-1.1, 1.1); ax2.set_zlim(-1.1, 1.1)
+    ax2.set_xlabel("x"); ax2.set_ylabel("y"); ax2.set_zlabel("z (altitude)")
+    ax2.set_title(f"MOT 3D Trajectories (recall={recall:.2f}, ID switches={id_sw})")
+    ax2.plot_surface(gx, gy, np.full_like(gx, -1.0), alpha=0.08, color="gray")
     for gts in gt_all:
-        for _, (cx, cy) in gts:
-            ax2.plot(cx, cy, "x", color="gray", ms=4, mew=1, alpha=0.5)
+        for _, (cx, cy, cz) in gts:
+            ax2.plot([cx], [cy], [cz], "x", color="gray", ms=4, mew=1, alpha=0.5)
     for trs in track_all:
         for tid, cid, pos, conf in trs:
-            ax2.plot(pos[0], pos[1], ".", color=colors[tid % 20], ms=4)
+            ax2.plot([pos[0]], [pos[1]], [pos[2]], ".", color=colors[tid % 20], ms=4)
     fig2.tight_layout()
     fig2.savefig(os.path.join(OUT_DIR, "mot_trajectories.png"), dpi=150)
-    print(f"[mot] 轨迹图: {os.path.join(OUT_DIR, 'mot_trajectories.png')}")
+    print(f"[mot] 3D 轨迹图: {os.path.join(OUT_DIR, 'mot_trajectories.png')}")
 
 
 
