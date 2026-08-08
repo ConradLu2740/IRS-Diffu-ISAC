@@ -314,9 +314,11 @@ MUSIC 目标方向测向 MAE **0.017°**（ULA 高精度），但对 ROI 内目�
 3. **经典方法完全可用**：2D-CFAR 检测率 100%，沿视线定位 RMSE 7.0 m（与 ML 同量级），
    无需训练即可部署——ML 优势在于沿视线精度略优（3.1 m vs 7.0 m）与分类能力。
 
-### 修复建议
-- `compute_range_profile` 增加绝对距离模式（d_proj 相对 ROI 中心，保留绝对时延），
-  见 `baseline_classic.range_profile_abs`；修复后 ML 定位能力显著提升。
+### 修复建议（✅ 已完成 2026-08-08）
+- `compute_range_profile` 新增 `center="roi"` 模式：d_proj 相对 ROI 中心（保留绝对位置，
+  差分时延避免 K=512 回卷）；`SatROIDataset` 在 `rp_align=False` 时自动使用。
+  修复后 ML 定位：2D MAE 12.2 m（旧特征 20.4 m），沿视线 ~3-5 m，分类 0.817；
+  闭环 demo 不受影响（感知增益 +243.5%，oracle 达成 99.8%）。
 - 横向定位如需突破：需多基地/阵列（超分辨受远场几何限制，收益有限）或时序先验（MOT）。
 
 ---

@@ -74,7 +74,7 @@ Intelligent Reflecting Surface (RIS) aided **Integrated Sensing and Communicatio
 | 多目标追踪（MOT） | 10 目标 / 5 类，检测召回 81%，轨迹聚合提升类别准确率 |
 | 经典基线（2D-CFAR） | 检测率 **100%**（P_fa=1e-4），沿视线定位 RMSE **7.0 m**——无需训练 |
 | 经典基线（MUSIC） | ULA-8 目标方向测向 MAE **0.017°**；远场角度分辨对 ROI 内定位物理不足 |
-| ML vs 经典（公平） | ML（绝对距离特征）沿视线 RMSE **3.1 m** vs CFAR 7.0 m；旧特征（相对质心）= 仅类别先验（20.4 m） |
+| ML vs 经典（公平） | ML（绝对距离特征）沿视线 RMSE **3.1 m** vs CFAR 7.0 m；特征缺陷已修复（`center='roi'`），定位 2D MAE 20.4→12.2 m |
 | 多轨道 / Ka 频段 | ISS / Starlink ×30 / 28 GHz 全 PASS，物理一致性验证 |
 
 > ⚠️ **诚实标注**：星-地远场 + 简单对称模板下，**绝对姿态估计不可行**（物理上界）；单站多目标**分类**受信号混合限制（检测/定位可用）。
