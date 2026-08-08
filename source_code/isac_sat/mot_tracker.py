@@ -54,9 +54,11 @@ class Track:
 
 
 class MOTTracker:
-    def __init__(self, n_classes, class_names=None):
+    def __init__(self, n_classes, class_names=None, ground_z=-0.5):
         self.n_classes = n_classes
         self.class_names = class_names
+        self.ground_z = ground_z          # 地面目标 z（归一化贴地值）
+        self.air_cls = set(i for i, n in enumerate(class_names or []) if n == "uav")
         self.tracks = []
         self._next_id = 0
         self.metrics = {"id_switches": 0, "track_frags": 0}
@@ -102,7 +104,14 @@ class MOTTracker:
         # 2. 清理超时轨迹
         self.tracks = [t for t in self.tracks if t.miss <= MAX_MISS]
 
-        # 3. 返回确认轨迹
+        # 3. 类别 z 约束：地面目标强制贴地（仅 uav 允许高度变化）
+        for t in self.tracks:
+            if np.argmax(t.cls_probs) not in self.air_cls:
+                t.pos[2] = self.ground_z
+                if t.history:
+                    t.history[-1][2] = self.ground_z
+
+        # 4. 返回确认轨迹
         out = []
         for t in self.tracks:
             if t.confirmed:
