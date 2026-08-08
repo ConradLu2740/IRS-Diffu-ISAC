@@ -33,6 +33,7 @@ jobs:
                   'demo','demo_live','demo_multi','make_animation','demo_sdr',
                   'sdr_io','sdr_ingest',
                   'mot_data','mot_tracker','train_detect','demo_mot','demo_mot_html',
+                  'baseline_classic',
                   'setup','data','data_no_irs','models','train','phase_optimizer']
           for m in mods:
               importlib.import_module(m)
