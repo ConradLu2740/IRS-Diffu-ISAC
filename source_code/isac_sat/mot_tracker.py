@@ -22,7 +22,7 @@ class Track:
     def __init__(self, tid, pos, cls_probs, n_classes):
         self.id = tid
         self.pos = np.array(pos, dtype=float)
-        self.vel = np.zeros(2)
+        self.vel = np.zeros(3)   # 3D 速度 (x, y, z)
         self.cls_probs = np.array(cls_probs, dtype=float)  # [n_classes]
         self.age = 1
         self.miss = 0
