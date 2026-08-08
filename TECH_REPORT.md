@@ -4,14 +4,14 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.1 (2026-08-08) — companion to the open-source repository
+**Version**: v1.2 (2026-08-08) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 ---
 
 ## Abstract
 
-This report describes an open-source, physics-grounded engineering system for RIS-aided Integrated Sensing and Communication (ISAC) extended to space ISAC (ISAC-NTN). It combines real LEO orbit propagation (SGP4), dynamic RIS phase tracking, learning-based sensing, 3D multi-object tracking, and a sensing–communication closed loop, all reproducible with one-command scripts. Key results: orbit physics matches real ISS values; RIS frame-by-frame tracking improves power by **+89%** (K=1), while reconfiguration-limited tracking (K=8) loses the gain; a sensing-aided closed loop achieves **+309%** communication gain (97.6% of the ideal oracle); wideband HRRP classification reaches **0.80** (9-class); 3D multi-object tracking of 10 targets achieves 0.60 detection recall. A systematic comparison with classical baselines (2D-CFAR, MUSIC) on identical test sets uncovers two transferable findings: (i) a feature-construction defect — centroid-relative range-profile delays silently discard absolute target position, collapsing ML localization to a class prior (2D RMSE 22.6 m vs 12.1 m with absolute-range features); (ii) a far-field angle-resolution wall — at ~695 km slant range, the 80 m ROI subtends only 0.0066°, far below an 8-element ULA resolution (~14°), so mono-static angle-based cross-range localization is physically unavailable. All numbers are reproducible from the repository with fixed seeds.
+This report describes an open-source, physics-grounded engineering system for RIS-aided Integrated Sensing and Communication (ISAC) extended to space ISAC (ISAC-NTN). It combines real LEO orbit propagation (SGP4), dynamic RIS phase tracking, learning-based sensing, 3D multi-object tracking, and a sensing–communication closed loop, reproducible with one-command scripts (fixed seeds). Results: orbit physics matches real ISS values; RIS frame-by-frame tracking improves power by **+89%** (K=1), while reconfiguration-limited tracking (K=8) loses the gain; a sensing-aided closed loop achieves **+309%** communication gain (97.6% of the ideal oracle); wideband HRRP classification reaches **0.80** (5-class); 3D multi-object tracking (10 targets) achieves 0.60 recall. A comparison with classical baselines (2D-CFAR, MUSIC) uncovers two findings: (i) a feature-construction defect — centroid-relative delays discard absolute target position, collapsing ML localization to a class prior (22.6 m vs 12.1 m 2D RMSE with absolute-range features); (ii) a far-field angle wall — at ~695 km, the 80 m ROI subtends 0.0066°, far below an 8-element ULA resolution (~14°), so mono-static cross-range localization is physically unavailable. All numbers are reproducible (torch 2.8.0 reference, fixed seeds).
 
 **Keywords**: ISAC, RIS, non-terrestrial networks, LEO satellite, diffusion models, CFAR, MUSIC
 
@@ -49,7 +49,7 @@ Defaults: 30 GHz carrier (λ = 1 cm); ISS altitude ~420 km; ROI 80 m × 80 m at 
 
 ### 2.2 Signal Model
 
-Five propagation paths: (1) BS→ROI direct illumination, (2) ROI→UE direct scatter, (3) BS→UE direct leakage, (4) BS→RIS→ROI reflected illumination, (5a) BS→RIS→UE and (5b) ROI→RIS→UE forwarded paths. For voxel scatterers with complex amplitudes a_i and round-trip delays τ_i, the baseband frequency response is
+Five propagation paths: (1) BS→ROI direct illumination, (2) ROI→UE direct scatter, (3) BS→UE direct leakage, (4) BS→RIS→ROI reflected illumination, (5a) BS→RIS→UE and (5b) ROI→RIS→UE forwarded paths. For voxel scatterers with complex amplitudes a_i and two-way (bistatic) delays τ_i, the baseband frequency response is
 
 H(f) = Σ_i a_i exp(−j2π f τ_i),
 
@@ -69,7 +69,7 @@ The RIS has N unit-modulus phase elements. Phase-aligned configuration maximizes
 
 ### 2.4 Target Models
 
-Ground targets are 16³ voxel templates (5 m voxels; 80 m ROI) with 9 classes: car, UAV, building, tank, tower, cubesat, bicycle, pedestrian, train. Each sample is placed at a random position with a random pose (rotation about the vertical axis), modulating the scattering-center distribution. Isotropic scattering is assumed (no RCS angular dependence, polarization, or occlusion modeled).
+Ground targets are 16³ voxel templates (5 m voxels; 80 m ROI) with 5 classes: car, UAV, bicycle, pedestrian, train (static building/tank/tower/cubesat templates exist as functions and are pluggable). Each sample is placed at a random position with a random pose (rotation about the vertical axis), modulating the scattering-center distribution. Isotropic scattering is assumed (no RCS angular dependence, polarization, or occlusion modeled).
 
 ---
 
@@ -77,8 +77,8 @@ Ground targets are 16³ voxel templates (5 m voxels; 80 m ROI) with 9 classes: c
 
 ### 3.1 Sensing Layer
 
-- **Diffusion-based 3D reconstruction** (`train_sat.py`): conditional latent diffusion (PointVAE encoder + DiT-style denoiser + CFG) reconstructs the ROI point cloud; evaluated with Chamfer Distance (CD), F-Score, voxel IoU. Training-scale results: CD 0.137 (sat) / 0.169 (ground) vs 0.233 (no RIS).
-- **Classification + localization** (`train_sensing*.py`): MLP over wideband HRRP (K = 512) outputs 9-class labels and normalized 2D position within the ROI; CPU real-time.
+- **Diffusion-based 3D reconstruction** (`train_sat.py`): conditional latent diffusion (PointVAE encoder + DiT-style denoiser + CFG; architecture follows latent point diffusion [10, 11, 12]) reconstructs the ROI point cloud; evaluated with Chamfer Distance (CD), F-Score, voxel IoU. Training-scale results: CD 0.137 (sat) / 0.169 (ground) vs 0.233 (no RIS).
+- **Classification + localization** (`train_sensing*.py`): MLP over wideband HRRP (K = 512) outputs 5-class labels and normalized 2D position within the ROI; CPU real-time.
 
 ### 3.2 Communication Layer and Closed Loop
 
@@ -94,7 +94,7 @@ The pipeline is packaged as `run_demo.sh` plus a single-file HTML player and GIF
 
 ### 4.1 Narrowband → Wideband → ISAR
 
-Classification accuracy progression (early experiments, 6-class templates; reported for reference): narrowband 0.383 → wideband HRRP 0.867 → ISAR sequence 0.933. With the current 9-class templates, wideband HRRP classification is **0.80** (reproducible, `train_sensing.py --wideband`, seed-fixed). The progression quantifies the information added by range resolution and by synthetic aperture over rotation.
+Classification accuracy progression (early experiments, 6-class templates; reported for reference): narrowband 0.383 → wideband HRRP 0.867 → ISAR sequence 0.933. With the current 5-class templates, wideband HRRP classification is **0.80** (reproducible, `train_sensing.py --wideband`, seed-fixed). The progression quantifies the information added by range resolution and by synthetic aperture over rotation.
 
 ### 4.2 3D Multi-Object Tracking (MOT)
 
@@ -115,9 +115,9 @@ An IQ format (`sdr_io.py`) and ingest pipeline (`sdr_ingest.py`) convert time-do
 
 Classical radar baselines (`baseline_classic.py`) evaluated on the same fixed test set (60 samples, SNR 20 dB, seed-fixed):
 
-- **2D-CA-CFAR** (P_fa = 10⁻⁴, convolution-vectorized) on the range–Doppler map (slow-time FFT of the ISAR sequence);
+- **2D-CA-CFAR** (P_fa = 10⁻⁴, convolution-vectorized; CA-CFAR formulation [13]) on the range–Doppler map (slow-time FFT of the ISAR sequence);
 - **1D-CFAR** on the absolute-range profile with regression-calibrated bin→meters mapping (20-sample calibration set, R² ≈ 0.83);
-- **MUSIC** with an 8-element ULA (λ/2, 64 snapshots). *Honesty note: MUSIC is validated with synthetically generated point-source snapshots (a·s+n) — it does not share the same signal stream as CFAR/ML; the 0.017° figure verifies algorithmic self-consistency, not end-to-end sensing accuracy.*
+- **MUSIC** with an 8-element ULA (λ/2, 64 snapshots) [14]; general radar background per [15]. *Honesty note: MUSIC is validated with synthetically generated point-source snapshots (a·s+n) — it does not share the same signal stream as CFAR/ML; the 0.017° figure verifies algorithmic self-consistency, not end-to-end sensing accuracy.*
 
 ### 5.1 Results
 
@@ -127,6 +127,7 @@ Classical radar baselines (`baseline_classic.py`) evaluated on the same fixed te
 | 1D-CFAR (localization) | — | **8.14 m** | — (no angle info) | — |
 | MUSIC (ULA-8, synthetic) | — | — | — | DOA MAE **0.017°** |
 | ML (absolute-range) | — | **2.27 m** | 11.84 m | 0.733 |
+| ML (absolute-range, cls head) | — | — | — | 0.733 |
 | ML (centroid-relative, old) | — | — | 2D RMSE **22.63 m** | 0.817 |
 | ML (shape, aligned) | — | — | 2D RMSE 21.86 m | 0.700 |
 
@@ -154,7 +155,7 @@ At ~695 km slant range, 1 m of cross-range offset subtends ≈ 8×10⁻⁵ degre
 | 4 | RIS segmented tracking | K=2: +60.0% · K=4: +36.6% · K=8: **−41.5%** (stale phases harmful) |
 | 5 | Sensing–comm closed loop (single) | Class 80%, comm gain **+309.4%** (97.6% of oracle) |
 | 6 | Sensing–comm closed loop (multi) | Detection 1/2, IRS gain **+443.8%** (93% of oracle) |
-| 7 | Classification (9-class, wideband HRRP) | **0.80** (early 6-class: 0.383→0.867→ISAR 0.933) |
+| 7 | Classification (5-class, wideband HRRP) | **0.80** (early 6-class: 0.383→0.867→ISAR 0.933) |
 | 8 | 3D MOT | 10 targets / 5 classes, recall **0.60**, class acc. 0.73 |
 | 9 | SDR pipeline | IQ→FFT→range profile fidelity **0.998** |
 | 10 | Robustness | ISS / Starlink × 30 GHz / 28 GHz: all PASS |
@@ -164,7 +165,7 @@ At ~695 km slant range, 1 m of cross-range offset subtends ≈ 8×10⁻⁵ degre
 
 ### 6.2 Reproducibility
 
-All results are produced by one-command scripts with **fixed global seeds** (`torch.manual_seed` + `np.random.seed` + `random.seed(42)` at every entry point; verified: two consecutive runs produce identical outputs):
+All results are produced by one-command scripts with **fixed global seeds** (`torch.manual_seed` + `np.random.seed` + `random.seed` at every entry point). Reference environment: torch 2.8.0, numpy 1.24+, Python 3.9; two consecutive runs in the same environment produce identical outputs. ML training numbers correspond to the parameters stated in each section (e.g., baseline_classic.py default 60 test / 300 train / 30 epochs); the closed-loop demo numbers are produced by `run_demo.sh` (train + evaluate in one step), which trains the sensing checkpoint in-place.
 
 ```bash
 cd source_code/isac_sat
@@ -189,7 +190,7 @@ A GitHub Actions CI pipeline runs import checks, physics smoke tests, and SDR fi
 5. **No over-the-air hardware validation yet**: the SDR interface is verified on simulated IQ; RTL-SDR/USRP capture is the natural next step.
 6. **Atmosphere/ionosphere effects are not modeled** (free-space far-field approximation).
 7. **Evaluation scale is modest** (60–150 test samples, smoke-level training, single seed per experiment; multiple seeds and larger runs are a matter of compute). MOT is evaluated on a single scene.
-8. **Historical values**: some early results (6-class classification progression) were produced before the current 9-class templates; they are reported for reference and are reproducible only from earlier commits.
+8. **Historical values**: some early results (6-class classification progression) were produced before the current 5-class templates; they are reported for reference and are reproducible only from earlier commits.
 
 ---
 
