@@ -192,8 +192,10 @@ IRS-Diffu-ISAC/
 │   │   └── isac_demo/                 # checkpoint + HTML 播放器 + GIF
 │   ├── legacy/                        # 原项目（RIS + 扩散模型 3D 重建，归档）
 │   └── requirements.txt
-├── docs/                              # 原项目图
 ├── colab/                             # 一键 Colab 笔记本
+├── archive/
+│   ├── source_code.zip                # 历史快照
+│   └── original-docs/                 # 原项目文档（architecture.md / Code_Wiki.md / 图）
 ├── space_isac_design.md               # 完整设计文档（物理、结果、踩坑）
 ├── CONTRIBUTING.md
 ├── README.md / README.zh-CN.md
@@ -205,7 +207,7 @@ IRS-Diffu-ISAC/
 ## 📚 文档
 
 - **[space_isac_design.md](space_isac_design.md)** — 完整设计：物理模型、实验结果、物理结论、踩坑记录
-- 原项目文档：[`architecture.md`](architecture.md) / [`Code_Wiki.md`](Code_Wiki.md)
+- 原项目文档（已归档）：[`archive/original-docs/`](archive/original-docs/) — [`architecture.md`](archive/original-docs/architecture.md) / [`Code_Wiki.md`](archive/original-docs/Code_Wiki.md)
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — 贡献指南
 
 ## 技术栈
