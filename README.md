@@ -72,6 +72,9 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 | Sensing–comm closed-loop (single) | Classification 83%, comm gain **+233%** (98% of oracle) |
 | Sensing–comm closed-loop (multi) | Detection 2/2, IRS pointing gain **+289%** (94% of oracle) |
 | Multi-target tracking (MOT) | 10 targets / 5 classes, detection recall 81%, trajectory aggregation boosts class accuracy |
+| Classic baseline (2D-CFAR) | Detection **100%** (P_fa=1e-4), along-line-of-sight localization RMSE **7.0 m** — no training needed |
+| Classic baseline (MUSIC) | ULA-8 target direction MAE **0.017°**; far-field angle resolution physically insufficient for intra-ROI localization |
+| ML vs classic (fair) | ML (absolute-range feature) LOS RMSE **3.1 m** vs CFAR 7.0 m; old (centroid-relative) feature = class prior only (20.4 m) |
 | Multi-orbit / Ka-band | ISS / Starlink ×30 / 28 GHz all PASS, physics consistency verified |
 
 > ⚠️ **Honest notes**: absolute attitude estimation is **not feasible** (physical upper bound) for far-field star–ground links with simple symmetric templates; single-station multi-target **classification** is limited by signal mixing (detection/localization works).
