@@ -80,6 +80,10 @@ Intelligent Reflecting Surface (RIS) aided **Integrated Sensing and Communicatio
 
 ## 📊 同类开源项目对比
 
+![能力覆盖雷达图](assets/comparison_radar.svg)
+
+*8 维度能力覆盖（满分 2/2）。雷达图源码：[`assets/make_comparison_radar.py`](assets/make_comparison_radar.py)。*
+
 **功能覆盖对比**（与 ISAC / RIS / 扩散 3D 方向的代表性开源项目，2026-08 核实）：
 
 | 能力 | **IRS-Diffu-ISAC** | [5G ISAC 系统级仿真](https://github.com/xds0112/5G_based_System_level_Integrated_Sensing_and_Communication_Simulator) | [ISAC-PLM (802.11ay)](https://github.com/wigig-tools/isac-plm) | [PassiveDOA-ISAC-RIS](https://github.com/chenpengseu/PassiveDOA-ISAC-RIS) | [扩散 3D (PVD)](https://github.com/luost26/diffusion-point-cloud) |
