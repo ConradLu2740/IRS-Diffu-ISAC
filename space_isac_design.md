@@ -268,3 +268,74 @@ python eval_sat.py --modes none sat ground --save_dir ./sat_model
 | `smoke_test.py` | 原项目全链路最小复现 | ✅ 保留 |
 | `sat_verify/` | 验证图（orbit_3d / overpass_dynamics） | ✅ |
 | `sat_model/` | 训练产物（*.pth 被 gitignore） | 临时 |
+| `mot_data.py` | 多目标场景数据生成（5 类 10 目标） | ✅ |
+| `mot_tracker.py` | 帧间匹配 + 轨迹聚合（z 约束） | ✅ |
+| `train_detect.py` | 检测器训练（距离像分类） | ✅ |
+| `demo_mot.py` | MOT 2D 动画（PNG 帧） | ✅ |
+| `demo_mot_html.py` | MOT 3D 交互 HTML（Plotly） | ✅ |
+| `sdr_io.py` | SDR IQ 格式定义 + 读写 | ✅ |
+| `sdr_ingest.py` | 导入管线（IQ→FFT→距离像） | ✅ |
+| `demo_sdr.py` | SDR 无硬件回放 demo | ✅ |
+
+---
+
+## 12. 多目标追踪 MOT（已完成）
+
+**目标**：同时追踪 10 个移动目标（家庭轿车 / 无人机 / 自行车 / 行人 / 火车 5 类），跨帧保持 ID，输出轨迹。
+
+### 架构
+
+```
+mot_data.py      场景：5 类目标 × 随机轨迹（直线/加速/转弯），多帧采样
+                 每帧 5 路径信道 → 距离像（含多普勒），生成标注
+mot_tracker.py   逐帧检测（滑动窗口峰值）→ 帧间匹配（距离/速度门限）
+                 → 轨迹聚合（多数投票提升类别准确率）
+train_detect.py  检测器：距离像 → 目标类别 + 位置（CNN 骨干，CPU 可训）
+demo_mot.py      2D 动画（matplotlib 帧序列）
+demo_mot_html.py 3D 交互 HTML（Plotly，旋转/缩放/悬停）
+```
+
+### 关键结果
+- 10 目标 5 类：检测召回 **0.812**、类别准确率（原始）0.518 → 轨迹聚合后显著提升
+- 训练：`train_detect.py --n_scenes 25 --epochs 50`（CPU 分钟级）
+- 演示：`mot_animation.gif`（2D）+ `mot_3d.html`（交互 3D）
+
+## 13. SDR 真实数据接口（已完成）
+
+**目标**：为真实 SDR 硬件（RTL-SDR / USRP）预留数据通道，当前无硬件时用模拟 IQ 验证全链路。
+
+### IQ 格式定义（sdr_io.py）
+- `sample_isac.iq.npz`：`{iq: complex64[N,]，fs: float, fc: float, t0: float, meta: dict}`
+- 兼容性：直接对接 RTL-SDR `rtlsdr` / USRP `uhd` 的 IQ 流
+
+### 导入管线（sdr_ingest.py）
+```
+IQ 采样 → 下变频/滤波 → FFT（加窗）→ 距离像 → 感知（分类+定位）
+```
+- 保真度验证：模拟发射 → 导入重建距离像与理论相关 **0.998**
+- 演示：`demo_sdr.py`（无硬件回放，输出距离像重建对比图）
+
+## 14. 3D 多目标追踪（已完成）
+
+**问题**：无人机在天上飞，2D 追踪不够——需要 3D 轨迹。
+
+### 实现要点
+- 场景数据升级：目标带 3D 坐标（无人机 z ∈ [80, 300]m，地面目标 z = 0）
+- 检测器输出 (class, x, y, z)；z 由距离像（含俯仰信息近似）估计
+- **物理约束修复**（关键）：地面目标（行人/轿车/自行车/火车）z 锁定贴地——
+  单站距离像对高度信息弱，检测器 z 预测有噪声，追踪器对已知地面目标类别强制 z=0，
+  消除虚假的 z 抖动（对应 commit `fix: ground-target z constraint in MOT tracking`）
+- 交互演示：`mot_3d.html`（Plotly 3D 场景，按类别着色，轨迹连线）
+
+## 15. 工程展示与 GitHub 推广（已完成）
+
+工程导向的对外门面：
+
+| 项 | 内容 |
+|----|------|
+| README | 英文主版（国际）+ 中文版（国内科研），含 Mermaid 架构图、双 Demo GIF、Roadmap |
+| Colab | 60 秒一键体验（克隆→依赖→物理验证→闭环 demo→GIF） |
+| CI | GitHub Actions：模块导入 + 物理验证 + SDR 管线 smoke |
+| 模板 | Issue（bug/feature）+ PR 模板 |
+| LICENSE | MIT |
+| 演示产物 | demo_live.html / mot_3d.html / demo_animation.gif / mot_animation.gif |
