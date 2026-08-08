@@ -68,7 +68,7 @@ Intelligent Reflecting Surface (RIS) aided **Integrated Sensing and Communicatio
 | 轨道物理验证（ISS） | 高度 418 km / 速度 7.66 km/s / 周期 92.9 min（与真实值吻合） |
 | 过境多普勒（30 GHz） | −610 ~ +610 kHz（S 型曲线，真实 LEO 量级） |
 | RIS 动态跟踪 | 逐帧跟踪功率 **+89%**（K=1）；K=8 分段（重构受限）增益消失（−42%，甚至有害） |
-| 宽带 HRRP 目标分类 | **0.80**（9 类模板；早期 6 类实验：0.383 → 0.867 → ISAR 0.933） |
+| 宽带 HRRP 目标分类 | **0.80**（5 类模板；早期 6 类实验：0.383 → 0.867 → ISAR 0.933） |
 | 感知-通信闭环（单目标） | 分类 80%，通信增益 **+309%**（oracle 达成率 97.6%） |
 | 感知-通信闭环（多目标） | 检测 1/2，IRS 指向增益 **+444%**（oracle 达成率 93%） |
 | 多目标追踪（MOT） | 10 目标 / 5 类，检测召回 **0.60**，轨迹类别准确率 0.73 |
@@ -108,7 +108,7 @@ Intelligent Reflecting Surface (RIS) aided **Integrated Sensing and Communicatio
 
 | 项目 | 公开指标 |
 |---|---|
-| **IRS-Diffu-ISAC** | 宽带 HRRP 分类 **0.80**（9 类）· 闭环通信增益 **+309%**（oracle 97.6%）· RIS 跟踪 **+89%**（K=1）· MOT 召回 **0.60**（10 目标 / 5 类）· 2D-CFAR 检测 100%、LOS RMSE 8.1 m · 3D 重建 CD 0.137–0.183（无 RIS 时 0.233） |
+| **IRS-Diffu-ISAC** | 宽带 HRRP 分类 **0.80**（5 类）· 闭环通信增益 **+309%**（oracle 97.6%）· RIS 跟踪 **+89%**（K=1）· MOT 召回 **0.60**（10 目标 / 5 类）· 2D-CFAR 检测 100%、LOS RMSE 8.1 m · 3D 重建 CD 0.137–0.183（无 RIS 时 0.233） |
 | PVD（ShapeNet） | CD ~1.5e-3 @ShapeNet——标准*生成*基准，任务不同（无条件 3D 生成，无信道/ISAC 物理） |
 | ISAC-PLM | 60 GHz 802.11ay 链路级感知 MSE / NMSE（短距 PHY 层） |
 | 5G ISAC 系统级 | 5G NR 系统级仿真（2D-CFAR / MUSIC 感知，蜂窝场景） |

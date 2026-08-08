@@ -130,7 +130,8 @@ python eval_sat.py --modes none sat ground --save_dir ./sat_model
 
 - 物理一致性验证：多普勒随频率线性缩放（30→28GHz 下降 28/30 倍）；低轨 Starlink 时延更小
 - 训练级鲁棒性：Starlink + 28GHz + tracked + 地面目标 → CD=0.183（管线稳定）
-- 地面目标模板：car / uav / building / tank / tower / cubesat 6 类（`generate_ground_roi`）
+- 地面目标模板：早期 6 类（car/uav/building/tank/tower/cubesat，历史实验）；
+  当前 `GROUND_TARGET_TEMPLATES` 为 5 类（car/uav/bicycle/pedestrian/train，MOT 场景）
 
 ## 7. 已验证结果（小规模 smoke）
 
@@ -312,8 +313,8 @@ MUSIC 目标方向测向 MAE **0.017°**（合成点源快照验证算法自洽�
 2. **远场角度分辨物理墙**：斜距 695 km → 1 m 横向偏移仅 0.00008°；
    80 m ROI 全宽 0.0066° << ULA 8 元分辨力 22.5° → **角度对 ROI 内目标定位无信息**。
    横向定位只能靠类别先验/多普勒（ML 横向 RMSE 15.7 m 即此墙的量化）。
-3. **经典方法完全可用**：2D-CFAR 检测率 100%，沿视线定位 RMSE 7.0 m（与 ML 同量级），
-   无需训练即可部署——ML 优势在于沿视线精度略优（3.1 m vs 7.0 m）与分类能力。
+3. **经典方法完全可用**：2D-CFAR 检测率 100%，沿视线定位 RMSE 8.14 m（与 ML 同量级），
+   无需训练即可部署——ML 优势在于沿视线精度略优（2.27 m vs 8.14 m）与分类能力。
 
 ### 修复建议（✅ 已完成 2026-08-08）
 - `compute_range_profile` 新增 `center="roi"` 模式：d_proj 相对 ROI 中心（保留绝对位置，

@@ -21,7 +21,7 @@ UNI = [
     ("°", r"$^\circ$"), ("²", r"$^2$"), ("³", r"$^3$"), ("…", r"\ldots"),
     ("×", r"$\times$"), ("→", r"$\rightarrow$"), ("—", "--"), ("–", "--"),
     ("−", "-"), ("⁻", "-"), ("⁵", r"$^{5}$"), ("⁴", r"$^{4}$"), ("⁰", r"$^{0}$"),
-    ("₁", r"$_1$"), ("₂", r"$_2$"), ("ᵢ", r"$_i$"),
+    ("₁", r"$_1$"), ("₂", r"$_2$"), ("ᵢ", r"$_i$"), ("·", r"$\cdot$"),
 ]
 
 # 公式行特征：含 H(f)、τ、Σ、exp(−j2π 等
@@ -32,13 +32,14 @@ def is_math_line(s):
 
 def to_math(s):
     """Unicode 文本公式 → LaTeX 数学（equation 内容）。"""
+    import re as _re
     m = s.replace("H(f)", r"H(f)")
+    # exp(-j2π f τ_i) → \exp(-j2\pi f \tau_i)（先于 π/τ 替换，用 Unicode 字面匹配）
+    m = _re.sub("exp\\((?:\u2212|-)j2\u03c0 f \u03c4_i", r"\\exp(-j2\\pi f \\tau_i", m)
     m = m.replace("Σ_i", r"\sum_i").replace("Σ", r"\sum")
     m = m.replace("τ_i", r"\tau_i").replace("τ", r"\tau")
     m = m.replace("a_i", r"a_i").replace("π", r"\pi")
-    m = m.replace("exp(−j2π f τ_i)", r"\exp(-j2\pi f \tau_i)")
     m = m.replace("−", "-").replace("·", r"\cdot")
-    m = m.replace("≈", r"\approx").replace("→", r"\rightarrow").replace("×", r"\times")
     return m
 
 def inline(s):
@@ -72,7 +73,7 @@ def md_table_to_latex(rows):
     return "\n".join(out)
 
 PRE = r"""% ============================================================
-% IRS-Diffu-ISAC Technical Report v1.1 (auto-converted from TECH_REPORT.md)
+% IRS-Diffu-ISAC Technical Report v1.2 (auto-converted from TECH_REPORT.md)
 % arXiv-ready. Compile: pdflatex TECH_REPORT.tex
 % ============================================================
 \documentclass[11pt]{article}
@@ -85,7 +86,7 @@ PRE = r"""% ============================================================
 \hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue}
 \title{RIS-Aided Integrated Sensing and Communication Toward Space ISAC: A Physics-Grounded Open-Source Engineering System}
 \author{Conrad Lu\\[2pt] \small School of Information Science and Engineering, Northeastern University, Shenyang, China\\ \small\url{https://github.com/ConradLu2740/IRS-Diffu-ISAC}}
-\date{Version 1.1, August 8, 2026}
+\date{Version 1.2, August 8, 2026}
 \begin{document}
 \maketitle"""
 
