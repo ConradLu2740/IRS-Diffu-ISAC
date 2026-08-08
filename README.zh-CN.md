@@ -244,6 +244,7 @@ IRS-Diffu-ISAC/
 
 ## 📚 文档
 
+- **[TECH_REPORT.md](TECH_REPORT.md)** — arXiv 版技术报告：系统模型、闭环结果、经典基线（2D-CFAR + MUSIC）、物理发现
 - **[space_isac_design.md](space_isac_design.md)** — 完整设计：物理模型、实验结果、物理结论、踩坑记录
 - 原项目文档（已归档）：[`archive/original-docs/`](archive/original-docs/) — [`architecture.md`](archive/original-docs/architecture.md) / [`Code_Wiki.md`](archive/original-docs/Code_Wiki.md)
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — 贡献指南
