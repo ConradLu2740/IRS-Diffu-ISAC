@@ -1,0 +1,41 @@
+# IRS-Diffu-ISAC 项目元数据与依赖声明
+#
+# 注意：本项目按科研仓库惯例直接从源码运行（见 Makefile），
+# 本文件仅用于声明元数据与依赖，不将源码打包为发行版，
+# 以避免破坏 isac_sat 对 legacy 模块的 sys.path 引用。
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "irs-diffu-isac"
+version = "1.0.0"
+description = "RIS-aided ISAC: diffusion 3D reconstruction, space ISAC (LEO), dynamic RIS tracking, sensing-communication closed-loop demo"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Conrad Lu" }]
+keywords = ["isac", "ris", "reconfigurable-intelligent-surface", "diffusion-model", "point-cloud", "satellite", "leo", "sensing", "communication", "6g"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Communications",
+]
+
+dependencies = [
+    "torch>=2.0",
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "matplotlib>=3.6",
+    "sgp4>=2.20",
+    "scikit-learn>=1.2",
+]
+
+[project.urls]
+Repository = "https://github.com/ConradLu2740/IRS-Diffu-ISAC"
+
+# 不打包任何 Python 包：科研仓库直接从源码目录运行（见 Makefile）
+[tool.setuptools]
+packages = []

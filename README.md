@@ -17,6 +17,28 @@ Intelligent Reflecting Surface (RIS) aided **Integrated Sensing and Communicatio
 
 ---
 
+## 🧭 For Peers (TL;DR)
+
+**What this is** — an open, physics-grounded **reference implementation of RIS-aided ISAC**:
+real LEO orbits (SGP4) → dynamic RIS phase tracking → sensing from communication signals →
+closed-loop demo. All data & weights are **synthetically generated in-code** — clone, `make setup`, done; **no data download needed**.
+
+**What you can do with it**
+- **Reproduce** headline results (RIS tracking **+89%**, closed-loop comm gain **+309%**) in minutes
+- **Extend** it: swap satellite / frequency band / target templates / your own model
+- **Compare** with classical baselines (2D-CFAR + MUSIC, `make baseline`)
+
+**Fastest path**
+```bash
+make setup    # ~2-3 min, once
+make verify   # 1 min physics self-check (ALL PASS)
+make demo     # auto-train + sensing–comm closed-loop
+```
+
+Command map: `make help` · script-by-script cards: [`source_code/isac_sat/README.md`](source_code/isac_sat/README.md) · parameter recipes: [`configs/README.md`](configs/README.md)
+
+---
+
 ## 🚀 60-Second Experience (Zero Setup)
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ConradLu2740/IRS-Diffu-ISAC/blob/main/colab/isac_demo.ipynb)
@@ -163,40 +185,59 @@ flowchart LR
 
 ## 🚀 Quick Start
 
+> 💡 All commands are one-liners via [`Makefile`](Makefile) — **data & weights are generated in-code, nothing to download.**
+
 ```bash
-# Environment
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+# 1. Environment (first time only, ~2-3 min)
+make setup
 
-cd source_code/isac_sat
+# 2. Physics self-check: orbit / Doppler / channel (~1 min)
+make verify
 
-# 1. Physics verification (orbit / Doppler / channel, ~1 min)
-../../.venv/bin/python verify_sat.py
+# 3. One-shot sensing–communication closed-loop demo (auto-trains the sensing model)
+make demo
 
-# 2. One-shot closed-loop demo (auto-train sensing + run loop)
-bash run_demo.sh
-
-# 3. Live demos (HTML player + GIF animation)
-../../.venv/bin/python demo_live.py --n_scenes 3
-../../.venv/bin/python make_animation.py
-
-# 4. Multi-target sensing closed-loop
-../../.venv/bin/python train_sensing_multi.py --wideband
-../../.venv/bin/python demo_multi.py
-
-# 5. RIS dynamic tracking trade-off
-../../.venv/bin/python verify_tracking.py
-
-# 6. SDR data pipeline (no hardware: simulated IQ → playback sensing)
-../../.venv/bin/python demo_sdr.py
-
-# 7. Multi-object tracking (10 moving targets, detect + track + animate)
-../../.venv/bin/python train_detect.py --n_scenes 25 --epochs 50
-../../.venv/bin/python demo_mot.py
-../../.venv/bin/python demo_mot_html.py   # interactive 3D HTML
+# 4. Everything else
+make help               # full command map
+make demo-live          # interactive multi-scene HTML player
+make demo-anim          # GIF animation
+make demo-multi         # multi-target closed loop
+make track              # RIS dynamic tracking trade-off
+make sdr                # SDR pipeline demo (no hardware)
+make mot                # 10-target 3D MOT (train + track + HTML)
+make baseline           # classic baseline comparison (2D-CFAR + MUSIC)
 ```
 
+Manual fallback (same commands, no `make`):
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+cd source_code/isac_sat
+../../.venv/bin/python verify_sat.py          # 1. physics verification
+bash run_demo.sh                              # 2. closed-loop demo (auto-train)
+../../.venv/bin/python demo_live.py --n_scenes 3
+../../.venv/bin/python make_animation.py      # 3. live demos
+../../.venv/bin/python train_sensing_multi.py --wideband && ../../.venv/bin/python demo_multi.py
+../../.venv/bin/python verify_tracking.py     # 4. RIS tracking trade-off
+../../.venv/bin/python demo_sdr.py            # 5. SDR pipeline
+../../.venv/bin/python train_detect.py --n_scenes 25 --epochs 50 && ../../.venv/bin/python demo_mot.py && ../../.venv/bin/python demo_mot_html.py
+```
+
+Per-script purpose / output cards: [`source_code/isac_sat/README.md`](source_code/isac_sat/README.md)
+
 ---
+
+## 🔧 How to Adapt It to Your Own Scenario
+
+| Want to change | Where | Note |
+|---|---|---|
+| Satellite / orbit | `source_code/isac_sat/setup_sat.py` (TLE constants) | ISS (25544) & Starlink (44714) built-in; use any NORAD ID |
+| Frequency band | `FC_HZ` in `setup_sat.py` | default 30 GHz mmWave; Ka-band check in `verify_robustness.py` |
+| Target templates | `_template_*()` in `data_sat.py` | car / uav / building / tank / tower / cubesat / bicycle / pedestrian / train |
+| Your own model | the `nn.Module` in a training script | input dim from `channels.frame_cond_dim()` |
+| Antenna array | `--bs_ant` / `--ue_ant` | CLI, no code change |
+
+Recipes & parameter quick-reference: [`configs/README.md`](configs/README.md)
 
 ## 🗺️ Roadmap
 
@@ -219,8 +260,14 @@ bash run_demo.sh
 
 ```
 IRS-Diffu-ISAC/
+├── Makefile                        # 🆕 one-command entry: make setup / verify / demo / ...
+├── pyproject.toml                  # 🆕 metadata + dependency declaration
+├── configs/                        # 🆕 parameter quick-reference + experiment recipes
+│   └── README.md
+├── requirements.txt
 ├── source_code/
-│   ├── isac_sat/                      # Space-ground ISAC + sensing + demo (active)
+│   ├── isac_sat/                   # Space-ground ISAC + sensing + demo (active)
+│   │   ├── README.md               # 🆕 per-script usage cards (purpose / command / output)
 │   │   ├── setup_sat.py / data_sat.py / train_sat.py / eval_sat.py
 │   │   ├── phase_optimizer_sat.py / task_sat.py
 │   │   ├── train_sensing*.py          # Sensing (classification + localization)
@@ -228,8 +275,7 @@ IRS-Diffu-ISAC/
 │   │   ├── sdr_io.py / sdr_ingest.py  # SDR data interface (IQ / ingest)
 │   │   ├── demo*.py / make_animation.py / run_demo.sh
 │   │   └── isac_demo/                 # checkpoints + HTML players + GIFs
-│   ├── legacy/                        # Original project (RIS + diffusion 3D recon, archived)
-│   └── requirements.txt
+│   └── legacy/                        # Original project (RIS + diffusion 3D recon, archived)
 ├── colab/                             # One-click Colab notebook
 ├── archive/
 │   ├── source_code.zip                # Historical snapshot
@@ -239,6 +285,8 @@ IRS-Diffu-ISAC/
 ├── README.md / README.zh-CN.md
 └── LICENSE
 ```
+
+> 🆕 `legacy/` and `archive/` are **historical archives** — for new work go to `source_code/isac_sat/`.
 
 ---
 

@@ -17,6 +17,28 @@ Intelligent Reflecting Surface (RIS) aided **Integrated Sensing and Communicatio
 
 ---
 
+## 🧭 同行速览（TL;DR）
+
+**这是什么** — 一个开源、物理可验证的 **RIS 辅助 ISAC 参考实现**：
+真实 LEO 轨道（SGP4）→ 动态 RIS 相位跟踪 → 通信信号感知 → 闭环演示。
+全部数据与权重**由程序内合成生成** —— clone 后 `make setup` 即可，**无需下载任何数据集**。
+
+**你可以用它做什么**
+- **复现**核心结论（RIS 跟踪 **+89%**、闭环通信增益 **+309%**），几分钟内跑通
+- **扩展**：换卫星 / 换频段 / 换目标模板 / 换成自己的模型
+- **对比**经典基线（2D-CFAR + MUSIC，`make baseline`）
+
+**最快路径**
+```bash
+make setup    # 约 2-3 分钟，仅首次
+make verify   # 1 分钟物理自检（ALL PASS）
+make demo     # 自动训练 + 感知-通信闭环
+```
+
+命令地图：`make help` · 脚本逐一使用卡片：[`source_code/isac_sat/README.md`](source_code/isac_sat/README.md) · 参数配方：[`configs/README.md`](configs/README.md)
+
+---
+
 ## 🚀 60 秒体验（零配置）
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ConradLu2740/IRS-Diffu-ISAC/blob/main/colab/isac_demo.ipynb)
@@ -163,38 +185,59 @@ flowchart LR
 
 ## 🚀 快速开始
 
+> 💡 所有命令通过 [`Makefile`](Makefile) 一键执行 —— **数据与权重程序内生成，无需下载。**
+
 ```bash
-# 环境
+# 1. 环境（仅首次，约 2-3 分钟）
+make setup
+
+# 2. 物理自检：轨道 / 多普勒 / 信道（约 1 分钟）
+make verify
+
+# 3. 感知-通信闭环 demo（自动训练感知模型）
+make demo
+
+# 4. 更多
+make help               # 全部命令地图
+make demo-live          # 交互式多场景 HTML 播放器
+make demo-anim          # GIF 动画
+make demo-multi         # 多目标感知闭环
+make track              # RIS 动态跟踪权衡
+make sdr                # SDR 管线演示（无需硬件）
+make mot                # 10 目标 3D MOT（训练+跟踪+HTML）
+make baseline           # 经典基线对比（2D-CFAR + MUSIC）
+```
+
+不用 `make` 的手动等价命令：
+```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-
 cd source_code/isac_sat
-
-# 1. 物理验证（轨道/多普勒/信道，~1 min）
-../../.venv/bin/python verify_sat.py
-
-# 2. 一键闭环 demo（自动训练感知模型 + 运行闭环）
-bash run_demo.sh
-
-# 3. 实时演示（HTML 播放器 + GIF 动画）
+../../.venv/bin/python verify_sat.py          # 1. 物理验证
+bash run_demo.sh                              # 2. 闭环 demo（自动训练）
 ../../.venv/bin/python demo_live.py --n_scenes 3
-../../.venv/bin/python make_animation.py
-
-# 4. 多目标感知闭环
-../../.venv/bin/python train_sensing_multi.py --wideband
-../../.venv/bin/python demo_multi.py
-
-# 5. RIS 动态跟踪权衡
-../../.venv/bin/python verify_tracking.py
-
-# 6. SDR 数据管线（无硬件：模拟 IQ → 回放感知）
-../../.venv/bin/python demo_sdr.py
-
-# 7. 多目标追踪（10 个移动目标，检测+追踪+动画）
-../../.venv/bin/python train_detect.py --n_scenes 25 --epochs 50
-../../.venv/bin/python demo_mot.py
-../../.venv/bin/python demo_mot_html.py   # 交互式 3D HTML
+../../.venv/bin/python make_animation.py      # 3. 实时演示
+../../.venv/bin/python train_sensing_multi.py --wideband && ../../.venv/bin/python demo_multi.py
+../../.venv/bin/python verify_tracking.py     # 4. RIS 跟踪权衡
+../../.venv/bin/python demo_sdr.py            # 5. SDR 管线
+../../.venv/bin/python train_detect.py --n_scenes 25 --epochs 50 && ../../.venv/bin/python demo_mot.py && ../../.venv/bin/python demo_mot_html.py
 ```
+
+每个脚本的用途 / 产物卡片：[`source_code/isac_sat/README.md`](source_code/isac_sat/README.md)
+
+---
+
+## 🔧 如何改造成自己的场景
+
+| 想改什么 | 改哪里 | 说明 |
+|---|---|---|
+| 换卫星 / 轨道 | `source_code/isac_sat/setup_sat.py`（TLE 常量） | 内置 ISS（25544）与 Starlink（44714），可用任意 NORAD ID 替换 |
+| 换频段 | `setup_sat.py` 的 `FC_HZ` | 默认 30 GHz 毫米波；Ka 频段验证见 `verify_robustness.py` |
+| 换目标模板 | `data_sat.py` 的 `_template_*()` | car / uav / building / tank / tower / cubesat / bicycle / pedestrian / train |
+| 换成自己的模型 | 训练脚本中的 `nn.Module` | 输入维度见 `channels.frame_cond_dim()` |
+| 改天线阵列 | `--bs_ant` / `--ue_ant` | 命令行即可，无需改代码 |
+
+实验配方与参数速查：[`configs/README.md`](configs/README.md)
 
 ---
 
@@ -219,8 +262,14 @@ bash run_demo.sh
 
 ```
 IRS-Diffu-ISAC/
+├── Makefile                        # 🆕 一键命令入口：make setup / verify / demo / ...
+├── pyproject.toml                  # 🆕 元数据 + 依赖声明
+├── configs/                        # 🆕 参数速查 + 实验配方
+│   └── README.md
+├── requirements.txt
 ├── source_code/
-│   ├── isac_sat/                      # 星-地 ISAC + 感知 + demo（活跃工作区）
+│   ├── isac_sat/                   # 星-地 ISAC + 感知 + demo（活跃工作区）
+│   │   ├── README.md               # 🆕 脚本逐一使用卡片（用途 / 命令 / 产物）
 │   │   ├── setup_sat.py / data_sat.py / train_sat.py / eval_sat.py
 │   │   ├── phase_optimizer_sat.py / task_sat.py
 │   │   ├── train_sensing*.py          # 感知（分类+定位）
@@ -228,8 +277,7 @@ IRS-Diffu-ISAC/
 │   │   ├── sdr_io.py / sdr_ingest.py  # SDR 数据接口（IQ / 导入）
 │   │   ├── demo*.py / make_animation.py / run_demo.sh
 │   │   └── isac_demo/                 # checkpoint + HTML 播放器 + GIF
-│   ├── legacy/                        # 原项目（RIS + 扩散模型 3D 重建，归档）
-│   └── requirements.txt
+│   └── legacy/                        # 原项目（RIS + 扩散模型 3D 重建，归档）
 ├── colab/                             # 一键 Colab 笔记本
 ├── archive/
 │   ├── source_code.zip                # 历史快照
@@ -239,6 +287,8 @@ IRS-Diffu-ISAC/
 ├── README.md / README.zh-CN.md
 └── LICENSE
 ```
+
+> 🆕 `legacy/` 与 `archive/` 为**历史归档** —— 新工作请前往 `source_code/isac_sat/`。
 
 ---
 
