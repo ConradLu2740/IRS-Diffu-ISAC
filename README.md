@@ -253,6 +253,8 @@ Recipes & parameter quick-reference: [`configs/README.md`](configs/README.md)
 - [ ] **Space debris / satellite geometry targets** (replace simple templates)
 - [ ] **On-board computational constraints**: model distillation / quantization
 - [ ] **Low-SNR robustness** evaluation suite
+- [ ] **OTFS / AFDM waveform extension** (Doppler-robust waveforms for high-dynamics LEO ISAC; OTFS/AFDM are the leading waveform candidates discussed for 3GPP Rel-20 ISAC)
+- [ ] **Flow-matching generative baseline** (2026 trend in generative models — compare flow matching against conditional diffusion for 3D point-cloud reconstruction)
 
 ---
 
