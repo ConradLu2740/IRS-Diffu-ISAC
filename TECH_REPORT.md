@@ -4,14 +4,14 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.2 (2026-08-08) — companion to the open-source repository
+**Version**: v1.3 (2026-08-12) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 ---
 
 ## Abstract
 
-This report describes an open-source, physics-grounded engineering system for RIS-aided Integrated Sensing and Communication (ISAC) extended to space ISAC (ISAC-NTN). It combines real LEO orbit propagation (SGP4), dynamic RIS phase tracking, learning-based sensing, 3D multi-object tracking, and a sensing–communication closed loop, reproducible with one-command scripts (fixed seeds). Results: orbit physics matches real ISS values; RIS frame-by-frame tracking improves power by **+89%** (K=1), while reconfiguration-limited tracking (K=8) loses the gain; a sensing-aided closed loop achieves **+309%** communication gain (97.6% of the ideal oracle); wideband HRRP classification reaches **0.80** (5-class); 3D multi-object tracking (10 targets) achieves 0.60 recall. A comparison with classical baselines (2D-CFAR, MUSIC) uncovers two findings: (i) a feature-construction defect — centroid-relative delays discard absolute target position, collapsing ML localization to a class prior (22.6 m vs 12.1 m 2D RMSE with absolute-range features); (ii) a far-field angle wall — at ~695 km, the 80 m ROI subtends 0.0066°, far below an 8-element ULA resolution (~14°), so mono-static cross-range localization is physically unavailable. All numbers are reproducible (torch 2.8.0 reference, fixed seeds).
+This report describes an open-source, physics-grounded engineering system for RIS-aided Integrated Sensing and Communication (ISAC) extended to space ISAC (ISAC-NTN). It combines real LEO orbit propagation (SGP4), dynamic RIS phase tracking, learning-based sensing, 3D multi-object tracking, and a sensing–communication closed loop, reproducible with one-command scripts (fixed seeds). Results: orbit physics matches real ISS values; RIS frame-by-frame tracking improves power by +89% (K=1), while reconfiguration-limited tracking (K=8) loses the gain; a sensing-aided closed loop achieves +309% communication gain (97.6% of the ideal oracle); wideband HRRP classification reaches 0.80 (5-class); 3D multi-object tracking (10 targets) achieves 0.60 recall. A comparison with classical baselines (2D-CFAR, MUSIC) uncovers two findings: (i) a feature-construction defect — centroid-relative delays discard absolute target position, collapsing ML localization to a class prior (22.6 m vs 12.1 m 2D RMSE with absolute-range features); (ii) a far-field angle wall — at ~695 km, the 80 m ROI subtends 0.0066°, far below an 8-element ULA resolution (~14°), so mono-static cross-range localization is physically unavailable. All numbers are reproducible (torch 2.8.0 reference, fixed seeds). Section 1.2 positions this system against the 2025–2026 ISAC literature, where the combination of diffusion-based point-cloud reconstruction with space ISAC (ISAC-NTN) remains an open niche as of August 2026.
 
 **Keywords**: ISAC, RIS, non-terrestrial networks, LEO satellite, diffusion models, CFAR, MUSIC
 
@@ -23,6 +23,8 @@ This report describes an open-source, physics-grounded engineering system for RI
 
 Integrated Sensing and Communication (ISAC) unifies wireless communication and radar-like sensing in a single system and is a key enabler of 6G [1, 2]. Reconfigurable Intelligent Surfaces (RIS) extend coverage and enhance both communication and sensing at low hardware cost [3, 4]. Non-terrestrial networks (NTN), in particular LEO constellations, are being integrated into 5G-Advanced/6G, and combining ISAC with NTN ("space ISAC") is of growing interest for space situational awareness and terrestrial monitoring [5, 6, 7].
 
+Standardization is moving fast: 3GPP completed the Release 19 ISAC channel-modeling study item in May 2025 [17, 21], the Release 20 NR ISAC work item (TR 38.765) is nearing completion with normative specifications expected around 2027 [17], IEEE 802.11bf-2025 (WLAN sensing) was published in 2025 [19], and ITU-R lists ISAC among the six key usage scenarios of IMT-2030 [20]. NTN sensing, however, still has no dedicated 3GPP study/work item as of August 2026 [18, 22], leaving an open window for reproducible space-ISAC implementations.
+
 Most published work remains at the level of analytical studies or link-level simulations with simplified geometry. Mature open-source link/PHY platforms (e.g., Sionna [8], MATLAB 5G/NTN toolboxes) exist but do not combine real orbit dynamics, dynamic RIS optimization, learning-based sensing, and closed-loop demonstration in one system. This report accompanies an engineering system that does; it makes no claim of algorithmic novelty over any single component. Its contributions:
 
 1. **A physics-grounded, reproducible space ISAC pipeline** from real TLE orbit data to closed-loop demo, with one-command verification and CI.
@@ -31,9 +33,17 @@ Most published work remains at the level of analytical studies or link-level sim
 4. **A systematic classical-baseline comparison** (2D-CFAR + MUSIC vs ML) on identical test sets, surfacing a feature-construction defect and a quantified far-field angle wall.
 5. **An SDR data interface** (IQ format + ingest pipeline) easing the transition to hardware.
 
-### 1.2 Report Organization
+### 1.2 Related Work and Positioning
 
-Section 2: system/signal models. Section 3: dynamic RIS tracking and the closed loop. Section 4: wideband sensing and 3D MOT. Section 5: classical baselines and the two findings. Section 6: experiments and reproducibility. Section 7: limitations.
+**RIS-aided ISAC.** RIS has been shown to improve both communication and sensing at low hardware cost [3, 4]. 2025–2026 work has expanded toward new surface architectures (STAR-RIS, beyond-diagonal RIS, transmissive RIS transceivers, movable/multi-functional RIS) and toward near-field extremely-large surfaces; dynamic-RIS topics such as low-overhead beam training [23], 1-bit discrete phase optimization [24], and finite-blocklength sensing–communication trade-offs [25] are being actively studied. Our contribution is complementary: we quantify the "reconfiguration rate vs channel coherence time" trade-off for a fast-moving LEO overpass with an analytical phase-tracking scheme and a segmented-reconfiguration (K) sweep, on top of a real orbit (SGP4) geometry.
+
+**Generative models for sensing and reconstruction.** Diffusion models have become a mainstream tool in wireless: channel estimation [26], radio-environment-map construction [27], and radar/LiDAR point-cloud generation [28, 29] are active areas, and a comprehensive survey of diffusion models for future networks has recently been submitted to the Proceedings of the IEEE [30]. In ISAC sensing, diffusion-based environment/point-cloud reconstruction from communication signals has started to appear (e.g., noise-sparsity-aware diffusion for ISAC environment reconstruction [31]; conditional diffusion point-cloud imaging for UAV sensing [32, 33]). These works focus on terrestrial/low-altitude scenarios with simplified geometry and do not involve RIS or real orbit dynamics; we differ by combining conditional latent point diffusion with RIS-aided space ISAC and real LEO ephemerides.
+
+**ISAC-NTN / space ISAC.** Surveys and design principles for ISAC-enabled non-terrestrial networks have recently appeared [22], and LEO-satellite ISAC is moving from conceptual studies to system-level designs [34]. Doppler-robust waveforms (OTFS/AFDM) are the leading candidates discussed for high-dynamics ISAC [35]. To the best of our knowledge — and confirmed by searches of arXiv and public code repositories as of August 2026 — no open implementation combines real-orbit geometry, dynamic RIS phase tracking, diffusion-based 3D reconstruction, and a sensing–communication closed loop in one reproducible system; this report documents such a system.
+
+### 1.3 Report Organization
+
+Section 2: system/signal models. Section 3: dynamic RIS tracking and the closed loop. Section 4: wideband sensing and 3D MOT. Section 5: classical baselines and the two findings. Section 6: experiments and reproducibility. Section 7: limitations. Section 8: conclusion.
 
 ---
 
@@ -82,11 +92,13 @@ Ground targets are 16³ voxel templates (5 m voxels; 80 m ROI) with 5 classes: c
 
 ### 3.2 Communication Layer and Closed Loop
 
-Given sensing output, the IRS phase pattern is configured toward the sensed target. Received power comparison (reproducible, seed-fixed): random phase 1.00×, sensing-aided **+309.4%**, ideal oracle +319.3% (closed-loop efficiency **97.6%**). Multi-target closed loop: detection 1/2 in the current 5-class setting, IRS pointing gain **+443.8%** (93% of oracle). A robustness observation: even when classification is wrong, coarse localization captures most of the communication gain.
+Given sensing output, the RIS phase pattern is configured toward the sensed target. Received power comparison (reproducible, seed-fixed): random phase 1.00×, sensing-aided **+309.4%**, ideal oracle +319.3% (closed-loop efficiency **97.6%**). Multi-target closed loop: detection 1/2 in the current 5-class setting, RIS pointing gain **+443.8%** (93% of oracle). A robustness observation: even when classification is wrong, coarse localization captures most of the communication gain.
 
 ### 3.3 Closed-Loop Demo
 
 The pipeline is packaged as `run_demo.sh` plus a single-file HTML player and GIF animation; a Colab notebook gives a 60-second zero-setup experience.
+
+*Interactive demos (HTML player, GIF, Colab) are companion repository content and are not part of this arXiv submission; static snapshots are available in the repository README.*
 
 ---
 
@@ -117,7 +129,9 @@ Classical radar baselines (`baseline_classic.py`) evaluated on the same fixed te
 
 - **2D-CA-CFAR** (P_fa = 10⁻⁴, convolution-vectorized; CA-CFAR formulation [13]) on the range–Doppler map (slow-time FFT of the ISAR sequence);
 - **1D-CFAR** on the absolute-range profile with regression-calibrated bin→meters mapping (20-sample calibration set, R² ≈ 0.83);
-- **MUSIC** with an 8-element ULA (λ/2, 64 snapshots) [14]; general radar background per [15]. *Honesty note: MUSIC is validated with synthetically generated point-source snapshots (a·s+n) — it does not share the same signal stream as CFAR/ML; the 0.017° figure verifies algorithmic self-consistency, not end-to-end sensing accuracy.*
+- **MUSIC** with an 8-element ULA (λ/2, 64 snapshots) [14]; general radar background per [15].
+
+*Honesty note: MUSIC is validated with synthetically generated point-source snapshots (a·s+n) — it does not share the same signal stream as CFAR/ML; the 0.017° figure verifies algorithmic self-consistency, not end-to-end sensing accuracy.*
 
 ### 5.1 Results
 
@@ -152,9 +166,9 @@ At ~695 km slant range, 1 m of cross-range offset subtends ≈ 8×10⁻⁵ degre
 | 1 | Orbit physics (ISS) | Altitude 418.3 km / 7.66 km/s / 92.9 min — matches real values |
 | 2 | Overpass Doppler (30 GHz) | −611…+611 kHz S-curve (real LEO order) |
 | 3 | RIS frame-by-frame tracking (K=1) | Power **+89.0%** vs random phase |
-| 4 | RIS segmented tracking | K=2: +60.0% · K=4: +36.6% · K=8: **−41.5%** (stale phases harmful) |
+| 4 | RIS segmented tracking | K=2: +60.0%, K=4: +36.6%, K=8: **−41.5%** (stale phases harmful) |
 | 5 | Sensing–comm closed loop (single) | Class 80%, comm gain **+309.4%** (97.6% of oracle) |
-| 6 | Sensing–comm closed loop (multi) | Detection 1/2, IRS gain **+443.8%** (93% of oracle) |
+| 6 | Sensing–comm closed loop (multi) | Detection 1/2, RIS gain **+443.8%** (93% of oracle) |
 | 7 | Classification (5-class, wideband HRRP) | **0.80** (early 6-class: 0.383→0.867→ISAR 0.933) |
 | 8 | 3D MOT | 10 targets / 5 classes, recall **0.60**, class acc. 0.73 |
 | 9 | SDR pipeline | IQ→FFT→range profile fidelity **0.998** |
@@ -177,7 +191,7 @@ cd source_code/isac_sat
 ../../.venv/bin/python demo_mot.py              # 3D multi-object tracking
 ```
 
-A GitHub Actions CI pipeline runs import checks, physics smoke tests, and SDR fidelity on every push. A Colab notebook reproduces the core demo in ~60 s.
+The companion repository [16] runs a GitHub Actions CI pipeline (import checks, physics smoke tests, SDR fidelity) on every push; a Colab notebook reproduces the core demo in ~60 s.
 
 ---
 
@@ -224,7 +238,26 @@ School research project developed with AI tooling assistance (Proma agent). The 
 14. R. Schmidt, "Multiple emitter location and signal parameter estimation," *IEEE Trans. Antennas Propag.*, vol. 34, no. 3, pp. 276–280, 1986.
 15. M. I. Skolnik, *Introduction to Radar Systems*, 3rd ed., McGraw-Hill, 2001.
 16. C. Z. Lu, "IRS-Diffu-ISAC: RIS-aided ISAC via diffusion models for 3D point cloud reconstruction," GitHub repository, 2026. [Online]. Available: https://github.com/ConradLu2740/IRS-Diffu-ISAC
+17. 3GPP, "Study on NR integrated sensing and communication," TR 38.765, Release 20, 2026.
+18. 3GPP, "Service requirements for integrated sensing and communication," TS 22.137, Release 19, 2025.
+19. IEEE, "IEEE Standard for Information Technology — Wireless LAN Medium Access Control (MAC) and Physical Layer (PHY) Specifications — Amendment: WLAN Sensing," IEEE 802.11bf-2025, 2025.
+20. ITU-R, "IMT-2030 framework: Overall objectives of the future development of IMT for 2030 and beyond," Recommendation ITU-R M.2160-0, 2023.
+21. Y. Liu, Y. Zhang, J. Zhang, Y. Pei, C. Zhao, S. Luo, et al., "A comprehensive survey of 3GPP Release 19 ISAC channel modeling: From empirical features to unified methodology and standardized simulator," arXiv:2512.03506, 2025.
+22. M. A. Jamshed, R. Singh, M. M. Saad, et al., "ISAC-enabled non-terrestrial networks for 6G: Design principles, standardization, performance tradeoffs, and use cases," arXiv:2604.11593, 2026.
+23. J. Yang, H. Lee, and J. Choi, "Beam training for RIS-aided ISAC systems," arXiv:2607.24003, 2026.
+24. A. Gkekas, A. I. Papadopoulos, P. A. Pantazopoulos, A. Lalas, K. Votis, C. Liaskos, "Geometry-informed optimization of binary RIS configurations for communication and sensing," arXiv:2608.04133, 2026.
+25. A. Umra, K. Weinberger, A. Khaleel, G. Enzner, and A. Sezgin, "Short blocks, fast sensing: Finite blocklength tradeoffs in RIS-assisted ISAC," arXiv:2511.02673, 2025.
+26. M. Farzanullah, H. Zhang, A. B. Sediq, A. Afana, and M. Erol-Kantarci, "Conditional denoising diffusion for ISAC enhanced channel estimation in cell-free 6G," arXiv:2506.06942, 2025 (IEEE PIMRC).
+27. X. Wang, Z. Fang, N. Cheng, et al., "RadioDiff-Inverse: Diffusion-enhanced Bayesian inverse estimation for ISAC radio map construction," IEEE Trans. Wireless Commun., 2026.
+28. R. Zhang, B. Zeng, S. Wang, F. Zhou, and W. Wang, "RaLD: Generating high-resolution 3D radar point clouds with latent diffusion," arXiv:2511.07067, 2025.
+29. J. Kwok, H. Caesar, and A. Palffy, "4D-RaDiff: Latent diffusion for 4D radar point cloud generation," arXiv:2512.14235, 2025.
+30. N. C. Luong, N. D. Hai, D. V. Le, H. T. Nguyen, T.-H. Vu, T. Huynh-The, et al., "Diffusion models for future networks and communications: A comprehensive survey," arXiv:2508.01586, 2025 (submitted to Proceedings of the IEEE).
+31. N. D. M. Quang, C. Liu, S. Li, et al., "Diffusion model-enhanced environment reconstruction in ISAC," arXiv:2511.19044, 2025 (submitted to IEEE Wireless Communications Letters).
+32. X. Dai, Y. Gao, H. Jiang, X. Yuan, and X. Wang, "Conditional diffusion-based point cloud imaging for UAV position and attitude sensing," arXiv:2603.29822, 2026.
+33. X. Dai, Y. Gao, H. Jiang, X. Yuan, and X. Wang, "Conditional generative learning enabled wireless UAV sensing and tracking via point cloud imaging," arXiv:2607.14778, 2026.
+34. H. Yang, X. Chen, and Q. Wang, "Robust design of integrated sensing and communication in LEO satellite systems," arXiv:2607.12337, 2026.
+35. P.-C. Chen, M.-C. Lee, and Y.-C. Huang, "Fundamental limits of MIMO-OTFS and MIMO-OFDM in high-dynamics ISAC: An antenna array architecture perspective," arXiv:2607.20200, 2026.
 
 ---
 
-*Report v1.1. All numbers are produced by the scripts in the companion repository with fixed seeds and are reproducible at the commit accompanying this version (2026-08-08).*
+*Report v1.3. All numbers are produced by the scripts in the companion repository with fixed seeds and are reproducible at the commit accompanying this version (2026-08-12).*
