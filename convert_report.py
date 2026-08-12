@@ -52,6 +52,10 @@ def inline(s):
     # 裸 URL → \url{url}
     s = re.sub(r"(?<![\w{])(https?://[^\s\)\}]+)", r"\\url{\1}", s)
     # Unicode
+    # superscript combinations first: 10⁻⁴ → $10^{-4}$ (before single-char ⁻/⁴ replacements)
+    # NOTE: \d does NOT match superscript digits (Unicode No, not Nd), use explicit map
+    SUP = {"⁰":"0","¹":"1","²":"2","³":"3","⁴":"4","⁵":"5","⁶":"6","⁷":"7","⁸":"8","⁹":"9"}
+    s = re.sub(r"10⁻([⁴-⁹])", lambda m: f"$10^{{-{SUP[m.group(1)]}}}$", s)
     for a, b in UNI:
         s = s.replace(a, b)
     s = s.replace("&", r"\&").replace("%", r"\%").replace("#", r"\#")
@@ -73,7 +77,7 @@ def md_table_to_latex(rows):
     return "\n".join(out)
 
 PRE = r"""% ============================================================
-% IRS-Diffu-ISAC Technical Report v1.2 (auto-converted from TECH_REPORT.md)
+% IRS-Diffu-ISAC Technical Report v1.3 (auto-converted from TECH_REPORT.md)
 % arXiv-ready. Compile: pdflatex TECH_REPORT.tex
 % ============================================================
 \documentclass[11pt]{article}
@@ -86,11 +90,11 @@ PRE = r"""% ============================================================
 \hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue}
 \title{RIS-Aided Integrated Sensing and Communication Toward Space ISAC: A Physics-Grounded Open-Source Engineering System}
 \author{Conrad Lu\\[2pt] \small School of Information Science and Engineering, Northeastern University, Shenyang, China\\ \small\url{https://github.com/ConradLu2740/IRS-Diffu-ISAC}}
-\date{Version 1.2, August 8, 2026}
+\date{Version 1.3, August 12, 2026}
 \begin{document}
 \maketitle"""
 
-BIB = r"""\begin{thebibliography}{16}
+BIB = r"""\begin{thebibliography}{35}
 \bibitem{liu2022isac} F. Liu, Y. Cui, C. Masouros, J. Xu, T. X. Han, Y. C. Eldar, and S. Buzzi, ``Integrated sensing and communications: Toward dual-functional wireless networks for 6G and beyond,'' \emph{IEEE J. Sel. Areas Commun.}, vol.~40, no.~6, pp. 1728--1767, 2022.
 \bibitem{zhang2021perceptive} A. Zhang, M. L. Rahman, X. Huang, Y. J. Guo, S. Chen, and R. W. Heath, ``Perceptive mobile networks: Cellular networks with radio vision via joint communication and radar sensing,'' \emph{IEEE Veh. Technol. Mag.}, vol.~16, no.~2, pp. 20--30, 2021.
 \bibitem{wu2019ris} Q. Wu and R. Zhang, ``Intelligent reflecting surface enhanced wireless network via joint active and passive beamforming,'' \emph{IEEE Trans. Wireless Commun.}, vol.~18, no.~11, pp. 5394--5409, 2019.
@@ -107,6 +111,25 @@ BIB = r"""\begin{thebibliography}{16}
 \bibitem{schmidt1986} R. Schmidt, ``Multiple emitter location and signal parameter estimation,'' \emph{IEEE Trans. Antennas Propag.}, vol.~34, no.~3, pp. 276--280, 1986.
 \bibitem{skolnik2001} M. I. Skolnik, \emph{Introduction to Radar Systems}, 3rd ed., McGraw-Hill, 2001.
 \bibitem{irsdiffu} C. Z. Lu, ``IRS-Diffu-ISAC: RIS-aided ISAC via diffusion models for 3D point cloud reconstruction,'' GitHub repository, 2026, \url{https://github.com/ConradLu2740/IRS-Diffu-ISAC}.
+\bibitem{3gppisacrel20} 3GPP, ``Study on NR integrated sensing and communication,'' TR 38.765, Release 20, 2026.
+\bibitem{3gppisacrel19} 3GPP, ``Service requirements for integrated sensing and communication,'' TS 22.137, Release 19, 2025.
+\bibitem{ieee80211bf} IEEE, ``IEEE Standard for Information Technology---Wireless LAN Medium Access Control (MAC) and Physical Layer (PHY) Specifications---Amendment: WLAN Sensing,'' IEEE 802.11bf-2025, 2025.
+\bibitem{iturm2160} ITU-R, ``IMT-2030 framework: Overall objectives of the future development of IMT for 2030 and beyond,'' Recommendation ITU-R M.2160-0, 2023.
+\bibitem{liu2025rel19isac} Y. Liu, Y. Zhang, J. Zhang, Y. Pei, C. Zhao, S. Luo, \emph{et al.}, ``A comprehensive survey of 3GPP Release 19 ISAC channel modeling: From empirical features to unified methodology and standardized simulator,'' arXiv:2512.03506, 2025.
+\bibitem{jamshed2026ntn} M. A. Jamshed, R. Singh, M. M. Saad, \emph{et al.}, ``ISAC-enabled non-terrestrial networks for 6G: Design principles, standardization, performance tradeoffs, and use cases,'' arXiv:2604.11593, 2026.
+\bibitem{yang2026beam} J. Yang, H. Lee, and J. Choi, ``Beam training for RIS-aided ISAC systems,'' arXiv:2607.24003, 2026.
+\bibitem{gkekas2026binary} A. Gkekas, A. I. Papadopoulos, P. A. Pantazopoulos, A. Lalas, K. Votis, C. Liaskos, ``Geometry-informed optimization of binary RIS configurations for communication and sensing,'' arXiv:2608.04133, 2026.
+\bibitem{umra2025block} A. Umra, K. Weinberger, A. Khaleel, G. Enzner, and A. Sezgin, ``Short blocks, fast sensing: Finite blocklength tradeoffs in RIS-assisted ISAC,'' arXiv:2511.02673, 2025.
+\bibitem{isaccedm2025} M. Farzanullah, H. Zhang, A. B. Sediq, A. Afana, and M. Erol-Kantarci, ``Conditional denoising diffusion for ISAC enhanced channel estimation in cell-free 6G,'' arXiv:2506.06942, 2025 (IEEE PIMRC).
+\bibitem{radiodiff2026} X. Wang, Z. Fang, N. Cheng, \emph{et al.}, ``RadioDiff-Inverse: Diffusion-enhanced Bayesian inverse estimation for ISAC radio map construction,'' \emph{IEEE Trans. Wireless Commun.}, 2026.
+\bibitem{rald2025} R. Zhang, B. Zeng, S. Wang, F. Zhou, and W. Wang, ``RaLD: Generating high-resolution 3D radar point clouds with latent diffusion,'' arXiv:2511.07067, 2025.
+\bibitem{raddiff2025} J. Kwok, H. Caesar, and A. Palffy, ``4D-RaDiff: Latent diffusion for 4D radar point cloud generation,'' arXiv:2512.14235, 2025.
+\bibitem{diffsurv2025} N. C. Luong, N. D. Hai, D. V. Le, H. T. Nguyen, T.-H. Vu, T. Huynh-The, \emph{et al.}, ``Diffusion models for future networks and communications: A comprehensive survey,'' arXiv:2508.01586, 2025 (submitted to Proceedings of the IEEE).
+\bibitem{nsadm2025} N. D. M. Quang, C. Liu, S. Li, \emph{et al.}, ``Diffusion model-enhanced environment reconstruction in ISAC,'' arXiv:2511.19044, 2025 (submitted to IEEE Wireless Communications Letters).
+\bibitem{dai2026pcimg} X. Dai, Y. Gao, H. Jiang, X. Yuan, and X. Wang, ``Conditional diffusion-based point cloud imaging for UAV position and attitude sensing,'' arXiv:2603.29822, 2026.
+\bibitem{dai2026august} X. Dai, Y. Gao, H. Jiang, X. Yuan, and X. Wang, ``Conditional generative learning enabled wireless UAV sensing and tracking via point cloud imaging,'' arXiv:2607.14778, 2026.
+\bibitem{yang2026leoisac} H. Yang, X. Chen, and Q. Wang, ``Robust design of integrated sensing and communication in LEO satellite systems,'' arXiv:2607.12337, 2026.
+\bibitem{mimo2026limits} P.-C. Chen, M.-C. Lee, and Y.-C. Huang, ``Fundamental limits of MIMO-OTFS and MIMO-OFDM in high-dynamics ISAC: An antenna array architecture perspective,'' arXiv:2607.20200, 2026.
 \end{thebibliography}
 
 \end{document}"""

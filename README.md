@@ -101,6 +101,8 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 
 > ⚠️ **Honest notes**: absolute attitude estimation is **not feasible** (physical upper bound) for far-field star–ground links with simple symmetric templates; single-station multi-target **classification** is limited by signal mixing (detection/localization works).
 
+> 🔢 **Rounded values**: README figures are rounded for readability (e.g., −42%, 8.1 m, 2.3 m, +444%); exact reproducible values (e.g., −41.5%, 8.14 m, 2.27 m, +443.8%) are in TECH_REPORT v1.3.
+
 ---
 
 ## 📊 Comparison with Related Open-Source Projects
