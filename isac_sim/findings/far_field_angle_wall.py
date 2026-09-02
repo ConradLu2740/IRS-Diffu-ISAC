@@ -11,6 +11,8 @@
     交叉距离位置 → 单站角度定位存在物理上界。
 """
 
+import math
+
 import numpy as np
 
 C_LIGHT = 299_792_458.0
@@ -35,6 +37,45 @@ def required_array_aperture(range_m: float, width_m: float,
     由 0.886*λ/D <= W/R 解出 D >= 0.886*λ*R/W。
     """
     return 0.886 * wavelength_m * range_m / max(width_m, 1e-9)
+
+
+# ---------------------------------------------------------------------
+# 双站反例：用第二个测距源（如已有的地面 UE）做三边定位，绕开角度墙
+#
+# 单站角度定位被物理上界封死，但两个站的**距离**测量（距离分辨率由带宽
+# 决定，与阵列孔径无关）在目标处相交即可 2D 定位：
+#   站间基线 B、斜距 R（小角度近似 γ ≈ B/R），交叉距离误差
+#   δ_cross ≈ ρ / sin γ ≈ ρ·R/B，其中 ρ = c/(2B_wave) 为单站距离分辨率。
+# ---------------------------------------------------------------------
+
+def trilateration_cross_range_error(range_res_m: float, baseline_m: float,
+                                    slant_range_m: float) -> float:
+    """双站三边定位的交叉距离误差（米，小角度近似，一阶 GDOP）。
+
+    range_res_m: 单站距离分辨率 ρ = c/(2·带宽)；
+    baseline_m: 两站基线 B（垂直于视线方向的分量近似）；
+    slant_range_m: 斜距 R。
+    """
+    gamma = baseline_m / max(slant_range_m, 1e-9)  # 两站视线夹角（小角度）
+    if gamma >= math.pi / 2:
+        return range_res_m
+    return range_res_m / math.sin(gamma)
+
+
+def scan_shortfall(n_elements_list, ranges_m, roi_width_m,
+                   wavelength_m, spacing_factor: float = 0.5):
+    """配置扫描： shortfall = Rayleigh 限 / ROI 张角（越大越"墙"）。
+
+    返回 [len(n_elements_list), len(ranges_m)] 的二维数组；
+    shortfall >= 1 表示阵列分辨率不足以分辨 ROI 内部（角度墙生效）。
+    """
+    out = np.zeros((len(n_elements_list), len(ranges_m)))
+    for i, n in enumerate(n_elements_list):
+        theta_res = rayleigh_limit_rad(int(n), wavelength_m,
+                                       spacing_factor * wavelength_m)
+        for j, r in enumerate(ranges_m):
+            out[i, j] = theta_res / angular_extent(roi_width_m, r)
+    return out
 
 
 # isac_sat 默认场景预计算（30 GHz, ISS ~695 km 斜距, 80 m ROI）

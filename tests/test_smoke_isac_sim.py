@@ -18,7 +18,8 @@ from isac_sim.ris import (BinaryPhaseRis, ContinuousPhaseRis, RisModel,
 from isac_sim.comm import QpskAwgnLink
 from isac_sim.sensing import CA_Cfar1D
 from isac_sim.tracking import NearestNeighborTracker
-from isac_sim.findings.far_field_angle_wall import default_scenario_report
+from isac_sim.findings.far_field_angle_wall import (default_scenario_report,
+    trilateration_cross_range_error, scan_shortfall)
 
 
 def test_channel_free_space():
@@ -111,10 +112,21 @@ def test_finding_angle_wall():
     assert rep["required_aperture_m"] > 10.0, rep  # 需要数十米级孔径
 
 
+def test_finding_two_station_escape():
+    """发现2反例：双站三边定位误差远小于单站角度墙，且随基线变短而变大。"""
+    rho = 299_792_458.0 / (2 * 1e9)          # 1 GHz 带宽 → 0.15 m
+    err = trilateration_cross_range_error(rho, 47.7e3, 695e3)
+    assert 1.0 < err < 5.0, err               # 默认几何下约 2.2 m（墙外）
+    assert err < trilateration_cross_range_error(rho, 5e3, 695e3)  # 基线越短误差越大
+    # 扫描形状与单调性：N 越大 shortfall 越小
+    sc = scan_shortfall([8, 64], [695e3], 80.0, 299_792_458.0 / 30e9)
+    assert sc[0, 0] > sc[1, 0] > 1.0, sc
+
+
 TESTS = [test_channel_free_space, test_channel_rician_power_alignment,
          test_waveform_ofdm_range_profile, test_ris_phase_alignment,
          test_comm_qpsk_ber, test_sensing_cfar, test_tracking_nn,
-         test_finding_angle_wall]
+         test_finding_angle_wall, test_finding_two_station_escape]
 
 if __name__ == "__main__":
     failed = 0

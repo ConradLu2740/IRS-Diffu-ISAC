@@ -70,6 +70,9 @@ smoke: ## 全链路最小复现（legacy 扩散重建 smoke test）
 smoke-sim: ## isac_sim 分层骨架冒烟（信道/波形/RIS/通信/感知/跟踪，秒级）
 	$(PY) tests/test_smoke_isac_sim.py
 
+finding-angle-wall: ## 角度墙配置扫描热力图 + 双站反例出图（CPU 秒级）
+	$(PY) isac_sim/findings/plot_angle_wall_scan.py
+
 clean: ## 清理演示产物（checkpoints / HTML / GIF / PNG）
 	rm -rf $(ISAC)/isac_demo
 	@echo "已清理 isac_demo/"
