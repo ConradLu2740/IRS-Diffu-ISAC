@@ -123,6 +123,8 @@ make smoke-sim
 | 经典基线（MUSIC） | ULA-8 目标方向测向 MAE **0.017°**（合成快照）；远场角度分辨对 ROI 内定位物理不足 |
 | ML vs 经典（公平） | ML（绝对距离特征）沿视线 RMSE **2.3 m** vs CFAR 8.1 m；相对质心特征 = 仅类别先验（2D RMSE 22.6 m）；特征缺陷已修复（`center='roi'`） |
 | 多轨道 / Ka 频段 | ISS / Starlink ×30 / 28 GHz 全 PASS，物理一致性验证 |
+| 角度墙扫描（finding） | 分辨 80 m ROI 需 77 m 孔径（N≈15,394）——N=8 时 shortfall **1889×**，全部实用配置下墙生效 |
+| 双站三边定位（finding） | 默认几何（γ=131°，σ_ρ=0.15 m）交叉距离 RMSE **0.31 m**——比单站墙 11.8 m 改善 **~38×**；破墙预算 σ_ρ < 6.6–8.9 m |
 
 > ⚠️ **诚实标注**：星-地远场 + 简单对称模板下，**绝对姿态估计不可行**（物理上界）；单站多目标**分类**受信号混合限制（检测/定位可用）。
 
@@ -280,7 +282,7 @@ bash run_demo.sh                              # 2. 闭环 demo（自动训练）
 - [x] **`isac_sim/` 分层参考库骨架**（信道 / 波形 / RIS / 通信 / 感知 / 跟踪 / findings / stacks，仅依赖 numpy，冒烟测试通过）
 - [x] **莱斯衰落下的 K-sweep 稳健性**（`verify_tracking_rician.py`：K=10/5/0 dB × 5 种子——定性结论跨信道档位保持；`make track-rician`）
 - [ ] **`isac_sim/channels` L1→L2**：3GPP TR 38.811 NTN 对齐信道；在 L1/L2 下重跑 K-sweep 与闭环，验证结论稳健性
-- [ ] **`isac_sim/findings` 角度墙扫描**：N × 斜距 × ROI 宽度热力图 + 双站反例（突破角度墙）
+- [x] **`isac_sim/findings` 角度墙扫描 + 双站反例**：shortfall 热力图、破墙精度预算（σ_ρ < 6.6–8.9 m）、秩亏警告（`make finding-angle-wall`、`make twostation`）
 - [ ] **`isac_sim/comm` 链路升级**：高阶 QAM / 简单编码 / 频谱效率指标
 - [ ] **`isac_sim/stacks` 交叉验证**：Sionna（TF）数值对齐报告 + 关键模块 MATLAB 参考实现
 - [ ] **GEO / MEO 轨道支持**（当前以 LEO 为主）

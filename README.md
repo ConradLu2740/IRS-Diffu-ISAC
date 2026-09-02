@@ -123,6 +123,8 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 | Classic baseline (MUSIC) | ULA-8 target direction MAE **0.017°** (synthetic snapshots); far-field angle resolution physically insufficient for intra-ROI localization |
 | ML vs classic (fair) | ML (absolute-range feature) LOS RMSE **2.3 m** vs CFAR 8.1 m; centroid-relative feature = class prior only (2D RMSE 22.6 m); feature bug fixed (`center='roi'`) |
 | Multi-orbit / Ka-band | ISS / Starlink ×30 / 28 GHz all PASS, physics consistency verified |
+| Angle-wall scan (finding) | Resolving the 80 m ROI needs a 77 m aperture (N≈15,394) — shortfall **1889×** at N=8; wall active in all practical configs |
+| Two-station trilateration (finding) | Cross-range RMSE **0.31 m** @ default geometry (γ=131°, σ_ρ=0.15 m) — **~38×** better than the 11.8 m mono-static wall; break-wall budget σ_ρ < 6.6–8.9 m |
 
 > ⚠️ **Honest notes**: absolute attitude estimation is **not feasible** (physical upper bound) for far-field star–ground links with simple symmetric templates; single-station multi-target **classification** is limited by signal mixing (detection/localization works).
 
@@ -278,7 +280,7 @@ Recipes & parameter quick-reference: [`configs/README.md`](configs/README.md)
 - [x] **`isac_sim/` layered reference library skeleton** (channels / waveforms / RIS / comm / sensing / tracking / findings / stacks, numpy-only, smoke-tested)
 - [x] **K-sweep robustness under Rician fading** (`verify_tracking_rician.py`: K=10/5/0 dB × 5 seeds — qualitative conclusion holds; `make track-rician`)
 - [ ] **`isac_sim/channels` L1→L2**: 3GPP TR 38.811 NTN-aligned channel; re-run K-sweep & closed loop under L1/L2 to test conclusion robustness
-- [ ] **`isac_sim/findings` angle-wall scan**: N × range × ROI-width heatmap + two-station counter-example (breaks the wall)
+- [x] **`isac_sim/findings` angle-wall scan + two-station counter-example**: shortfall heatmap, break-the-wall budget (σ_ρ < 6.6–8.9 m), rank-deficiency warning (`make finding-angle-wall`, `make twostation`)
 - [ ] **`isac_sim/comm` link upgrade**: higher-order QAM / simple coding / spectral-efficiency metrics
 - [ ] **`isac_sim/stacks` cross-validation**: Sionna (TF) numeric-alignment report + MATLAB reference implementations for key modules
 - [ ] **GEO / MEO orbit support** (currently LEO-focused)
