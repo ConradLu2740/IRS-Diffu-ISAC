@@ -20,13 +20,15 @@
 
 \textit{School of Information Science and Engineering, Northeastern University, Shenyang, China}
 
-\textbf{Version}: v1.3 (2026-08-12) -- companion to the open-source repository
+\textbf{Version}: v1.4 (2026-09-02) -- companion to the open-source repository
 \href{https://github.com/ConradLu2740/IRS-Diffu-ISAC}{https://github.com/ConradLu2740/IRS-Diffu-ISAC}
+
+\textit{v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered \texttt{isac\_sim/} reference library (Section 6.2).}
 
 
 \begin{abstract}
 
-This report describes an open-source, physics-grounded engineering system for RIS-aided Integrated Sensing and Communication (ISAC) extended to space ISAC (ISAC-NTN). It combines real LEO orbit propagation (SGP4), dynamic RIS phase tracking, learning-based sensing, 3D multi-object tracking, and a sensing--communication closed loop, reproducible with one-command scripts (fixed seeds). Results: orbit physics matches real ISS values; RIS frame-by-frame tracking improves power by +89\% (K=1), while reconfiguration-limited tracking (K=8) loses the gain; a sensing-aided closed loop achieves +309\% communication gain (97.6\% of the ideal oracle); wideband HRRP classification reaches 0.80 (5-class); 3D multi-object tracking (10 targets) achieves 0.60 recall. A comparison with classical baselines (2D-CFAR, MUSIC) uncovers two findings: (i) a feature-construction defect -- centroid-relative delays discard absolute target position, collapsing ML localization to a class prior (22.6 m vs 12.1 m 2D RMSE with absolute-range features); (ii) a far-field angle wall -- at ~695 km, the 80 m ROI subtends 0.0066$^\circ$, far below an 8-element ULA resolution (~14$^\circ$), so mono-static cross-range localization is physically unavailable. All numbers are reproducible (torch 2.8.0 reference, fixed seeds). Section 1.2 positions this system against the 2025--2026 ISAC literature, where the combination of diffusion-based point-cloud reconstruction with space ISAC (ISAC-NTN) remains an open niche as of August 2026.
+This report describes an open-source, physics-grounded engineering system for RIS-aided Integrated Sensing and Communication (ISAC) extended to space ISAC (ISAC-NTN). It combines real LEO orbit propagation (SGP4), dynamic RIS phase tracking, learning-based sensing, 3D multi-object tracking, and a sensing--communication closed loop, reproducible with one-command scripts (fixed seeds). Results: orbit physics matches real ISS values; RIS frame-by-frame tracking improves power by +89\% (K=1), while reconfiguration-limited tracking (K=8) loses the gain; a sensing-aided closed loop achieves +309\% communication gain (97.6\% of the ideal oracle); wideband HRRP classification reaches 0.80 (5-class); 3D multi-object tracking (10 targets) achieves 0.60 recall. A comparison with classical baselines (2D-CFAR, MUSIC) uncovers two findings: (i) a feature-construction defect -- centroid-relative delays discard absolute target position, collapsing ML localization to a class prior (22.6 m vs 12.1 m 2D RMSE with absolute-range features); (ii) a far-field angle wall -- at ~695 km, the 80 m ROI subtends 0.0066$^\circ$, far below an 8-element ULA resolution (~14$^\circ$), so mono-static cross-range localization is physically unavailable. All numbers are reproducible (torch 2.8.0 reference, fixed seeds). Section 1.2 positions this system against the 2025--2026 ISAC literature, where the combination of diffusion-based point-cloud reconstruction with space ISAC (ISAC-NTN) remains an open niche as of August 2026. v1.4 additionally verifies (Section 6.3) that the RIS reconfiguration-rate trade-off survives per-frame independent Rician fading at K-factors down to 0 dB, and documents a metric-dependence finding: relative boost magnitudes depend on the ROI scatterer object and on the random-phase baseline, so cross-setting comparisons must fix both.
 
 \textbf{Keywords}: ISAC, RIS, non-terrestrial networks, LEO satellite, diffusion models, CFAR, MUSIC
 
@@ -96,7 +98,7 @@ The RIS has N unit-modulus phase elements. Phase-aligned configuration maximizes
 
 \begin{itemize}
 \item \textbf{Frame-by-frame tracking} (K=1): recompute phases every frame -- power \textbf{+89.0\%} vs random (seed-fixed, reproducible);
-\item \textbf{Segmented tracking} (K=2/4/8): reconfiguration limited to every K-th frame -- K=2: +60.0\%, K=4: +36.6\%, K=8: \textbf{-41.5\%} (stale phases can even hurt). This quantitatively illustrates the reconfiguration-rate vs coherence-time trade-off.
+\item \textbf{Segmented tracking} (K=2/4/8): reconfiguration limited to every K-th frame -- K=2: +60.0\%, K=4: +36.6\%, K=8: \textbf{-41.5\%} (stale phases can even hurt). This quantitatively illustrates the reconfiguration-rate vs coherence-time trade-off. Section 6.3 verifies this qualitative trade-off is robust under per-frame independent Rician fading (K = 10/5/0 dB, 5 seeds each).
 \end{itemize}
 
 \subsection{Target Models}
@@ -211,6 +213,8 @@ At ~695 km slant range, 1 m of cross-range offset subtends $\approx$ 8$\times$$1
 11 & 2D-CFAR / 1D-CFAR & Detection 100\% (P\_fa=$10^{-4}$), LOS RMSE \textbf{8.14 m} \\
 12 & MUSIC (synthetic) & ULA-8 DOA MAE \textbf{0.017$^\circ$}; far-field angle wall quantified \\
 13 & Feature fix & Localization 2D RMSE 22.63 $\rightarrow$ \textbf{12.06 m}; LOS 2.3 m \\
+14 & K-sweep under Rician fading (K=10/5/0 dB, 5 seeds) & Trade-off qualitative conclusion \textbf{ROBUST}: monotone in K, K=8 harmful at K=10 dB (-12.8\% mean) \\
+15 & Metric-dependence findings & Headline boost +89.0\% (legacy ROI object) vs +148\% (data\_sat ROI object); strong scattering shrinks the \textit{relative} K=8 penalty \\
 \hline
 \end{tabular}
 \end{table}
@@ -223,6 +227,7 @@ All results are produced by one-command scripts with \textbf{fixed global seeds}
 cd source_code/isac_sat
 ../../.venv/bin/python verify_sat.py            # physics verification (ALL PASS)
 ../../.venv/bin/python verify_tracking.py       # RIS tracking trade-off
+../../.venv/bin/python verify_tracking_rician.py # K-sweep under Rician fading (v1.4, Section 6.3)
 ../../.venv/bin/python train_sensing.py --wideband  # sensing (class + localization)
 ../../.venv/bin/python baseline_classic.py      # CFAR + MUSIC vs ML comparison
 ../../.venv/bin/python demo.py --checkpoint ./isac_demo/sensing_best.pth  # closed loop
@@ -230,6 +235,38 @@ cd source_code/isac_sat
 \end{lstlisting}
 
 The companion repository [16] runs a GitHub Actions CI pipeline (import checks, physics smoke tests, SDR fidelity) on every push; a Colab notebook reproduces the core demo in ~60 s.
+
+Since v1.4 the repository also ships \textbf{\texttt{isac\_sim/}}, a layered, pluggable simulation reference library (numpy-only core, no torch required for the classic layers): channels (free-space $\rightarrow$ Rician), waveforms (OFDM), RIS models (continuous / 1-bit / segmented), communication links (QPSK-over-AWGN), sensing (1D CA-CFAR), tracking (nearest-neighbor + CV), and finding modules with analytic bounds (the far-field angle wall of Section 5.3). Every layer carries a physics sanity check wired into CI (\texttt{make smoke-sim}); cross-stack validation against Sionna and MATLAB reference implementations is planned. \texttt{source\_code/isac\_sat} remains the reference application built on top of these layers.
+
+\subsection{Robustness under Rician Fading and Metric-Dependence Notes (v1.4)}
+
+The K-sweep headline values in Sections 2.3 and 6.1 were obtained under ideal free-space channels. To test whether the qualitative conclusion is an artifact of that idealization, we inject \textbf{per-frame independent Rician fading} into every scenario link (per-element power-aligned, same convention as \texttt{isac\_sim/channels/rician.py}):
+
+H'(t) = sqrt(K/(K+1)) $\cdot$ H + sqrt(1/(K+1)) $\cdot$ |H| ⊙ Z(t),  Z ~ CN(0,1)
+
+with E|H'|$^2$ = |H|$^2$ (link budgets unchanged, only time selectivity added), for K-factors {10, 5, 0} dB and 5 seeds each (\texttt{verify\_tracking\_rician.py}, \texttt{make track-rician}). The free-space in-house rerun reproduces the v1.3 reference values exactly.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{lllll}
+Channel setting & K=1 & K=2 & K=4 & K=8 \\
+\hline
+Free space (reference) & +89.0\% & +60.0\% & +36.6\% & -41.5\% \\
+Rician 10 dB & +122 $\pm$ 21 & +82 $\pm$ 10 & +59 $\pm$ 9 & -12.8 $\pm$ 18 \\
+Rician 5 dB & +165 $\pm$ 52 & +104 $\pm$ 26 & +74 $\pm$ 25 & +7 $\pm$ 39 \\
+Rician 0 dB & +215 $\pm$ 91 & +126 $\pm$ 52 & +74 $\pm$ 43 & +39 $\pm$ 59 \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Finding 3 (robustness).} The qualitative trade-off survives: the boost decreases monotonically in K in every setting, and per-seed K=8 is always far below K=1. At K = 10 dB the K=8 mean remains negative (-12.8\%), i.e. stale phases still hurt.
+
+\textbf{Finding 4 (metric dependence).} Two caveats when interpreting such headline numbers:
+\begin{enumerate}
+\item \textbf{ROI-object dependence.} The boost is relative to a random-phase baseline, and both numerator and denominator depend on the scatterer object. Replacing the legacy 16$^3$ ROI object with the \texttt{data\_sat.generate\_ground\_roi} object changes the K=1 boost from \textbf{+89.0\% to +148\%} (free space, identical geometry and seeds). Cross-setting comparisons must fix the object; v1.3 values correspond to the legacy object.
+\item \textbf{Baseline-relative metric under strong scattering.} At K = 0 dB the \textit{relative} K=8 penalty shrinks (mean +39\%, std 59\%) because the random-phase baseline power itself fluctuates with fading. The physical statement "stale phases are far worse than per-frame tracking" holds in every seed; the sign of the relative number at large K should not be over-interpreted.
+\end{enumerate}
 
 
 \section{Limitations and Honest Discussion}
@@ -243,12 +280,13 @@ The companion repository [16] runs a GitHub Actions CI pipeline (import checks, 
 \item \textbf{Atmosphere/ionosphere effects are not modeled} (free-space far-field approximation).
 \item \textbf{Evaluation scale is modest} (60--150 test samples, smoke-level training, single seed per experiment; multiple seeds and larger runs are a matter of compute). MOT is evaluated on a single scene.
 \item \textbf{Historical values}: some early results (6-class classification progression) were produced before the current 5-class templates; they are reported for reference and are reproducible only from earlier commits.
+\item \textbf{Relative-metric caveats}: RIS boost percentages are relative to a random-phase baseline and depend on the ROI scatterer object (Section 6.3, Finding 4); absolute received-power levels are simulation-calibrated.
 \end{enumerate}
 
 
 \section{Conclusion}
 
-We presented an open-source, physics-grounded space ISAC engineering system -- real LEO orbits, dynamic RIS tracking, learning-based sensing, 3D MOT, closed loop, SDR interface -- with fixed-seed reproducibility and CI verification. Two transferable findings emerge: (i) a feature-construction defect (centroid-relative delays discard absolute position) that we fixed and quantified (~2$\times$ localization gap); (ii) a quantitative far-field angle-resolution wall bounding mono-static cross-range localization. The system serves as a practical testbed for space ISAC research; the honest limitation reporting aims to raise the reproducibility bar in this emerging area.
+We presented an open-source, physics-grounded space ISAC engineering system -- real LEO orbits, dynamic RIS tracking, learning-based sensing, 3D MOT, closed loop, SDR interface -- with fixed-seed reproducibility and CI verification. Two transferable findings emerge: (i) a feature-construction defect (centroid-relative delays discard absolute position) that we fixed and quantified (~2$\times$ localization gap); (ii) a quantitative far-field angle-resolution wall bounding mono-static cross-range localization. The system serves as a practical testbed for space ISAC research; the honest limitation reporting aims to raise the reproducibility bar in this emerging area. v1.4 adds a robustness verification of the RIS tracking trade-off under Rician fading, a metric-dependence analysis, and a layered \texttt{isac\_sim/} reference library for broader reuse.
 
 
 \section{Acknowledgments}
