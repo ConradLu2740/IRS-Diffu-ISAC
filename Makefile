@@ -50,6 +50,9 @@ demo-multi: ## 多目标感知-通信闭环（先训练 multi 模型再演示）
 track: ## RIS 动态相位跟踪与重配置速率权衡
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_tracking.py
 
+track-rician: ## P1：莱斯衰落（K=10/5/0 dB）下的 K-sweep 稳健性（多种子）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_tracking_rician.py
+
 sdr: ## SDR 数据管线演示（无需硬件：仿真 IQ → 回放感知）
 	cd $(ISAC) && ../../$(VENV)/bin/python demo_sdr.py
 

@@ -4,6 +4,7 @@
 输出：平均接收功率对比 + 图（功率随帧变化 + 各策略汇总条形图）
 """
 import os
+import sys
 import math
 import numpy as np
 import random
@@ -20,10 +21,29 @@ OUT_DIR = "./sat_verify"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 
-def make_roi_voxel():
-    """生成一个简单 ROI 体素（中心物体）作为优化目标。"""
-    from data import generate_ROI
-    return torch.tensor(generate_ROI().astype("float32")).reshape(-1)
+def make_roi_voxel(prefer_legacy: bool = True):
+    """生成一个简单 ROI 体素（中心物体）作为优化目标。
+
+    注：TECH_REPORT v1.3 的 headline（+89.0% 等）是用 legacy generate_ROI
+    生成的 16^3 物体得出的；实测发现换成 data_sat.generate_ground_roi 的
+    物体会改变绝对提升幅度（物体依赖性），故默认优先 legacy ROI 以保持
+    可比性，legacy 不可用时回退到 isac_sat 生成器并显式提示。
+    """
+    import os
+    if prefer_legacy:
+        legacy = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "legacy")
+        if os.path.isdir(legacy):
+            if legacy not in sys.path:
+                sys.path.insert(0, legacy)
+            try:
+                from data import generate_ROI  # noqa: 与 TECH_REPORT v1.3 相同的物体
+                return torch.tensor(generate_ROI().astype("float32")).reshape(-1)
+            except Exception:
+                pass
+    print("[note] legacy ROI 不可用，回退到 data_sat.generate_ground_roi "
+          "（物体不同，绝对提升幅度与 TECH_REPORT 不可直接比较）")
+    from data_sat import generate_ground_roi
+    return torch.tensor(np.asarray(generate_ground_roi(), dtype="float32")).reshape(-1)
 
 
 def main():

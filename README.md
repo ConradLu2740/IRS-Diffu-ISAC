@@ -276,6 +276,7 @@ Recipes & parameter quick-reference: [`configs/README.md`](configs/README.md)
 - [x] SDR IQ data interface + ingest pipeline
 - [x] Colab one-click experience + CI + GitHub promotion
 - [x] **`isac_sim/` layered reference library skeleton** (channels / waveforms / RIS / comm / sensing / tracking / findings / stacks, numpy-only, smoke-tested)
+- [x] **K-sweep robustness under Rician fading** (`verify_tracking_rician.py`: K=10/5/0 dB × 5 seeds — qualitative conclusion holds; `make track-rician`)
 - [ ] **`isac_sim/channels` L1→L2**: 3GPP TR 38.811 NTN-aligned channel; re-run K-sweep & closed loop under L1/L2 to test conclusion robustness
 - [ ] **`isac_sim/findings` angle-wall scan**: N × range × ROI-width heatmap + two-station counter-example (breaks the wall)
 - [ ] **`isac_sim/comm` link upgrade**: higher-order QAM / simple coding / spectral-efficiency metrics

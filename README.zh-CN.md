@@ -278,6 +278,7 @@ bash run_demo.sh                              # 2. 闭环 demo（自动训练）
 - [x] SDR IQ 数据接口 + 导入管线
 - [x] Colab 一键体验 + CI + GitHub 推广
 - [x] **`isac_sim/` 分层参考库骨架**（信道 / 波形 / RIS / 通信 / 感知 / 跟踪 / findings / stacks，仅依赖 numpy，冒烟测试通过）
+- [x] **莱斯衰落下的 K-sweep 稳健性**（`verify_tracking_rician.py`：K=10/5/0 dB × 5 种子——定性结论跨信道档位保持；`make track-rician`）
 - [ ] **`isac_sim/channels` L1→L2**：3GPP TR 38.811 NTN 对齐信道；在 L1/L2 下重跑 K-sweep 与闭环，验证结论稳健性
 - [ ] **`isac_sim/findings` 角度墙扫描**：N × 斜距 × ROI 宽度热力图 + 双站反例（突破角度墙）
 - [ ] **`isac_sim/comm` 链路升级**：高阶 QAM / 简单编码 / 频谱效率指标
