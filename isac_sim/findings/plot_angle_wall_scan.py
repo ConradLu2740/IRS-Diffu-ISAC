@@ -7,6 +7,7 @@
 
 复现：make finding-angle-wall（或 python isac_sim/findings/plot_angle_wall_scan.py）
 """
+import math
 import os
 import sys
 from pathlib import Path
@@ -38,8 +39,12 @@ def main():
     shortfall = scan_shortfall(n_list, ranges, ROI_W, lam)
 
     # ---- 右图：单站角度墙 vs 双站三边定位的交叉距离误差 ----
+    # γ 由真实几何决定（isac_sat 默认场景：BS 仰角 33.7°，UE 方位差 142.5°）→ γ ≈ 131°
     rho = C_LIGHT / (2 * 1e9)   # 与 isac_sat 一致的 1 GHz 带宽距离分辨率
-    err_trilater = trilateration_cross_range_error(rho, BS_UE_BASELINE_M, 695e3)
+    gamma_deg = 131.1
+    err_trilater = trilateration_cross_range_error(rho, math.radians(gamma_deg))
+    # 蒙特卡洛实测（verify_twostation_localization.py，线性区）约 1.5× 一阶公式
+    err_mc = 0.31
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.2))
 
@@ -58,11 +63,11 @@ def main():
     ax2.axhline(11.84, color="r", lw=2,
                 label="mono-static angle wall (ML, 11.8 m)")
     ax2.axhline(err_trilater, color="g", lw=2,
-                label=f"two-station trilateration ({err_trilater:.1f} m)")
+                label=f"two-station trilateration ({err_trilater:.2f} m theory, {err_mc:.2f} MC)")
     ax2.set_xlabel("Target cross-range scale (m)")
     ax2.set_ylabel("Cross-range error (m)")
     ax2.set_title(f"Escaping the wall with a 2nd range source\n"
-                  f"BS–UE baseline {BS_UE_BASELINE_M/1e3:.1f} km, R=695 km, ρ={rho:.2f} m")
+                  f"LOS angle γ≈{gamma_deg:.0f}° (BS elev 33.7°, Δaz 142.5°), ρ={rho:.2f} m")
     ax2.legend(fontsize=8)
     ax2.grid(True, ls="--", alpha=0.4)
 
@@ -75,7 +80,7 @@ def main():
     rep["default_shortfall_8el"] = shortfall[1, np.argmin(np.abs(ranges - 695e3))]
     rep["D_required_80m_695km"] = required_array_aperture(695e3, ROI_W, lam)
     rep["N_required"] = rep["D_required_80m_695km"] / (lam / 2)
-    rep["two_station_err"] = err_trilater
+    rep["two_station_err"] = err_mc
     rep["mono_static_ml"] = 11.84
     print("=" * 66)
     print("远场角度墙：配置扫描 + 双站反例（30 GHz / 80 m ROI）")

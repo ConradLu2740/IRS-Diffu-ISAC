@@ -43,23 +43,30 @@ def required_array_aperture(range_m: float, width_m: float,
 # 双站反例：用第二个测距源（如已有的地面 UE）做三边定位，绕开角度墙
 #
 # 单站角度定位被物理上界封死，但两个站的**距离**测量（距离分辨率由带宽
-# 决定，与阵列孔径无关）在目标处相交即可 2D 定位：
-#   站间基线 B、斜距 R（小角度近似 γ ≈ B/R），交叉距离误差
-#   δ_cross ≈ ρ / sin γ ≈ ρ·R/B，其中 ρ = c/(2B_wave) 为单站距离分辨率。
+# 决定，与阵列孔径无关）在目标处相交即可 2D 定位。
+#
+# 几何条件（v2 修正，星-地场景实测验证）：
+#   - 两站视线夹角 γ 由实际单位向量计算：γ = arccos(û₁·û₂)。
+#     默认星-地场景（BS 仰角 33.7°，UE 水平方向且方位差 142.5°）
+#     下 γ ≈ 131°——远优于早期小角度估计（B/R ≈ 3.9°，错误地把
+#     地面基线当成了视线夹角）。
+#   - 退化警告：当两站方位差 Δaz → 0（UE 落入 BS-目标垂直面）时，
+#     两个视线的地面投影平行，2D 定位秩亏（一阶不可观测），
+#     误差与噪声同向爆炸——与 γ 大小无关。UE 必须在垂直面之外。
 # ---------------------------------------------------------------------
 
-def trilateration_cross_range_error(range_res_m: float, baseline_m: float,
-                                    slant_range_m: float) -> float:
-    """双站三边定位的交叉距离误差（米，小角度近似，一阶 GDOP）。
+def trilateration_cross_range_error(range_res_m: float, gamma_rad: float) -> float:
+    """双站三边定位的交叉距离误差（米，一阶 GDOP 参考）。
 
     range_res_m: 单站距离分辨率 ρ = c/(2·带宽)；
-    baseline_m: 两站基线 B（垂直于视线方向的分量近似）；
-    slant_range_m: 斜距 R。
+    gamma_rad: 两站视线在目标处的夹角（用实际几何计算，勿用地面基线/斜距近似）。
+    注：一阶公式；线性区蒙特卡洛实测约高 1.4~1.6×（另一测距轴的误差
+    经坐标旋转泄入交叉轴），大噪声下进一步偏离（非线性区）。
     """
-    gamma = baseline_m / max(slant_range_m, 1e-9)  # 两站视线夹角（小角度）
-    if gamma >= math.pi / 2:
-        return range_res_m
-    return range_res_m / math.sin(gamma)
+    s = math.sin(gamma_rad)
+    if s < 1e-9:
+        return float("inf")
+    return range_res_m / s
 
 
 def scan_shortfall(n_elements_list, ranges_m, roi_width_m,

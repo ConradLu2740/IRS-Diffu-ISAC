@@ -4,6 +4,7 @@
 原则：小样本、秒级、numpy-only；每层一个物理 sanity 断言。
 """
 
+import math
 import sys
 from pathlib import Path
 
@@ -113,11 +114,14 @@ def test_finding_angle_wall():
 
 
 def test_finding_two_station_escape():
-    """发现2反例：双站三边定位误差远小于单站角度墙，且随基线变短而变大。"""
+    """发现2反例：γ 基于真实星-地几何（131°）时三边定位远破单站墙；
+    误差随 γ 减小而增大；Δaz=0（秩亏）时应返回病态大误差提示。"""
     rho = 299_792_458.0 / (2 * 1e9)          # 1 GHz 带宽 → 0.15 m
-    err = trilateration_cross_range_error(rho, 47.7e3, 695e3)
-    assert 1.0 < err < 5.0, err               # 默认几何下约 2.2 m（墙外）
-    assert err < trilateration_cross_range_error(rho, 5e3, 695e3)  # 基线越短误差越大
+    err = trilateration_cross_range_error(rho, math.radians(131.1))
+    assert 0.1 < err < 0.5, err              # 默认几何一阶理论 ≈ 0.20 m
+    assert err < trilateration_cross_range_error(rho, math.radians(34.0))  # γ 越小越差
+    import math as _m
+    assert trilateration_cross_range_error(rho, 1e-12) == float("inf")  # 秩亏 → inf
     # 扫描形状与单调性：N 越大 shortfall 越小
     sc = scan_shortfall([8, 64], [695e3], 80.0, 299_792_458.0 / 30e9)
     assert sc[0, 0] > sc[1, 0] > 1.0, sc
