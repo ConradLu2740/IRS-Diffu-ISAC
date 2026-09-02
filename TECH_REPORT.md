@@ -4,16 +4,17 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.4 (2026-09-02) — companion to the open-source repository
+**Version**: v1.5 (2026-09-02) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
+*v1.5 additions: the escape route from the far-field angle wall — two-station trilateration with the existing ground UE (Section 6.4), including a rank-deficiency warning for degenerate UE geometries.*
 
 ---
 
 ## Abstract
 
-This report describes an open-source, physics-grounded engineering system for RIS-aided Integrated Sensing and Communication (ISAC) extended to space ISAC (ISAC-NTN). It combines real LEO orbit propagation (SGP4), dynamic RIS phase tracking, learning-based sensing, 3D multi-object tracking, and a sensing–communication closed loop, reproducible with one-command scripts (fixed seeds). Results: orbit physics matches real ISS values; RIS frame-by-frame tracking improves power by +89% (K=1), while reconfiguration-limited tracking (K=8) loses the gain; a sensing-aided closed loop achieves +309% communication gain (97.6% of the ideal oracle); wideband HRRP classification reaches 0.80 (5-class); 3D multi-object tracking (10 targets) achieves 0.60 recall. A comparison with classical baselines (2D-CFAR, MUSIC) uncovers two findings: (i) a feature-construction defect — centroid-relative delays discard absolute target position, collapsing ML localization to a class prior (22.6 m vs 12.1 m 2D RMSE with absolute-range features); (ii) a far-field angle wall — at ~695 km, the 80 m ROI subtends 0.0066°, far below an 8-element ULA resolution (~14°), so mono-static cross-range localization is physically unavailable. All numbers are reproducible (torch 2.8.0 reference, fixed seeds). Section 1.2 positions this system against the 2025–2026 ISAC literature, where the combination of diffusion-based point-cloud reconstruction with space ISAC (ISAC-NTN) remains an open niche as of August 2026. v1.4 additionally verifies (Section 6.3) that the RIS reconfiguration-rate trade-off survives per-frame independent Rician fading at K-factors down to 0 dB, and documents a metric-dependence finding: relative boost magnitudes depend on the ROI scatterer object and on the random-phase baseline, so cross-setting comparisons must fix both.
+This report describes an open-source, physics-grounded engineering system for RIS-aided Integrated Sensing and Communication (ISAC) extended to space ISAC (ISAC-NTN). It combines real LEO orbit propagation (SGP4), dynamic RIS phase tracking, learning-based sensing, 3D multi-object tracking, and a sensing–communication closed loop, reproducible with one-command scripts (fixed seeds). Results: orbit physics matches real ISS values; RIS frame-by-frame tracking improves power by +89% (K=1), while reconfiguration-limited tracking (K=8) loses the gain; a sensing-aided closed loop achieves +309% communication gain (97.6% of the ideal oracle); wideband HRRP classification reaches 0.80 (5-class); 3D multi-object tracking (10 targets) achieves 0.60 recall. A comparison with classical baselines (2D-CFAR, MUSIC) uncovers two findings: (i) a feature-construction defect — centroid-relative delays discard absolute target position, collapsing ML localization to a class prior (22.6 m vs 12.1 m 2D RMSE with absolute-range features); (ii) a far-field angle wall — at ~695 km, the 80 m ROI subtends 0.0066°, far below an 8-element ULA resolution (~14°), so mono-static cross-range localization is physically unavailable. All numbers are reproducible (torch 2.8.0 reference, fixed seeds). Section 1.2 positions this system against the 2025–2026 ISAC literature, where the combination of diffusion-based point-cloud reconstruction with space ISAC (ISAC-NTN) remains an open niche as of August 2026. v1.4 additionally verifies (Section 6.3) that the RIS reconfiguration-rate trade-off survives per-frame independent Rician fading at K-factors down to 0 dB, and documents a metric-dependence finding: relative boost magnitudes depend on the ROI scatterer object and on the random-phase baseline, so cross-setting comparisons must fix both. v1.5 further demonstrates (Section 6.4) that the angle wall has an escape route already present in the scenario: two-station trilateration with the existing ground UE achieves 0.31 m cross-range RMSE (vs 11.8 m mono-static ML) at default geometry, with a rank-deficiency warning for degenerate UE placements.
 
 **Keywords**: ISAC, RIS, non-terrestrial networks, LEO satellite, diffusion models, CFAR, MUSIC
 
@@ -155,7 +156,7 @@ The original range-profile function computed delays relative to the voxel centro
 
 ### 5.3 Finding 2: The Far-Field Angle-Resolution Wall
 
-At ~695 km slant range, 1 m of cross-range offset subtends ≈ 8×10⁻⁵ degrees; the full 80 m ROI subtends ≈ 0.0066°. An 8-element ULA at λ/2 has a Rayleigh resolution of ≈ 0.886·λ/(Nd) ≈ **12.7°** (upper-bound estimate; even a finer reading λ/D ≈ 14.3° is orders of magnitude larger). Therefore mono-static angle information cannot localize targets within the ROI: ML cross-range RMSE ≈ 11.8 m reflects exactly this wall (its cross-range output is driven by class priors and training statistics, not observable angles). This is a physical geometry bound, not an implementation artifact; improvements require multi-static geometry, long-aperture interferometric/ISAR imaging, or temporal priors (tracking).
+At ~695 km slant range, 1 m of cross-range offset subtends ≈ 8×10⁻⁵ degrees; the full 80 m ROI subtends ≈ 0.0066°. An 8-element ULA at λ/2 has a Rayleigh resolution of ≈ 0.886·λ/(Nd) ≈ **12.7°** (upper-bound estimate; even a finer reading λ/D ≈ 14.3° is orders of magnitude larger). Therefore mono-static angle information cannot localize targets within the ROI: ML cross-range RMSE ≈ 11.8 m reflects exactly this wall (its cross-range output is driven by class priors and training statistics, not observable angles). This is a physical geometry bound, not an implementation artifact — but it is a bound on **angle-only mono-static** localization specifically. The dual-station ISAC scenario already contains the escape route: the ground UE is a second range source, and Section 6.4 shows two-station trilateration breaks the wall by more than an order of magnitude.
 
 ---
 
@@ -180,6 +181,8 @@ At ~695 km slant range, 1 m of cross-range offset subtends ≈ 8×10⁻⁵ degre
 | 13 | Feature fix | Localization 2D RMSE 22.63 → **12.06 m**; LOS 2.3 m |
 | 14 | K-sweep under Rician fading (K=10/5/0 dB, 5 seeds) | Trade-off qualitative conclusion **ROBUST**: monotone in K, K=8 harmful at K=10 dB (−12.8% mean) |
 | 15 | Metric-dependence findings | Headline boost +89.0% (legacy ROI object) vs +148% (data_sat ROI object); strong scattering shrinks the *relative* K=8 penalty |
+| 16 | Two-station trilateration (default geometry, σ_ρ=0.15 m) | Cross-range RMSE **0.31 m** vs mono-static wall 11.84 m (**~38×**); break-wall budget σ_ρ < 6.6–8.9 m |
+| 17 | Degenerate UE geometry (Δaz=0°) | Rank-deficient: cross-range error explodes to 1817 m — UE must lie outside the BS–target vertical plane |
 
 ### 6.2 Reproducibility
 
@@ -190,6 +193,7 @@ cd source_code/isac_sat
 ../../.venv/bin/python verify_sat.py            # physics verification (ALL PASS)
 ../../.venv/bin/python verify_tracking.py       # RIS tracking trade-off
 ../../.venv/bin/python verify_tracking_rician.py # K-sweep under Rician fading (v1.4, Section 6.3)
+../../.venv/bin/python verify_twostation_localization.py  # two-station trilateration (v1.5, Section 6.4)
 ../../.venv/bin/python train_sensing.py --wideband  # sensing (class + localization)
 ../../.venv/bin/python baseline_classic.py      # CFAR + MUSIC vs ML comparison
 ../../.venv/bin/python demo.py --checkpoint ./isac_demo/sensing_best.pth  # closed loop
@@ -221,13 +225,34 @@ with E|H'|² = |H|² (link budgets unchanged, only time selectivity added), for 
 1. **ROI-object dependence.** The boost is relative to a random-phase baseline, and both numerator and denominator depend on the scatterer object. Replacing the legacy 16³ ROI object with the `data_sat.generate_ground_roi` object changes the K=1 boost from **+89.0% to +148%** (free space, identical geometry and seeds). Cross-setting comparisons must fix the object; v1.3 values correspond to the legacy object.
 2. **Baseline-relative metric under strong scattering.** At K = 0 dB the *relative* K=8 penalty shrinks (mean +39%, std 59%) because the random-phase baseline power itself fluctuates with fading. The physical statement "stale phases are far worse than per-frame tracking" holds in every seed; the sign of the relative number at large K should not be over-interpreted.
 
+### 6.4 Two-Station Trilateration: Escaping the Angle Wall (v1.5)
+
+Section 5.3 established that mono-static **angle-only** cross-range localization is physically unavailable at LEO ranges. The dual-station ISAC scenario, however, already contains a second range source: the ground UE. Two range measurements (BS and UE, each with resolution ρ = c/2B determined by bandwidth and independent of array aperture) intersect on the known ground plane to localize in 2D — bypassing angle resolution entirely.
+
+**Geometry (v2, corrected).** The LOS angle γ at the target must be computed from the actual station unit vectors, γ = arccos(û_BS · û_UE) — not from the ground baseline divided by slant range (an early small-angle estimate gave 3.9°, wrong by ~35×). In the default pass, the BS sits at 33.7° elevation and the UE is 142.5° away in azimuth (and on the horizon), giving **γ ≈ 131°**. A second, independent geometric condition matters: the UE must lie **outside the BS–target vertical plane**. When the azimuth offset Δaz → 0, the two LOS ground projections become parallel, the 2D problem loses rank, and the error explodes regardless of γ (measured 1817 m at σ_ρ = 0.15 m).
+
+**Experiment** (`verify_twostation_localization.py`, `make twostation`): targets uniformly drawn from the 80 m ROI (ground-constrained), Gaussian range noise per station, Gauss–Newton solve, 2000 Monte Carlo runs per cell, swept over σ_ρ ∈ {0.15, 0.5, 1.5, 5} m × Δaz ∈ {0°, 45°, 90°, 142°} on the real default-pass geometry.
+
+| Δaz (γ) | σ_ρ = 0.15 m | 0.5 m | 1.5 m | 5 m |
+|---|---|---|---|---|
+| 0° (34°, rank-deficient) | 1817 m | 2594 m | 5364 m | 7062 m |
+| 45° (54°) | 0.25 m | 0.86 m | 2.63 m | 8.66 m |
+| 90° (90°) | 0.15 m | 0.50 m | 1.51 m | 4.92 m |
+| **142.5° (131°, default)** | **0.31 m** | 1.03 m | 3.12 m | 10.04 m |
+
+(cross-range RMSE, i.e. the same axis on which the mono-static wall was measured; first-order theory σ_ρ/sin γ tracks the linear region within ~1.5×, degrading at σ_ρ = 5 m where errors exceed the ROI's linear regime.)
+
+**Finding 5 (escape route + information interpretation).** At the default geometry, two-station trilateration achieves **0.31 m** cross-range RMSE — **~38× better** than the 11.8 m mono-static ML wall, and the break-the-wall budget is σ_ρ < 11.84·sin γ ≈ **6.6–8.9 m** for any non-degenerate UE placement — i.e. even CFAR-grade ranging suffices. The 11.8 m mono-static result therefore reflects **unused UE-side information, not missing information**: the correct target problem for future sensing work in this scenario is two-station range-fusion localization (with the BS–UE link dual-use for both communication and ranging), not further refinement of mono-static angle features.
+
+*Honesty notes: ionospheric/atmospheric delay errors are not modeled (they dominate real star–ground ranging); the experiment answers the geometric/information question, not end-to-end accuracy.*
+
 ---
 
 ## 7. Limitations and Honest Discussion
 
 1. **Absolute attitude estimation is not feasible** in the far-field star–ground setting with simple symmetric templates — a physical upper bound, not an implementation gap.
 2. **Single-station multi-target classification is limited** by signal mixing in range profiles (detection/localization remain usable).
-3. **Cross-range localization is angle-limited** (Section 5.3): mono-static angle-based cross-range localization is physically unavailable at practical array sizes for ~695 km links.
+3. **Cross-range localization is angle-limited** (Section 5.3): mono-static angle-based cross-range localization is physically unavailable at practical array sizes for ~695 km links. Section 6.4 shows the bound is specific to angle-only mono-static processing: two-station trilateration with the existing UE breaks it by ~38× at CFAR-grade ranging.
 4. **Target templates are simple voxel models** (isotropic scattering; no RCS angular dependence/polarization); space-debris/satellite geometry models are planned.
 5. **No over-the-air hardware validation yet**: the SDR interface is verified on simulated IQ; RTL-SDR/USRP capture is the natural next step.
 6. **Atmosphere/ionosphere effects are not modeled** (free-space far-field approximation).
@@ -239,7 +264,7 @@ with E|H'|² = |H|² (link budgets unchanged, only time selectivity added), for 
 
 ## 8. Conclusion
 
-We presented an open-source, physics-grounded space ISAC engineering system — real LEO orbits, dynamic RIS tracking, learning-based sensing, 3D MOT, closed loop, SDR interface — with fixed-seed reproducibility and CI verification. Two transferable findings emerge: (i) a feature-construction defect (centroid-relative delays discard absolute position) that we fixed and quantified (~2× localization gap); (ii) a quantitative far-field angle-resolution wall bounding mono-static cross-range localization. The system serves as a practical testbed for space ISAC research; the honest limitation reporting aims to raise the reproducibility bar in this emerging area. v1.4 adds a robustness verification of the RIS tracking trade-off under Rician fading, a metric-dependence analysis, and a layered `isac_sim/` reference library for broader reuse.
+We presented an open-source, physics-grounded space ISAC engineering system — real LEO orbits, dynamic RIS tracking, learning-based sensing, 3D MOT, closed loop, SDR interface — with fixed-seed reproducibility and CI verification. Two transferable findings emerge: (i) a feature-construction defect (centroid-relative delays discard absolute position) that we fixed and quantified (~2× localization gap); (ii) a quantitative far-field angle-resolution wall bounding mono-static cross-range localization. The system serves as a practical testbed for space ISAC research; the honest limitation reporting aims to raise the reproducibility bar in this emerging area. v1.4 adds a robustness verification of the RIS tracking trade-off under Rician fading, a metric-dependence analysis, and a layered `isac_sim/` reference library for broader reuse. v1.5 turns the far-field angle wall from a negative result into an actionable one: the scenario's own ground UE breaks the wall as a second range source, defining two-station range-fusion localization as the correct target problem for future sensing work.
 
 ---
 
@@ -289,4 +314,4 @@ School research project developed with AI tooling assistance (Proma agent). The 
 
 ---
 
-*Report v1.4. All numbers are produced by the scripts in the companion repository with fixed seeds and are reproducible at the commit accompanying this version (2026-09-02).*
+*Report v1.5. All numbers are produced by the scripts in the companion repository with fixed seeds and are reproducible at the commit accompanying this version (2026-09-02).*
