@@ -39,6 +39,31 @@ Command map: `make help` · script-by-script cards: [`source_code/isac_sat/READM
 
 ---
 
+## 🧱 Full-Pipeline Reference Library (`isac_sim/`, new)
+
+Beyond the space-ground showcase above, this repo is growing into a **layered, pluggable simulation reference for the ISAC full pipeline** — swap any layer, reuse any layer:
+
+```text
+isac_sim/
+├── channels/     # L0 free-space (default) → L1 Rician (K-factor, power-aligned) → L2 3GPP TR 38.811 NTN (planned)
+├── waveforms/    # OFDM sensing waveform (default) → OTFS / AFDM (planned)
+├── ris/          # continuous phase (default) · 1-bit binary · segmented reconfiguration (K-sweep, model-agnostic)
+├── comm/         # QPSK-over-AWGN minimal link (measured BER vs theory)
+├── sensing/      # 1D CA-CFAR (vectorized) · 2D-CFAR/MUSIC/ML adapters (planned)
+├── tracking/     # nearest-neighbor + CV minimal tracker (Hungarian MOT lives in isac_sat)
+├── findings/     # analytic-bound negative results: far-field angle wall (with required-aperture formula)
+└── stacks/       # cross-stack validation plan: Sionna cross-check + MATLAB reference implementations
+```
+
+**Design rules**: numpy-only core (no torch needed for the classic layers) · every module ships a physics sanity check + one `make` command + CI smoke before landing · `source_code/isac_sat` stays as the reference application on top.
+
+Run the layered smoke suite (seconds, CPU):
+```bash
+make smoke-sim
+```
+
+---
+
 ## 🚀 60-Second Experience (Zero Setup)
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ConradLu2740/IRS-Diffu-ISAC/blob/main/colab/isac_demo.ipynb)
@@ -250,6 +275,11 @@ Recipes & parameter quick-reference: [`configs/README.md`](configs/README.md)
 - [x] 3D multi-object tracking (10 targets, 5 classes)
 - [x] SDR IQ data interface + ingest pipeline
 - [x] Colab one-click experience + CI + GitHub promotion
+- [x] **`isac_sim/` layered reference library skeleton** (channels / waveforms / RIS / comm / sensing / tracking / findings / stacks, numpy-only, smoke-tested)
+- [ ] **`isac_sim/channels` L1→L2**: 3GPP TR 38.811 NTN-aligned channel; re-run K-sweep & closed loop under L1/L2 to test conclusion robustness
+- [ ] **`isac_sim/findings` angle-wall scan**: N × range × ROI-width heatmap + two-station counter-example (breaks the wall)
+- [ ] **`isac_sim/comm` link upgrade**: higher-order QAM / simple coding / spectral-efficiency metrics
+- [ ] **`isac_sim/stacks` cross-validation**: Sionna (TF) numeric-alignment report + MATLAB reference implementations for key modules
 - [ ] **GEO / MEO orbit support** (currently LEO-focused)
 - [ ] **Real SDR over-the-air capture** (RTL-SDR / USRP backend)
 - [ ] **Space debris / satellite geometry targets** (replace simple templates)
@@ -265,6 +295,11 @@ Recipes & parameter quick-reference: [`configs/README.md`](configs/README.md)
 ```
 IRS-Diffu-ISAC/
 ├── Makefile                        # 🆕 one-command entry: make setup / verify / demo / ...
+├── isac_sim/                       # 🆕 layered ISAC simulation reference library (numpy-only core)
+│   ├── channels/ waveforms/ ris/ comm/ sensing/ tracking/
+│   ├── findings/                   # analytic-bound findings (far-field angle wall)
+│   └── stacks/                     # Sionna cross-check + MATLAB reference plan
+├── tests/                          # 🆕 layered smoke suite (make smoke-sim)
 ├── pyproject.toml                  # 🆕 metadata + dependency declaration
 ├── configs/                        # 🆕 parameter quick-reference + experiment recipes
 │   └── README.md

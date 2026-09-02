@@ -46,6 +46,9 @@ jobs:
           python verify_sat.py 2>&1 | tail -3
           python verify_sat.py | grep -q "ALL PASS" && echo "PHYSICS OK"
 
+      - name: isac_sim layered smoke (channel / waveform / RIS / comm / sensing / tracking)
+        run: python tests/test_smoke_isac_sim.py
+
       - name: SDR pipeline smoke
         run: |
           cd source_code/isac_sat

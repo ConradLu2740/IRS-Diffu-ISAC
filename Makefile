@@ -64,6 +64,9 @@ baseline: ## 经典基线对比（2D-CFAR + MUSIC vs 学习式感知）
 smoke: ## 全链路最小复现（legacy 扩散重建 smoke test）
 	cd $(LEGACY) && ../../$(VENV)/bin/python smoke_test.py
 
+smoke-sim: ## isac_sim 分层骨架冒烟（信道/波形/RIS/通信/感知/跟踪，秒级）
+	$(PY) tests/test_smoke_isac_sim.py
+
 clean: ## 清理演示产物（checkpoints / HTML / GIF / PNG）
 	rm -rf $(ISAC)/isac_demo
 	@echo "已清理 isac_demo/"

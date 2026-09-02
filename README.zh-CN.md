@@ -39,6 +39,31 @@ make demo     # 自动训练 + 感知-通信闭环
 
 ---
 
+## 🧱 全流程仿真参考库（`isac_sim/`，新）
+
+在上方星-地演示之外，本仓库正在成长为 **ISAC 全流程的分层可插拔仿真参考库**——每一层都可替换、可单独复用：
+
+```text
+isac_sim/
+├── channels/     # L0 自由空间（默认）→ L1 莱斯衰落（K 因子，功率对齐）→ L2 3GPP TR 38.811 NTN（规划）
+├── waveforms/    # OFDM 感知波形（默认）→ OTFS / AFDM（规划）
+├── ris/          # 连续相位（默认）· 1-bit 离散 · 分段重构（K-sweep，与模型解耦）
+├── comm/         # QPSK over AWGN 最小链路（实测 BER 对照理论）
+├── sensing/      # 一维 CA-CFAR（向量化）· 2D-CFAR/MUSIC/ML 适配器（规划）
+├── tracking/     # 最近邻 + 匀速最小跟踪器（匈牙利 MOT 见 isac_sat）
+├── findings/     # 带解析界的负结果：远场角度墙（含所需孔径公式）
+└── stacks/       # 跨栈验证计划：Sionna 交叉验证 + MATLAB 参考实现
+```
+
+**设计铁律**：核心仅依赖 numpy（经典层无需 torch）· 每个模块入 main 前必须有物理 sanity check + 一条 make 命令 + CI 冒烟 · `source_code/isac_sat` 保持为参考应用。
+
+运行分层冒烟套件（秒级，CPU）：
+```bash
+make smoke-sim
+```
+
+---
+
 ## 🚀 60 秒体验（零配置）
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ConradLu2740/IRS-Diffu-ISAC/blob/main/colab/isac_demo.ipynb)
@@ -252,6 +277,11 @@ bash run_demo.sh                              # 2. 闭环 demo（自动训练）
 - [x] 3D 多目标追踪（10 目标 / 5 类）
 - [x] SDR IQ 数据接口 + 导入管线
 - [x] Colab 一键体验 + CI + GitHub 推广
+- [x] **`isac_sim/` 分层参考库骨架**（信道 / 波形 / RIS / 通信 / 感知 / 跟踪 / findings / stacks，仅依赖 numpy，冒烟测试通过）
+- [ ] **`isac_sim/channels` L1→L2**：3GPP TR 38.811 NTN 对齐信道；在 L1/L2 下重跑 K-sweep 与闭环，验证结论稳健性
+- [ ] **`isac_sim/findings` 角度墙扫描**：N × 斜距 × ROI 宽度热力图 + 双站反例（突破角度墙）
+- [ ] **`isac_sim/comm` 链路升级**：高阶 QAM / 简单编码 / 频谱效率指标
+- [ ] **`isac_sim/stacks` 交叉验证**：Sionna（TF）数值对齐报告 + 关键模块 MATLAB 参考实现
 - [ ] **GEO / MEO 轨道支持**（当前以 LEO 为主）
 - [ ] **真实 SDR 空口采集**（RTL-SDR / USRP 后端）
 - [ ] **太空碎片 / 卫星几何目标**（替换简单模板）
@@ -267,6 +297,11 @@ bash run_demo.sh                              # 2. 闭环 demo（自动训练）
 ```
 IRS-Diffu-ISAC/
 ├── Makefile                        # 🆕 一键命令入口：make setup / verify / demo / ...
+├── isac_sim/                       # 🆕 ISAC 分层仿真参考库（核心仅依赖 numpy）
+│   ├── channels/ waveforms/ ris/ comm/ sensing/ tracking/
+│   ├── findings/                   # 带解析界的结论模块（远场角度墙）
+│   └── stacks/                     # Sionna 交叉验证 + MATLAB 参考实现计划
+├── tests/                          # 🆕 分层冒烟套件（make smoke-sim）
 ├── pyproject.toml                  # 🆕 元数据 + 依赖声明
 ├── configs/                        # 🆕 参数速查 + 实验配方
 │   └── README.md
