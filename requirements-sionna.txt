@@ -1,0 +1,5 @@
+# L2 Sionna 标准信道对照的可选依赖（verify_sionna_channel.py）
+# 安装：pip install -r requirements-sionna.txt
+# 注意：sionna 会拉取其依赖的 torch 版本；若与你的 CUDA torch 冲突，
+# 先装 sionna 再重装匹配的 torch（本仓库开发环境为 torch 2.7.0+cu128）。
+sionna>=2.0

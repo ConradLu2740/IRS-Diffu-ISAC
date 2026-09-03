@@ -73,6 +73,9 @@ smoke-sim: ## isac_sim 分层骨架冒烟（信道/波形/RIS/通信/感知/跟�
 finding-angle-wall: ## 角度墙配置扫描热力图 + 双站反例出图（CPU 秒级）
 	$(PY) isac_sim/findings/plot_angle_wall_scan.py
 
+verify-sionna: ## L2：Sionna CDL 标准信道对照（3GPP TR 38.901，需 pip install sionna）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_sionna_channel.py
+
 twostation: ## 双站三边定位实验（角度墙实证反例：噪声×方位差扫描，~1 min）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_twostation_localization.py
 

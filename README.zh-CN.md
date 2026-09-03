@@ -281,10 +281,12 @@ bash run_demo.sh                              # 2. 闭环 demo（自动训练）
 - [x] Colab 一键体验 + CI + GitHub 推广
 - [x] **`isac_sim/` 分层参考库骨架**（信道 / 波形 / RIS / 通信 / 感知 / 跟踪 / findings / stacks，仅依赖 numpy，冒烟测试通过）
 - [x] **莱斯衰落下的 K-sweep 稳健性**（`verify_tracking_rician.py`：K=10/5/0 dB × 5 种子——定性结论跨信道档位保持；`make track-rician`）
-- [ ] **`isac_sim/channels` L1→L2**：3GPP TR 38.811 NTN 对齐信道；在 L1/L2 下重跑 K-sweep 与闭环，验证结论稳健性
+- [x] **Sionna 2.x CDL 标准信道对照**（`verify_sionna_channel.py`：3GPP TR 38.901 CDL-D，K≈9 dB——量化平坦衰落与逐帧独立近似的适用边界，标准 K 档位确认 K-sweep 结论；`make verify-sionna`，可选依赖 `pip install sionna`）
+- [ ] **`isac_sim/channels` L2 完整 NTN 对齐**：3GPP TR 38.811 NTN 专用剖面（几何驱动的时延/角度扩展）；在 L2 下重跑闭环
 - [x] **`isac_sim/findings` 角度墙扫描 + 双站反例**：shortfall 热力图、破墙精度预算（σ_ρ < 6.6–8.9 m）、秩亏警告（`make finding-angle-wall`、`make twostation`）
 - [ ] **`isac_sim/comm` 链路升级**：高阶 QAM / 简单编码 / 频谱效率指标
-- [ ] **`isac_sim/stacks` 交叉验证**：Sionna（TF）数值对齐报告 + 关键模块 MATLAB 参考实现
+- [x] **`isac_sim/channels` × Sionna 交叉验证**（v1.6，见上）
+- [ ] **`isac_sim/stacks` 进一步交叉验证**：关键模块 MATLAB 参考实现
 - [ ] **GEO / MEO 轨道支持**（当前以 LEO 为主）
 - [ ] **真实 SDR 空口采集**（RTL-SDR / USRP 后端）
 - [ ] **太空碎片 / 卫星几何目标**（替换简单模板）
@@ -337,7 +339,7 @@ IRS-Diffu-ISAC/
 ## 📚 文档
 
 - **[TECH_REPORT.md](TECH_REPORT.md)** — arXiv 版技术报告：系统模型、闭环结果、经典基线（2D-CFAR + MUSIC）、物理发现
-- **版本对应**：git release tag（当前 `v1.2.0`）标记仓库里程碑；技术报告有独立版本号（当前 **v1.5**）。当前对应：**tag `v1.2.0` ↔ TECH_REPORT v1.5**（6.3/6.4 节：莱斯稳健性 + 双站破墙）。
+- **版本对应**：git release tag（当前 `v1.2.0`）标记仓库里程碑；技术报告有独立版本号（当前 **v1.6**）。当前对应：**tag `v1.2.0` ↔ TECH_REPORT v1.5**（6.3/6.4 节：莱斯稳健性 + 双站破墙）；**TECH_REPORT v1.6** 新增 Sionna CDL 标准信道对照（6.5 节，尚未打 tag）。
 - **[space_isac_design.md](space_isac_design.md)** — 完整设计：物理模型、实验结果、物理结论、踩坑记录
 - 原项目文档（已归档）：[`archive/original-docs/`](archive/original-docs/) — [`architecture.md`](archive/original-docs/architecture.md) / [`Code_Wiki.md`](archive/original-docs/Code_Wiki.md)
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — 贡献指南

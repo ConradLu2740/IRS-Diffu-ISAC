@@ -279,10 +279,12 @@ Recipes & parameter quick-reference: [`configs/README.md`](configs/README.md)
 - [x] Colab one-click experience + CI + GitHub promotion
 - [x] **`isac_sim/` layered reference library skeleton** (channels / waveforms / RIS / comm / sensing / tracking / findings / stacks, numpy-only, smoke-tested)
 - [x] **K-sweep robustness under Rician fading** (`verify_tracking_rician.py`: K=10/5/0 dB × 5 seeds — qualitative conclusion holds; `make track-rician`)
-- [ ] **`isac_sim/channels` L1→L2**: 3GPP TR 38.811 NTN-aligned channel; re-run K-sweep & closed loop under L1/L2 to test conclusion robustness
+- [x] **Sionna 2.x CDL standard-channel cross-validation** (`verify_sionna_channel.py`: 3GPP TR 38.901 CDL-D, K≈9 dB — flat-fading & per-frame-independence approximations quantified, K-sweep confirmed at the standard K; `make verify-sionna`, optional dep `pip install sionna`)
+- [ ] **`isac_sim/channels` L2 full NTN alignment**: 3GPP TR 38.811 NTN-specific profiles (geometry-dependent delay/angle spreads); re-run closed loop under L2
 - [x] **`isac_sim/findings` angle-wall scan + two-station counter-example**: shortfall heatmap, break-the-wall budget (σ_ρ < 6.6–8.9 m), rank-deficiency warning (`make finding-angle-wall`, `make twostation`)
 - [ ] **`isac_sim/comm` link upgrade**: higher-order QAM / simple coding / spectral-efficiency metrics
-- [ ] **`isac_sim/stacks` cross-validation**: Sionna (TF) numeric-alignment report + MATLAB reference implementations for key modules
+- [x] **`isac_sim/channels` × Sionna cross-validation** (v1.6, see above)
+- [ ] **`isac_sim/stacks` further cross-validation**: MATLAB reference implementations for key modules
 - [ ] **GEO / MEO orbit support** (currently LEO-focused)
 - [ ] **Real SDR over-the-air capture** (RTL-SDR / USRP backend)
 - [ ] **Space debris / satellite geometry targets** (replace simple templates)
@@ -335,7 +337,7 @@ IRS-Diffu-ISAC/
 ## 📚 Documentation
 
 - **[TECH_REPORT.md](TECH_REPORT.md)** — arXiv-ready technical report: system model, closed-loop results, classical baselines (2D-CFAR + MUSIC), physical findings
-- **Versioning**: git release tags (currently `v1.2.0`) mark repo milestones; the report has its own version (currently **v1.5**). Current mapping: **tag `v1.2.0` ↔ TECH_REPORT v1.5** (Sections 6.3/6.4: Rician robustness + two-station escape from the angle wall).
+- **Versioning**: git release tags (currently `v1.2.0`) mark repo milestones; the report has its own version (currently **v1.6**). Current mapping: **tag `v1.2.0` ↔ TECH_REPORT v1.5** (Sections 6.3/6.4: Rician robustness + two-station escape from the angle wall); **TECH_REPORT v1.6** adds the Sionna CDL channel cross-validation (Section 6.5, not yet tagged).
 - **[space_isac_design.md](space_isac_design.md)** — complete design: physical model, experiments, physical conclusions, pitfalls
 - Original project docs (archived): [`archive/original-docs/`](archive/original-docs/) — [`architecture.md`](archive/original-docs/architecture.md) / [`Code_Wiki.md`](archive/original-docs/Code_Wiki.md)
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — how to contribute
