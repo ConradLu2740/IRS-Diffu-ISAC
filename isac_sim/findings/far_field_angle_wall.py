@@ -53,15 +53,25 @@ def required_array_aperture(range_m: float, width_m: float,
 #   - 退化警告：当两站方位差 Δaz → 0（UE 落入 BS-目标垂直面）时，
 #     两个视线的地面投影平行，2D 定位秩亏（一阶不可观测），
 #     误差与噪声同向爆炸——与 γ 大小无关。UE 必须在垂直面之外。
+#
+# 一阶公式的局限（v1.7 审查修正）：本模块的 trilateration_cross_range_error
+# 只接收 γ，得到 σ_ρ/sinγ；但完整 GDOP 还取决于两站**仰角**（地面约束下
+# 生效的是水平投影几何，BS 行向被 cos(elev) 压缩）。默认几何下一阶式低估
+# 约 1.6×（0.20 vs 0.34 m 实测）。需要含站位的精确 GDOP 时用
+# verify_twostation_localization.jacobian_gdop()，勿用本一阶式替代。
 # ---------------------------------------------------------------------
 
 def trilateration_cross_range_error(range_res_m: float, gamma_rad: float) -> float:
     """双站三边定位的交叉距离误差（米，一阶 GDOP 参考）。
 
-    range_res_m: 单站距离分辨率 ρ = c/(2·带宽)；
+    range_res_m: 假设的单站测距误差幅度 σ_ρ（米）。注意：σ_ρ 不是由带宽
+        直接推出的量；c/(2B) 是距离分辨率。若用 c/(2B) 传入，得到的是
+        “理想估计器”的下界参考，不是可达成误差。
     gamma_rad: 两站视线在目标处的夹角（用实际几何计算，勿用地面基线/斜距近似）。
-    注：一阶公式；线性区蒙特卡洛实测约高 1.4~1.6×（另一测距轴的误差
-    经坐标旋转泄入交叉轴），大噪声下进一步偏离（非线性区）。
+    局限：只含 γ，未含两站仰角 → 地面约束定位的精确 GDOP 需站位置，
+        见 verify_twostation_localization.jacobian_gdop()（默认几何下此
+        一阶式低估约 1.6×）。
+    秩亏（sin γ→0）返回 inf。
     """
     s = math.sin(gamma_rad)
     if s < 1e-9:

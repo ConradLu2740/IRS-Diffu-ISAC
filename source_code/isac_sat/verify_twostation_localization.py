@@ -17,22 +17,27 @@
 方法：
   - 取 isac_sat 默认过境窗口中心帧的真实几何（SGP4 → ECEF → 目标点 ENU）；
   - 目标均匀撒在 80×80 m ROI 内（地面约束 z=0），每站测距加高斯噪声 σ_ρ；
-  - Gauss-Newton 迭代解算 (x, y)，统计 2D RMSE 与交叉距离 RMSE
+  - **测量模型用三维斜距**：r = ‖(x,y,0) − 站三维位置‖（含 BS 385 km 高度与
+    UE 地曲率项），Gauss-Newton 迭代解算 (x, y)，统计 2D RMSE 与交叉距离 RMSE
     （交叉 = 垂直于 BS 视线地面投影，与单站角度墙同一定义）；
   - 扫描 σ_ρ（0.15/0.5/1.5/5 m）× Δaz（0°/45°/90°/142°默认）× 2000 MC。
+  - 理论列改为 Jacobian-GDOP：σ_cross ≈ σ_ρ · g，g = sqrt(perpᵀ(JᵀJ)⁻¹ perp)，
+    J 为三维斜距对 (x,y) 的 2×2 偏导（在 ROI 中心求值，80 m ROI 内变化可忽略）。
+    （旧版用 σ_ρ/sin γ 的一阶式，γ 是三维视线夹角，与实际生效的水平面几何不一致。）
 
 对照（TECH_REPORT v1.3, 相同场景/测试集）：
   - 单站 1D-CFAR  LOS RMSE   8.14 m
   - 单站 ML      2D RMSE    12.06 m（交叉距离 11.84 m = 角度墙实测）
 
-理论预期：交叉距离 σ_cross ≈ σ_ρ / sin γ（一阶 GDOP）。
-破墙精度预算：σ_ρ < 11.84 m · sin γ；默认几何（γ≈131°）约 8.9 m，
-即使 UE 在星下点方向（γ≈33.7°）也有 ~6.6 m —— CFAR 级测距精度即可破墙。
+理论预期：交叉距离 σ_cross ≈ σ_ρ · g(J)（ROI 中心 Jacobian 的 GDOP 因子 g）。
+破墙精度预算：σ_ρ < 11.84 m / g；默认几何（Δaz=142°）g 由脚本实测。
 
 诚实说明：
   1. 未建模电离层/对流层延迟（实际星-地测距主要误差源）；本实验回答
      "几何/信息层面双站是否破墙"，非端到端精度预测。
-  2. σ_ρ 大时误差超出 ROI 线性区，蒙特卡洛会偏离一阶理论（见 5 m 档）。
+  2. σ_ρ 是**假设的测距误差标准差**，不是由带宽推出的值；c/(2B)=0.15 m 是距离
+     分辨率，测距误差取决于估计器与同步误差，本文不对 σ_ρ 的来源做端到端断言。
+  3. σ_ρ 大时误差超出 ROI 线性区，蒙特卡洛会偏离 Jacobian-GDOP 线性理论（见 5 m 档）。
   3. 单站 ML 的 11.8 m 并非"场景信息不足"，而是感知层只用了 BS 侧
      HRRP（单站角度/时延特征）——破墙所需信息在双站 ISAC 场景中本来
      就存在，只是未被利用。
@@ -79,32 +84,62 @@ def los_angle_gamma(p_bs, p_ue):
 
 
 def gauss_newton_2d(p_bs, p_ue, r_bs, r_ue, x0):
-    """地面约束（z=0）双站测距最小二乘，返回 (x, y)。"""
+    """地面约束（z=0）双站测距最小二乘，返回 (x, y)。
+
+    测量模型：r = ‖(x, y, 0) − 站三维位置‖（三维斜距）。未知量仅 (x, y)
+    （目标贴地），Jacobian 行 = 斜距单位向量的前两维（∂d/∂x, ∂d/∂y）。
+    旧实现用水平距离（丢掉 BS 高度 ~385 km 与 UE 地曲率 ~179 m），已废弃。
+    """
     p = np.array(x0, dtype=float)
-    for _ in range(8):
-        d_bs = np.linalg.norm(p - p_bs[:2])
-        d_ue = np.linalg.norm(p - p_ue[:2])
+    for _ in range(12):
+        q = np.array([p[0], p[1], 0.0])
+        d_bs = np.linalg.norm(q - p_bs)
+        d_ue = np.linalg.norm(q - p_ue)
         res = np.array([d_bs - r_bs, d_ue - r_ue])
-        J = np.stack([(p - p_bs[:2]) / max(d_bs, 1e-9),
-                      (p - p_ue[:2]) / max(d_ue, 1e-9)])
+        J = np.stack([(q - p_bs)[:2] / max(d_bs, 1e-9),
+                      (q - p_ue)[:2] / max(d_ue, 1e-9)])
         dp, *_ = np.linalg.lstsq(J, -res, rcond=None)
         p = p + dp
-        if np.linalg.norm(dp) < 1e-6:
+        if np.linalg.norm(dp) < 1e-8:
             break
     return p
 
 
+def jacobian_gdop(p_bs, p_ue, xy=(0.0, 0.0)):
+    """地面约束三维斜距定位在 (x,y) 处的 GDOP 因子。
+
+    J = 2×2（两站斜距对 (x,y) 的偏导，z 固定 0）；交叉距离方向 perp 取
+    BS 水平视线投影的法向。返回 g = sqrt(perpᵀ (JᵀJ)⁻¹ perp)，理论
+    交叉距离 σ_cross ≈ σ_ρ · g。两站地面投影平行（Δaz=0，秩亏）时返回 inf。
+    """
+    q = np.array([xy[0], xy[1], 0.0], dtype=float)
+
+    def _row(s):
+        d = np.linalg.norm(q - s)
+        return (q - s)[:2] / max(d, 1e-9)
+
+    J = np.stack([_row(p_bs), _row(p_ue)])
+    los2 = p_bs[:2] / (np.linalg.norm(p_bs[:2]) + 1e-12)
+    perp = np.array([-los2[1], los2[0]])
+    try:
+        cov = np.linalg.inv(J.T @ J)
+    except np.linalg.LinAlgError:
+        return float("inf")
+    return float(np.sqrt(max(perp @ cov @ perp, 0.0)))
+
+
 def run_mc(p_bs, p_ue, roi_local, n_mc, sigma_rho, rng):
-    """蒙特卡洛：返回 (2D RMSE, 交叉距离 RMSE)（米）。"""
-    los2 = p_bs[:2] / np.linalg.norm(p_bs[:2])          # BS 视线地面投影
+    """蒙特卡洛：返回 (2D RMSE, 交叉距离 RMSE)（米）。三维斜距测量。"""
+    los2 = p_bs[:2] / (np.linalg.norm(p_bs[:2]) + 1e-12)  # BS 视线地面投影
     perp = np.array([-los2[1], los2[0]])
     err2, err_cross = [], []
     for _ in range(n_mc):
-        t_true = roi_local[rng.integers(0, len(roi_local))][:2]  # [x, y] 米
-        r_bs = np.linalg.norm(t_true - p_bs[:2]) + rng.normal(0, sigma_rho)
-        r_ue = np.linalg.norm(t_true - p_ue[:2]) + rng.normal(0, sigma_rho)
-        est = gauss_newton_2d(p_bs, p_ue, r_bs, r_ue, x0=t_true + rng.normal(0, 10, 2))
-        e = est - t_true
+        xy = roi_local[rng.integers(0, len(roi_local))][:2]      # [x, y] 米
+        q = np.array([xy[0], xy[1], 0.0])
+        r_bs = np.linalg.norm(q - p_bs) + rng.normal(0, sigma_rho)
+        r_ue = np.linalg.norm(q - p_ue) + rng.normal(0, sigma_rho)
+        est = gauss_newton_2d(p_bs, p_ue, r_bs, r_ue, x0=xy + rng.normal(0, 10, 2))
+        e = est - xy
         err2.append(np.linalg.norm(e))
         err_cross.append(abs(e @ perp))
     return float(np.sqrt(np.mean(np.square(err2)))), float(np.sqrt(np.mean(np.square(err_cross))))
@@ -139,31 +174,31 @@ def main():
           f"ML 交叉 {REF_ML_CROSS} m（角度墙）\n")
 
     results = {}
-    print(f"{'Δaz':>6} {'γ':>8} {'σ_ρ (m)':>8} {'2D RMSE':>10} {'交叉RMSE':>10} "
-          f"{'理论 σ/sinγ':>11} {'vs 单站墙':>10}")
-    print("-" * 72)
+    print(f"{'Δaz':>6} {'γ':>7} {'GDOP':>7} {'σ_ρ (m)':>8} {'2D RMSE':>10} {'交叉RMSE':>10} "
+          f"{'理论 σ·g':>10} {'vs 单站墙':>10}")
+    print("-" * 76)
     for daz in args.dazs_deg:
         # UE 放在地面距离 47.7 km、方位 = BS 方位 + Δaz 处
         az = math.radians(az_bs + daz)
         p_ue = np.array([UE_GND_DIST_M * math.cos(az),
                          UE_GND_DIST_M * math.sin(az), p_ue_default[2]])
         gamma = los_angle_gamma(p_bs, p_ue)
+        gdop = jacobian_gdop(p_bs, p_ue)
         for s in args.sigmas:
             rng = np.random.default_rng(args.seed + int(daz * 10 + s * 100))
             rmse2, rmse_x = run_mc(p_bs, p_ue, roi_local, args.n_mc, s, rng)
-            theo = s / math.sin(gamma)
-            results[(daz, s)] = (rmse2, rmse_x, gamma)
-            print(f"{daz:6.0f} {math.degrees(gamma):7.1f}° {s:8.2f} {rmse2:10.2f} "
-                  f"{rmse_x:10.2f} {theo:11.2f} "
-                  f"{'✓ 破墙' if rmse_x < REF_ML_CROSS else '✗':>10}")
+            theo = s * gdop
+            results[(daz, s)] = (rmse2, rmse_x, gamma, gdop)
+            g_ok = '✓ 破墙' if rmse_x < REF_ML_CROSS else '✗'
+            print(f"{daz:6.0f} {math.degrees(gamma):6.1f}° {gdop:7.2f} {s:8.2f} {rmse2:10.2f} "
+                  f"{rmse_x:10.2f} {theo:10.2f} {g_ok:>10}")
 
-    # ---- 破墙精度预算（γ 的最好/最坏情形）----
-    gammas = [results[(d, s)][2] for d in args.dazs_deg for s in args.sigmas[:1]]
-    g_min, g_max = min(gammas), max(gammas)
-    print(f"\n破墙精度预算：σ_ρ < {REF_ML_CROSS}·sin(γ)")
-    print(f"  最不利几何（Δaz=0°，γ={math.degrees(g_min):.1f}°）：σ_ρ < {REF_ML_CROSS*math.sin(g_min):.2f} m")
-    print(f"  默认场景  （Δaz=142°，γ={math.degrees(g_max):.1f}°）：σ_ρ < {REF_ML_CROSS*math.sin(g_max):.2f} m")
-    print("  即：任何非退化的 UE 几何下，CFAR 级（~米级）测距精度即可破墙。")
+    # ---- 破墙精度预算（由 Jacobian GDOP 决定）----
+    gdop_def = results[(142.0 if 142.0 in args.dazs_deg else args.dazs_deg[-1], args.sigmas[0])][3]
+    print(f"\n破墙精度预算：σ_ρ < {REF_ML_CROSS} / GDOP")
+    print(f"  退化几何（Δaz=0°）：GDOP→∞，秩亏不可定位（与 γ 大小无关）")
+    print(f"  默认场景（Δaz=142°，GDOP={gdop_def:.2f}）：σ_ρ < {REF_ML_CROSS/gdop_def:.2f} m")
+    print("  即：任何非退化的 UE 几何下，米级测距精度即可破墙（σ_ρ 为假设值）。")
 
     # ---- 图：交叉距离 RMSE vs σ_ρ，各 Δaz ----
     fig, ax = plt.subplots(figsize=(7, 4.5))
@@ -171,10 +206,12 @@ def main():
     for (daz, c) in zip(args.dazs_deg, colors):
         sig = np.array(args.sigmas)
         ms = [results[(daz, s)][1] for s in args.sigmas]
-        g = results[(daz, args.sigmas[0])][2]
+        gamma3 = results[(daz, args.sigmas[0])][2]
+        gdop = results[(daz, args.sigmas[0])][3]
         ax.plot(sig, ms, "o-", color=c,
-                label=f"Δaz={daz:.0f}° (γ={math.degrees(g):.0f}°)")
-        ax.plot(sig, sig / math.sin(g), "--", color=c, alpha=0.5)
+                label=f"Δaz={daz:.0f}° (γ={math.degrees(gamma3):.0f}°, GDOP={gdop:.2f})")
+        if math.isfinite(gdop):
+            ax.plot(sig, sig * gdop, "--", color=c, alpha=0.5)
     ax.axhline(REF_ML_CROSS, color="r", lw=2, label=f"mono-static wall ({REF_ML_CROSS} m)")
     ax.axhline(REF_CFAR_LOS, color="orange", lw=1.5, ls=":",
                label=f"mono-static CFAR LOS ({REF_CFAR_LOS} m)")
@@ -194,11 +231,11 @@ def main():
     print("\n结论检查:")
     print(f"  默认几何（Δaz=142°, γ={math.degrees(r_def[2]):.0f}°）+ σ_ρ=0.15 m："
           f"交叉 RMSE {r_def[1]:.2f} m << 单站墙 {REF_ML_CROSS} m → 双站破墙")
-    print("  蒙特卡洛与一阶理论 σ_ρ/sinγ 在线性区量级一致（σ_ρ 大时偏离，见诚实说明 2）")
+    print("  蒙特卡洛与 Jacobian-GDOP 理论（σ_ρ·g）在线性区一致（σ_ρ 大时偏离，见诚实说明 3）")
     r0 = results[(0.0, args.sigmas[0])] if 0.0 in args.dazs_deg else None
     if r0 is not None:
-        print(f"  退化警告：Δaz=0°（UE 在 BS-目标垂直面内）时两视线地面投影平行，"
-              f"2D 定位秩亏，误差爆炸（实测 {r0[1]:.0f} m @ σ_ρ={args.sigmas[0]} m）——"
+        print(f"  退化警告：Δaz=0°（UE 在 BS-目标垂直面内）时两站地面投影平行，"
+              f"2D 定位秩亏（GDOP→∞），误差爆炸（实测 {r0[1]:.0f} m @ σ_ρ={args.sigmas[0]} m）——"
               f"UE 必须在垂直面之外，这与 γ 大小是两个独立的几何条件")
 
 
