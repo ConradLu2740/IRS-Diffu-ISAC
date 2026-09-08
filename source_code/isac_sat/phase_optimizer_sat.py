@@ -67,10 +67,13 @@ class PhaseOptimizerSat:
           M   = 第 i 列为单元 i 的两条 RIS 路径合成系数 m_i
         """
         S = ROI_voxel.reshape(-1).float()
-        S_c = _as_complex(S)
         if "H_ROI_IRS" not in Ht:
             return None, None
         H_BS_ROI, H_ROI_UE = Ht["H_BS_ROI"], Ht["H_ROI_UE"]
+        dev = H_ROI_UE.device
+        S_c = _as_complex(S).to(dev)                                # [R]
+        if X.device != dev:
+            X = X.to(dev)
         Bmat = S_c[:, None] * H_ROI_UE                          # [R, UE]
         d = H_BS_ROI.matmul(Bmat).matmul(X).flatten()           # [BS]
         C1 = (H_BS_ROI * S_c[None, :]).matmul(Ht["H_ROI_IRS"])  # [BS,N] path1 前段

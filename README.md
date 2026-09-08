@@ -24,7 +24,7 @@ real LEO orbits (SGP4) → dynamic RIS phase tracking → sensing from communica
 closed-loop demo. All data & weights are **synthetically generated in-code** — clone, `make setup`, done; **no data download needed**.
 
 **What you can do with it**
-- **Reproduce** headline results (RIS tracking **+89%**, closed-loop comm gain **+309%**) in minutes
+- **Reproduce** headline results (RIS tracking **+173%**, closed-loop comm gain **+374%**; v1.7 physics-consistency audit values, see `docs/physics_audit_table.md`) in minutes
 - **Extend** it: swap satellite / frequency band / target templates / your own model
 - **Compare** with classical baselines (2D-CFAR + MUSIC, `make baseline`)
 
@@ -79,8 +79,8 @@ Run locally? See [Quick Start](#-quick-start).
 | | |
 |---|---|
 | 🛰️ **Real Orbit Simulation** | SGP4 propagation of real LEO satellites (ISS / Starlink TLE), dynamic geometry + Doppler + delay, physics-verified against real values |
-| 📡 **Dynamic RIS Phase Tracking** | Analytical phase alignment, frame-by-frame tracking power **+89%** (K=1); segmented tracking (K=2/4/8) quantifies the "RIS reconfiguration rate vs channel coherence time" trade-off — K=8 gain vanishes (even negative) |
-| 🎯 **Sensing–Communication Closed-Loop** | Sense targets from communication signals (classification + localization) → auto-configure IRS → communication power **+309%** (98% of ideal oracle) |
+| 📡 **Dynamic RIS Phase Tracking** | Full-model closed-form phase alignment (direct path + both RIS paths), frame-by-frame tracking power **+173%** (K=1; coordinate-ascent upper bound +256%); segmented tracking (K=2/4/8) quantifies the "RIS reconfiguration rate vs channel coherence time" trade-off — K=8 gain largely shrinks |
+| 🎯 **Sensing–Communication Closed-Loop** | Sense targets from communication signals (classification + localization) → auto-configure IRS → communication power **+374%** (73.3% of the ideal closed-form oracle) |
 | 🚁 **Multi-Object Tracking in 3D** | Simultaneously track **10 moving targets** (car / drone / bicycle / pedestrian / train) with **full 3D trajectories** — drones in the air, ground targets locked to the ground |
 | 🖥️ **Interactive Demos** | Single-file HTML players (scene switching / timeline / real UTC overpass time) + GIF animations, shareable with a double-click |
 | 📻 **SDR Interface** | IQ data format + ingest pipeline (time-domain IQ → FFT → range profile, fidelity 0.998), hardware-ready (RTL-SDR / USRP) |
@@ -114,21 +114,21 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 |------------|--------|
 | Orbit physics verification (ISS) | Altitude 418 km / velocity 7.66 km/s / period 92.9 min (matches real values) |
 | Overpass Doppler (30 GHz) | −610 ~ +610 kHz (S-curve, real LEO order of magnitude) |
-| RIS dynamic tracking | Frame-by-frame power **+89%** (K=1); K=8 segmented (reconfiguration-limited) gain vanishes (K=8: −42%, even harmful) |
+| RIS dynamic tracking | Frame-by-frame power **+173%** (K=1, full-model closed form; numeric upper bound +256%); K=8 segmented **+16%** (−8% at the numeric upper bound) |
 | Wideband HRRP classification | **0.80** (5-class templates; early 6-class experiments: 0.383 → 0.867 → ISAR 0.933) |
-| Sensing–comm closed-loop (single) | Classification 80%, comm gain **+309%** (97.6% of oracle) |
-| Sensing–comm closed-loop (multi) | Detection 1/2, IRS pointing gain **+444%** (93% of oracle) |
+| Sensing–comm closed-loop (single) | Classification 80%, comm gain **+374%** (73.3% of the ideal closed-form oracle) |
+| Sensing–comm closed-loop (multi) | Detection 0/2 (single scene), IRS pointing gain **+577%** (86% of the ideal closed-form oracle) |
 | Multi-target tracking (MOT) | 10 targets / 5 classes, detection recall **0.60**, trajectory class accuracy 0.73 |
 | Classic baseline (2D-CFAR) | Detection **100%** (P_fa=1e-4), along-line-of-sight localization RMSE **8.1 m** — no training needed |
 | Classic baseline (MUSIC) | ULA-8 target direction MAE **0.017°** (synthetic snapshots); far-field angle resolution physically insufficient for intra-ROI localization |
 | ML vs classic (fair) | ML (absolute-range feature) LOS RMSE **2.3 m** vs CFAR 8.1 m; centroid-relative feature = class prior only (2D RMSE 22.6 m); feature bug fixed (`center='roi'`) |
 | Multi-orbit / Ka-band | ISS / Starlink ×30 / 28 GHz all PASS, physics consistency verified |
 | Angle-wall scan (finding) | Resolving the 80 m ROI needs a 77 m aperture (N≈15,394) — shortfall **1889×** at N=8; wall active in all practical configs |
-| Two-station trilateration (finding) | Cross-range RMSE **0.31 m** @ default geometry (γ=131°, σ_ρ=0.15 m) — **~38×** better than the 11.8 m mono-static wall; break-wall budget σ_ρ < 6.6–8.9 m |
+| Two-station trilateration (finding) | Cross-range RMSE **0.34 m** @ default geometry (γ=131°, σ_ρ=0.15 m, 3D slant-range model) — **~35×** better than the 11.8 m mono-static wall; break-wall budget σ_ρ < 5.3 m |
 
 > ⚠️ **Honest notes**: absolute attitude estimation is **not feasible** (physical upper bound) for far-field star–ground links with simple symmetric templates; single-station multi-target **classification** is limited by signal mixing (detection/localization works).
 
-> 🔢 **Rounded values**: README figures are rounded for readability (e.g., −42%, 8.1 m, 2.3 m, +444%); exact reproducible values (e.g., −41.5%, 8.14 m, 2.27 m, +443.8%) are in TECH_REPORT v1.3.
+> 🔢 **Rounded values**: README figures are rounded for readability; exact reproducible values and the v1.7 old→new audit diff are in TECH_REPORT v1.7 and `docs/physics_audit_table.md`.
 
 ---
 
@@ -159,7 +159,7 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 
 | Project | Reported metrics |
 |---|---|
-| **IRS-Diffu-ISAC** | HRRP classification **0.80** (5-class) · closed-loop comm gain **+309%** (97.6% of oracle) · RIS tracking **+89%** (K=1) · MOT recall **0.60** (10 targets / 5 classes) · 2D-CFAR detection 100%, LOS RMSE 8.1 m · 3D reconstruction CD 0.137–0.183 (space ISAC; vs 0.233 without RIS) |
+| **IRS-Diffu-ISAC** | HRRP classification **0.80** (5-class) · closed-loop comm gain **+374%** (73.3% of ideal oracle) · RIS tracking **+173%** (K=1; numeric upper bound +256%) · MOT recall **0.60** (10 targets / 5 classes) · 2D-CFAR detection 100%, LOS RMSE 8.1 m · 3D reconstruction CD 0.137–0.183 (space ISAC; vs 0.233 without RIS) |
 | PVD (ShapeNet) | CD ~1.5e-3 on ShapeNet — standard *generation* benchmark, different task (unconditional 3D generation, no channel/ISAC physics) |
 | ISAC-PLM | Link-level sensing MSE / NMSE for 60 GHz 802.11ay (short-range PHY layer) |
 | 5G ISAC System-Level | 5G NR system-level simulation (sensing via 2D-CFAR / MUSIC, cellular scenario) |
@@ -281,7 +281,7 @@ Recipes & parameter quick-reference: [`configs/README.md`](configs/README.md)
 - [x] **K-sweep robustness under Rician fading** (`verify_tracking_rician.py`: K=10/5/0 dB × 5 seeds — qualitative conclusion holds; `make track-rician`)
 - [x] **Sionna 2.x CDL standard-channel cross-validation** (`verify_sionna_channel.py`: 3GPP TR 38.901 CDL-D, K≈9 dB — flat-fading & per-frame-independence approximations quantified, K-sweep confirmed at the standard K; `make verify-sionna`, optional dep `pip install sionna`)
 - [ ] **`isac_sim/channels` L2 full NTN alignment**: 3GPP TR 38.811 NTN-specific profiles (geometry-dependent delay/angle spreads); re-run closed loop under L2
-- [x] **`isac_sim/findings` angle-wall scan + two-station counter-example**: shortfall heatmap, break-the-wall budget (σ_ρ < 6.6–8.9 m), rank-deficiency warning (`make finding-angle-wall`, `make twostation`)
+- [x] **`isac_sim/findings` angle-wall scan + two-station counter-example**: shortfall heatmap, break-the-wall budget (σ_ρ < 5.3 m @ default geometry), rank-deficiency warning (`make finding-angle-wall`, `make twostation`)
 - [ ] **`isac_sim/comm` link upgrade**: higher-order QAM / simple coding / spectral-efficiency metrics
 - [x] **`isac_sim/channels` × Sionna cross-validation** (v1.6, see above)
 - [ ] **`isac_sim/stacks` further cross-validation**: MATLAB reference implementations for key modules
@@ -337,7 +337,7 @@ IRS-Diffu-ISAC/
 ## 📚 Documentation
 
 - **[TECH_REPORT.md](TECH_REPORT.md)** — arXiv-ready technical report: system model, closed-loop results, classical baselines (2D-CFAR + MUSIC), physical findings
-- **Versioning**: git release tags (currently `v1.2.0`) mark repo milestones; the report has its own version (currently **v1.6**). Current mapping: **tag `v1.2.0` ↔ TECH_REPORT v1.5** (Sections 6.3/6.4: Rician robustness + two-station escape from the angle wall); **TECH_REPORT v1.6** adds the Sionna CDL channel cross-validation (Section 6.5, not yet tagged).
+- **Versioning**: git release tags (currently `v1.2.0`) mark repo milestones; the report has its own version (currently **v1.6**). Current mapping: **tag `v1.2.0` ↔ TECH_REPORT v1.5** (Sections 6.3/6.4: Rician robustness + two-station escape from the angle wall); **TECH_REPORT v1.6** adds the Sionna CDL channel cross-validation (Section 6.5, not yet tagged); **TECH_REPORT v1.7** adds the physics-consistency audit (docs/physics_audit_table.md, not yet tagged).
 - **[space_isac_design.md](space_isac_design.md)** — complete design: physical model, experiments, physical conclusions, pitfalls
 - Original project docs (archived): [`archive/original-docs/`](archive/original-docs/) — [`architecture.md`](archive/original-docs/architecture.md) / [`Code_Wiki.md`](archive/original-docs/Code_Wiki.md)
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — how to contribute
