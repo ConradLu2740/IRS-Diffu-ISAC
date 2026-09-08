@@ -52,7 +52,8 @@ def main(args):
 
     # ---- 感知 ----
     rp = compute_range_profile(roi, mid["target_pos"], mid["ground_pos"],
-                               channels.wavelength_m, snr_db=args.snr_db, seed=0, align=False)
+                               channels.wavelength_m, snr_db=args.snr_db, seed=0, align=False,
+                               sat_ecef=mid["sat_pos"])
     with torch.no_grad():
         clss, poss = model(torch.from_numpy(rp).float().unsqueeze(0))
     pred_pos = torch.stack(poss).squeeze(1).numpy()

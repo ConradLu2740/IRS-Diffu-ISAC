@@ -49,6 +49,11 @@ jobs:
       - name: isac_sim layered smoke (channel / waveform / RIS / comm / sensing / tracking)
         run: python tests/test_smoke_isac_sim.py
 
+      - name: HRRP geometry-true differential-delay check
+        run: |
+          cd source_code/isac_sat
+          python verify_hrrp_geometry.py | grep -q "ALL PASS" && echo "HRRP GEOMETRY OK"
+
       - name: SDR pipeline smoke
         run: |
           cd source_code/isac_sat

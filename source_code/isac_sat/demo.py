@@ -81,7 +81,7 @@ def main(args):
     # ---- 4. 感知（宽带距离像） ----
     rp = compute_range_profile(roi_true, mid["target_pos"], mid["ground_pos"],
                                channels.wavelength_m, snr_db=args.snr_db, seed=0,
-                               align=not args.rp_align)
+                               align=not args.rp_align, sat_ecef=mid["sat_pos"])
     rp_t = torch.from_numpy(rp).float().unsqueeze(0).to(device)
     with torch.no_grad():
         logits, pred_pos = model(rp_t)
@@ -189,5 +189,5 @@ if __name__ == "__main__":
     parser.add_argument("--rp_align", action="store_true")
     parser.add_argument("--seed", type=int, default=7)
     args = parser.parse_args()
-    args.device = "cuda" if torch.cuda.is_available() else "cpu"
+    args.device = "cpu"  # reference env: CPU; GPU 路径需 device-aware 数据集(calculate_value_sat)
     main(args)

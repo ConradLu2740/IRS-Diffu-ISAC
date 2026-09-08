@@ -56,7 +56,7 @@ def run_scene(args, seed):
 
     rp = compute_range_profile(roi, mid["target_pos"], mid["ground_pos"],
                                channels.wavelength_m, snr_db=args.snr_db, seed=0,
-                               align=False)
+                               align=False, sat_ecef=mid["sat_pos"])
     with torch.no_grad():
         logits, pred_pos = model(torch.from_numpy(rp).float().unsqueeze(0))
     cid_pred = logits.argmax(1).item()

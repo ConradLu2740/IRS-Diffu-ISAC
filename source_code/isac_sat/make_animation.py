@@ -65,7 +65,8 @@ def main(args):
     pos_true = (pos_true / 16.0 * 2.0 - 1.0)[:2]
 
     rp = compute_range_profile(roi, mid["target_pos"], mid["ground_pos"],
-                               channels.wavelength_m, snr_db=args.snr_db, seed=0, align=False)
+                               channels.wavelength_m, snr_db=args.snr_db, seed=0, align=False,
+                               sat_ecef=mid["sat_pos"])
     with torch.no_grad():
         logits, pred_pos = model(torch.from_numpy(rp).float().unsqueeze(0))
     cid_pred = logits.argmax(1).item()

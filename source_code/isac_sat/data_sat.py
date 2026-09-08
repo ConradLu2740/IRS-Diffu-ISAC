@@ -358,15 +358,21 @@ def compute_isar_sequence(ROI_np, target_ecef, ground_ecef, wavelength_m,
 
 def compute_range_profile(ROI_np, target_ecef, ground_ecef, wavelength_m,
                           k=WIDEBAND_K, bw_hz=WIDEBAND_BW_HZ, snr_db=20.0,
-                          seed=0, bs_dist_km=695.0, align=True, center="centroid"):
+                          seed=0, bs_dist_km=695.0, align=True, center="centroid",
+                          sat_ecef=None):
     """宽带距离像：目标体素沿观测视线的散射分布（HRRP）。
 
-    center="centroid"（默认）：d_proj 相对**体素质心** → 形状/姿态特征（位置无关）
-    center="roi"：d_proj 相对 **ROI 中心**，保留目标绝对位置（差分时延，定位可用）
+    center="centroid"（默认）：相对**体素质心** → 形状/姿态特征（位置无关）
+    center="roi"：相对 **ROI 中心**，保留目标绝对位置（差分时延，定位可用）
         ——修复：旧版 d_proj 相对质心导致目标位置在特征层被丢弃（实测单体素 bin 恒定），
         定位任务必须用 center="roi" + align=False。
     align=True：质心对齐（提取形状/姿态信息，位置无关）
     align=False：保留原始距离像（包含目标位置信息，用于定位）
+    sat_ecef：卫星 ECEF（km）。传入时使用**几何真实双程差分时延**：
+        τ_i = [(‖p_i−sat‖ + ‖p_i−ue‖) − (‖ref−sat‖ + ‖ref−ue‖)] / c，
+        ref = ROI 中心（roi 模式）或体素质心（centroid 模式）。
+        不传时保留旧启发式（bs_dist_km/50 km 常数 + 1.1 系数），仅用于旧结果复现；
+        新训练/推理应传 sat_ecef 以保证特征与真实信道/轨道几何一致。
     返回 [k] 距离像幅度（归一化）。
     """
     C_MS = ss.C_LIGHT_KM * 1000.0
@@ -379,18 +385,28 @@ def compute_range_profile(ROI_np, target_ecef, ground_ecef, wavelength_m,
     p_center = p.mean(axis=0)
     u = ground_ecef - target_ecef
     u = u / (np.linalg.norm(u) + 1e-12)             # 视线方向单位矢量
-    if center == "roi":
-        # 相对 ROI 中心：保留目标绝对位置（差分时延，去掉绝对常数避免 K 回卷）
-        rel = p - target_ecef[None, :]              # km
-        d_proj = (rel @ u) * 1000.0                 # 米，相对 ROI 中心
-        tau = 1.1 * d_proj / C_MS                    # 差分时延（d_ue 主导系数 1.0 + d_bs 0.1）
+    if sat_ecef is not None:
+        # ---- 几何真实双程差分时延（相对 ref） ----
+        sat = np.asarray(sat_ecef, dtype=float)
+        ue = np.asarray(ground_ecef, dtype=float)
+        ref = target_ecef if center == "roi" else p_center
+        d_i = np.linalg.norm(p - sat, axis=1) + np.linalg.norm(p - ue, axis=1)   # km
+        d_r = np.linalg.norm(ref - sat) + np.linalg.norm(ref - ue)               # km
+        tau = (d_i - d_r) / ss.C_LIGHT_KM            # 差分双程时延（秒）
     else:
-        # 相对体素质心：形状/姿态信息（位置无关，旧行为）
-        rel = p - p_center                          # km
-        d_proj = (rel @ u) * 1000.0                 # 沿视线投影（米，相对质心）
-        d_bs = bs_dist_km * 1000.0 + d_proj * 0.1   # BS 端差异小（远场近似）
-        d_ue = 50e3 + d_proj                        # 体素到 UE 差异 ≈ 视线投影
-        tau = (d_bs + d_ue) / C_MS                  # 秒
+        # ---- 旧启发式（仅用于复现旧数字） ----
+        if center == "roi":
+            # 相对 ROI 中心：保留目标绝对位置（差分时延，去掉绝对常数避免 K 回卷）
+            rel = p - target_ecef[None, :]              # km
+            d_proj = (rel @ u) * 1000.0                 # 米，相对 ROI 中心
+            tau = 1.1 * d_proj / C_MS                    # 差分时延（d_ue 主导系数 1.0 + d_bs 0.1）
+        else:
+            # 相对体素质心：形状/姿态信息（位置无关，旧行为）
+            rel = p - p_center                          # km
+            d_proj = (rel @ u) * 1000.0                 # 沿视线投影（米，相对质心）
+            d_bs = bs_dist_km * 1000.0 + d_proj * 0.1   # BS 端差异小（远场近似）
+            d_ue = 50e3 + d_proj                        # 体素到 UE 差异 ≈ 视线投影
+            tau = (d_bs + d_ue) / C_MS                  # 秒
 
     f = np.linspace(-bw_hz / 2.0, bw_hz / 2.0, k)     # 基带子载波
     H = np.exp(-2j * np.pi * f[:, None] * tau[None, :]).sum(axis=1)  # [k]
@@ -557,7 +573,7 @@ class SatROIDataset(Dataset):
                  tau=ss.TAU, p_snr=P_SNR, power_sigma=POWER_SIGMA,
                  phase_mode="random", target_source="ground", with_label=False,
                  wideband=False, wideband_snr_db=20.0, isar=False, rp_align=True,
-                 center=None, multi=False):
+                 center=None, multi=False, hrrp_legacy=False):
         """center: 显式指定距离像投影中心（'roi' 保留位置 / 'centroid' 形状特征）。
         None 时由 rp_align 决定：align=False → 'roi'（定位），align=True → 'centroid'。"""
         self.n = n_samples
@@ -580,11 +596,12 @@ class SatROIDataset(Dataset):
         if phase_mode == "tracked" and channels.irs_mode == "none":
             self.phase_mode = "random"  # 无 IRS 时退回随机
         self._opt = PhaseOptimizerSat(channels, device=device) if self.phase_mode == "tracked" else None
-        # 宽带距离像几何（取中帧）
+        # 宽带距离像几何（取中帧；sat_ecef 传入真实轨道几何，HRRP 用双程差分时延）
         if self.wideband:
             mid = channels.frames[len(channels.frames) // 2]
             self._target_ecef = mid["target_pos"]
             self._ground_ecef = mid["ground_pos"]
+            self._sat_ecef = None if hrrp_legacy else mid["sat_pos"]
 
         # 导频 X（16QAM 前 BS_ANT 个符号 × 标定系数）
         n_bs = channels.bs_ant
@@ -679,7 +696,7 @@ class SatROIDataset(Dataset):
                 feat = torch.from_numpy(compute_range_profile(
                     ROI_np, self._target_ecef, self._ground_ecef, self.ch.wavelength_m,
                     snr_db=self.wideband_snr_db, seed=idx, align=self.rp_align,
-                    center=self.rp_center)).float()  # [K]
+                    center=self.rp_center, sat_ecef=self._sat_ecef)).float()  # [K]
             if self.with_label:
                 if self.multi:
                     return point_cloud.float(), cond, feat, targets

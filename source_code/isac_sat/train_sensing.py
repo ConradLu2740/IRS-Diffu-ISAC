@@ -88,11 +88,11 @@ def main(args):
     tr_ds = SatROIDataset(args.train_data, channels, num_points=args.num_points,
                           device=device, tau=args.tau, phase_mode=args.phase_mode,
                           with_label=True, target_source="ground", wideband=args.wideband,
-                          rp_align=not args.rp_align)
+                          rp_align=not args.rp_align, hrrp_legacy=args.hrrp_legacy)
     te_ds = SatROIDataset(args.test_data, channels, num_points=args.num_points,
                           device=device, tau=args.tau, phase_mode=args.phase_mode,
                           with_label=True, target_source="ground", wideband=args.wideband,
-                          rp_align=not args.rp_align)
+                          rp_align=not args.rp_align, hrrp_legacy=args.hrrp_legacy)
     tr = DataLoader(make_fixed(tr_ds, args.train_data, wideband=args.wideband),
                     batch_size=args.batch_size, shuffle=True)
     te = DataLoader(make_fixed(te_ds, args.test_data, wideband=args.wideband),
@@ -147,6 +147,8 @@ if __name__ == "__main__":
     parser.add_argument("--tau", type=int, default=8)
     parser.add_argument("--save_dir", type=str, default="./isac_demo")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--hrrp_legacy", action="store_true",
+                        help="HRRP 用旧启发式时延（sat_ecef=None），用于旧/新 A/B 对照")
     args = parser.parse_args()
-    args.device = "cuda" if torch.cuda.is_available() else "cpu"
+    args.device = "cpu"  # reference env: CPU; GPU 路径需 device-aware 数据集(calculate_value_sat)
     main(args)

@@ -558,5 +558,5 @@ if __name__ == "__main__":
     parser.add_argument("--snr_db", type=float, default=20.0)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
-    args.device = "cuda" if torch.cuda.is_available() else "cpu"
+    args.device = "cpu"  # reference env: CPU; GPU 路径需 device-aware 数据集(calculate_value_sat)
     main(args)
