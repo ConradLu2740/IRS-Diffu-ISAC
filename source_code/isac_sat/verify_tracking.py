@@ -61,7 +61,8 @@ def main():
 
     print("对比 RIS 相位跟踪策略（平均接收功率，越大越好）...")
     results = compare_tracking(channels, ROI, X, device=device,
-                               n_iter=args.n_iter, intervals=args.intervals)
+                               n_iter=args.n_iter, intervals=args.intervals,
+                               include_numeric=True)
 
     print(f"\n{'策略':<14}{'平均功率':>14}{'相对随机提升':>14}")
     rand_p = results["random"]["power"]
@@ -71,11 +72,20 @@ def main():
         if name == "track_K=1":
             ideal_p = r["power"]
 
-    # ---- 图 1：各帧功率曲线 ----
+    # 闭式解 vs 数值上界（报告 oracle 达成率，明确上界定义）
+    if "numeric_K=1" in results:
+        p_cf = results["track_K=1"]["power"]
+        p_num = results["numeric_K=1"]["power"]
+        print(f"\n上界对照：闭式对齐 K=1 达成数值参考（坐标上升）的 "
+              f"{100*p_cf/p_num:.1f}%（{p_cf:.3e} vs {p_num:.3e}）")
+
+    # ---- 图 1：各帧功率曲线（数值参考行只在文字报告，避免空 phases）----
     n_frames = len(frames)
     t = np.arange(n_frames)
     fig, ax = plt.subplots(figsize=(8, 4.5))
-    for name, r in results.items():
+    plot_names = [nm for nm in results if not nm.startswith("numeric_")]
+    for name in plot_names:
+        r = results[name]
         phases = r["phases"]
         pows = []
         for t_idx, Ht in enumerate(channels.channels_per_frame):
@@ -97,9 +107,9 @@ def main():
     # ---- 图 2：策略汇总条形图 ----
     names = list(results.keys())
     powers = [results[n]["power"] for n in names]
-    fig2, ax2 = plt.subplots(figsize=(7, 4))
-    bars = ax2.bar(names, powers, color=["gray", "steelblue", "mediumseagreen",
-                                          "orange", "crimson"][:len(names)])
+    colors = plt.cm.tab10(np.linspace(0, 1, len(names)))
+    fig2, ax2 = plt.subplots(figsize=(8, 4))
+    bars = ax2.bar(names, powers, color=colors)
     ax2.set_ylabel("Mean received power")
     ax2.set_title("RIS Phase Tracking Strategy Comparison")
     ax2.set_xticklabels(names, rotation=15)
