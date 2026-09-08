@@ -164,6 +164,12 @@ def main(args):
                        os.path.join(args.save_dir, "sensing_multi_best.pth"))
 
     print(f"\n[multi] 最佳: detect={best_det:.3f}, cls={cls_acc:.3f}, pos_err={pos_e:.3f}")
+    if getattr(args, "out_json", None):
+        import json
+        with open(args.out_json, "w", encoding="utf-8") as f:
+            json.dump({"seed": args.seed, "wideband": args.wideband,
+                       "best_detect": float(best_det), "cls_acc_final": float(cls_acc),
+                       "pos_err_final": float(pos_e)}, f, indent=2)
 
 
 if __name__ == "__main__":
@@ -183,6 +189,7 @@ if __name__ == "__main__":
     parser.add_argument("--wideband", action="store_true")
     parser.add_argument("--rp_align", action="store_true")
     parser.add_argument("--save_dir", type=str, default="./isac_demo")
+    parser.add_argument("--out_json", type=str, default=None, help="结果写 JSON（统计套件用）")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     args.device = "cpu"  # reference env: CPU; GPU 路径需 device-aware 数据集(calculate_value_sat)

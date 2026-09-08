@@ -70,6 +70,7 @@ def main(args):
         if any(np.linalg.norm(p - np.array([cx, cy])) < 0.5 for p in pred_pos):
             det += 1
     print(f"[demo_multi] 检测: {det}/{len(targets)}")
+    n_gt = len(targets)
 
     # ---- IRS 指向检测到的目标（用第一个目标的估计位置构建 ROI） ----
     roi_true_t = torch.tensor(roi.astype(np.float32)).reshape(-1)
@@ -97,6 +98,11 @@ def main(args):
     print(f"  sensed : {p_sen:.4e}  ({100*(p_sen/p_rand-1):+.1f}%)")
     print(f"  oracle : {p_ora:.4e}  ({100*(p_ora/p_rand-1):+.1f}%)")
     print(f"  达成率 : {100*p_sen/p_ora:.0f}%")
+    if getattr(args, "out_json", None):
+        import json
+        with open(args.out_json, "w", encoding="utf-8") as f:
+            json.dump({"seed": args.seed, "n_targets": int(n_gt), "det": int(det),
+                       "p_rand": p_rand, "p_sensed": p_sen, "p_oracle": p_ora}, f, indent=2)
     print("=" * 62)
 
 
@@ -109,6 +115,7 @@ if __name__ == "__main__":
     parser.add_argument("--tau", type=int, default=8)
     parser.add_argument("--snr_db", type=float, default=20.0)
     parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument("--out_json", type=str, default=None, help="结果写 JSON（统计套件用）")
     args = parser.parse_args()
     args.device = "cpu"  # reference env: CPU; GPU 路径需 device-aware 数据集(calculate_value_sat)
     main(args)

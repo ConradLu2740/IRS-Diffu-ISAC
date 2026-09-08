@@ -127,6 +127,11 @@ def main(args):
 
     print(f"\n[sensing] 最佳: cls acc={best_acc:.3f}, pos err={pos_err:.4f}")
     print(f"[sensing] checkpoint: {args.save_dir}/sensing_best.pth")
+    if getattr(args, "out_json", None):
+        import json
+        with open(args.out_json, "w", encoding="utf-8") as f:
+            json.dump({"seed": args.seed, "wideband": args.wideband,
+                       "best_cls_acc": float(best_acc), "pos_err_final": float(pos_err)}, f, indent=2)
 
 
 if __name__ == "__main__":
@@ -149,6 +154,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--hrrp_legacy", action="store_true",
                         help="HRRP 用旧启发式时延（sat_ecef=None），用于旧/新 A/B 对照")
+    parser.add_argument("--out_json", type=str, default=None, help="结果写 JSON（统计套件用）")
     args = parser.parse_args()
     args.device = "cpu"  # reference env: CPU; GPU 路径需 device-aware 数据集(calculate_value_sat)
     main(args)

@@ -75,6 +75,10 @@
 - 修复目标是**内部一致性**（特征几何 = 真实信道/轨道几何），非指标提升；单种子差异不作显著性结论。
 - 自检：`verify_hrrp_geometry.py`（roi 保位 / centroid+align 平移不变）ALL PASS，已挂 CI。
 
+## 多种子统计套件（v1.8，已冒烟）
+
+`source_code/isac_sat/run_stats_suite.py` 编排 7 个 suite（tracking / rician / sensing / loop / multi / ood / baseline），JSON 落盘 + mean±std 汇总。冒烟（--n_seeds 2）全部通过；全量 `--suite all --n_seeds 10` 待执行后，本表与 TECH_REPORT 的单种子数字将升级为 mean±std。冒烟观察：闭环效率跨 seed 波动大（单次 73.3% vs 两种子 96.4±2.7），印证单种子数字不可作统计结论。
+
 ## 已知未覆盖/限制（本次范围外）
 
 1. MOT（`mot_data`/`train_detect`/`demo_mot`）与 SDR 保真链路仍用 HRRP 旧启发式（未传 sat_ecef），其训练/推理内部自洽；接入几何真实时延属后续工作。

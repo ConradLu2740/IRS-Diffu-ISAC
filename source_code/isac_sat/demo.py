@@ -123,6 +123,11 @@ def main(args):
     print(f"  感知辅助 (sensed)     : {p_sensed:.4e}  ({100*(p_sensed/p_rand-1):+.1f}%)")
     print(f"  理想优化 (oracle)     : {p_oracle:.4e}  ({100*(p_oracle/p_rand-1):+.1f}%)")
     print(f"  感知闭环达成 oracle   : {100*p_sensed/p_oracle:.1f}%")
+    if getattr(args, "out_json", None):
+        import json
+        with open(args.out_json, "w", encoding="utf-8") as f:
+            json.dump({"seed": args.seed, "cls_ok": bool(cls_ok), "pos_err": float(pos_err),
+                       "p_rand": p_rand, "p_sensed": p_sensed, "p_oracle": p_oracle}, f, indent=2)
     print("=" * 66)
 
     # ---- 6. 可视化 ----
@@ -188,6 +193,7 @@ if __name__ == "__main__":
     parser.add_argument("--snr_db", type=float, default=20.0)
     parser.add_argument("--rp_align", action="store_true")
     parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument("--out_json", type=str, default=None, help="结果写 JSON（统计套件用）")
     args = parser.parse_args()
     args.device = "cpu"  # reference env: CPU; GPU 路径需 device-aware 数据集(calculate_value_sat)
     main(args)

@@ -202,9 +202,12 @@ cd source_code/isac_sat
 ../../.venv/bin/python verify_sionna_channel.py  # Sionna CDL standard-channel cross-validation (v1.6, Section 6.5; needs `pip install sionna`)
 ../../.venv/bin/python train_sensing.py --wideband  # sensing (class + localization)
 ../../.venv/bin/python baseline_classic.py      # CFAR + MUSIC vs ML comparison
+../../.venv/bin/python run_stats_suite.py --suite all --n_seeds 10   # v1.8 multi-seed suite (JSON + mean+-std summary; smoke: --n_seeds 2)
 ../../.venv/bin/python demo.py --checkpoint ./isac_demo/sensing_best.pth  # closed loop
 ../../.venv/bin/python demo_mot.py              # 3D multi-object tracking
 ```
+
+Since v1.8, `run_stats_suite.py` orchestrates paired multi-seed runs of all core experiments (tracking / Rician / sensing / closed loop / multi-target / unseen-template OOD / classical baselines) into `sat_verify/stats/*.json` with a mean±std markdown summary; the v1.7 single-seed tables are upgraded once the full 10-seed run is executed.
 
 The companion repository [16] runs a GitHub Actions CI pipeline (import checks, physics smoke tests, SDR fidelity) on every push; a Colab notebook reproduces the core demo in ~60 s.
 
