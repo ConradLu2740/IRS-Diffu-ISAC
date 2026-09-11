@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.9 (2026-09-11) — companion to the open-source repository
+**Version**: v1.10 (2026-09-11) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -176,6 +176,7 @@ The system-level findings above are collected here as a single reference; each i
 | D3 | Headline boosts are baseline-relative: they depend on the ROI scatterer object and the phase design; the K=8 "harmful" sign was an artifact of the weak 1-path design | §6.3 Finding 3/4, §2.3 | Regenerated under full-model closed-form |
 | D4 | **The RIS does not carry the sensing signal** in the default spaceborne mode: RIS-reflected echo / comm ≈ 9e-20 (ground mode ≈ 6e-5); sensing is dominated by the direct BS→ROI→UE path | §7 item 10, `audit_ris_doppler.py` power gate | STOP gate for any RIS-coupled sensing mechanism |
 | D5 | Measurement model must match the reported geometry: the v1.5–v1.6 two-station study used horizontal distances while reporting the 3D angle γ — theory and MC never agreed until the v1.7 3D slant-range correction | §6.4 | Corrected; theory = MC in linear region |
+| D6 | **CRB-optimal two-station placement**: cross-range CRB is globally minimized at Δaz=90° where it equals σ_UE alone and is *independent of σ_BS*; σ_UE ∝ d_UE², so localization and comm objectives are *aligned* (both prefer proximity) — the binding constraint is deployment policy (keep-out/service region), not the comm footprint | §6.6, closed-form + MC (match at every Δaz) | Verified |
 
 **Methodology takeaway (D4/D5):** every proposed mechanism is gated on a *signal-path power check* and a *model–report consistency check* before implementation. Both gates are cheap (minutes) and would have caught the two failed directions in this report before any implementation effort.
 
@@ -287,6 +288,18 @@ All in-house results rest on two channel approximations: (i) **flat fading** (th
 **(c) K-factor alignment.** The CDL-D profile K-factor is fixed by the 38.901 table at **8.98 dB** — inside the P1 sweep range {10, 5, 0} dB. Rerunning the Section 6.3 tracking experiment at exactly K = 8.98 dB (2 seeds) reproduces the qualitative trade-off: K=1: +263/+296%, K=2: +52/+191%, K=4: +32/+92%, K=8: −7/+63% (relative boost, legacy ROI object; per Finding 4, magnitudes are baseline-relative and not comparable across settings, only the monotone-in-K trend and the K=8 ≪ K=1 gap are the invariant statements).
 
 **Finding 6 (standard-channel coverage).** Both in-house approximations are adequate for the regime the experiments operate in: flat-fading processing loses only the NLOS-induced |ρ| ripple of amplitude ~1/(K+1) ≈ 0.11 across 1 GHz (relevant for future wideband delay-spread studies, not for the current narrow-per-link results), and per-frame independence is justified by a scatter coherence time four orders of magnitude below the frame interval. The K-sweep conclusion is confirmed at the standard profile's exact K-factor. `verify_sionna_channel.py` (`make verify-sionna`, optional dependency `pip install sionna`) reproduces all numbers with fixed seeds; the CDL wrapper lives in `isac_sim/channels/sionna_cdl.py` (lazy import — the rest of `isac_sim` does not require Sionna).
+
+---
+
+### 6.6 CRB-Optimal Two-Station Placement (v1.10)
+
+Section 6.4 established that two-station trilateration *can* break the angle wall; this section derives *where to place the second station*. With ground-constrained 2D estimation, two independent ranges, and anisotropic noise (A = cos²e_b/σ_BS², B = 1/σ_UE²), the cross-range Cramér–Rao variance is
+
+σ_cross² = (A + B·cos²Δaz) / (A·B·sin²Δaz),
+
+which is monotonically increasing in cos²Δaz — hence **globally minimized at Δaz = 90°**, where σ_cross = σ_UE exactly and the primary sensor's ranging quality σ_BS drops out entirely (it only sets the along-LOS error, σ_BS/cos e_b ≈ 0.18 m at e_b = 33.7°). The wall is broken by the *second ranging source's quality*, not the primary sensor's. Monte-Carlo (Gauss–Newton, 2000 runs/cell) matches the closed form at every Δaz (e.g. 0.433/0.431 m at 30°, 0.150/0.153 m at 90°) and diverges at the degenerate Δaz = 0°/180° as predicted.
+
+With the two-way radar equation (power ∝ d⁻⁴), the UE ranging error scales as σ_UE ∝ d_UE²; the satellite-communication footprint (UE elevation ≥ 20° bounds d_UE ≲ 1060 km at Δaz = 90°) is far looser than any practical deployment constraint. Hence **localization and communication objectives are aligned in this geometry** — both prefer the UE near the ROI at perpendicular bearing — and the binding constraint is deployment policy (keep-out zone, service region), not physics. Design rule: for a target cross-range RMSE, deploy the second station at Δaz = 90° with d_UE ≤ 47.7 km·√(target/0.15 m) (e.g. ≤123 km for 1 m). Noise scales are assumed ideal-estimator lower bounds (same σ_ρ semantics as Section 6.4); atmospheric delays remain unmodeled. (`verify_placement_crb.py`)
 
 ---
 
