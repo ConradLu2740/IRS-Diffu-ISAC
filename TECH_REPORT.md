@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.7 (2026-09-08) — companion to the open-source repository
+**Version**: v1.9 (2026-09-11) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -37,6 +37,7 @@ Most published work remains at the level of analytical studies or link-level sim
 3. **A learning-based sensing layer** (classification + localization on wideband HRRP features) and **3D multi-object tracking**.
 4. **A systematic classical-baseline comparison** (2D-CFAR + MUSIC vs ML) on identical test sets, surfacing a feature-construction defect and a quantified far-field angle wall.
 5. **An SDR data interface** (IQ format + ingest pipeline) easing the transition to hardware.
+6. **A set of diagnostic findings that bound the system honestly** (v1.7–v1.9, Table 5.4): a feature-construction defect that silently collapsed localization to a class prior; a far-field angle-resolution wall with a two-station escape route; metric-dependence caveats on headline boosts; and a signal-path power gate showing the RIS does not carry the sensing echo in the default spaceborne mode. Together these bound what the system can and cannot do, and establish a repeatable "power-gate before mechanism" methodology for new design directions.
 
 ### 1.2 Related Work and Positioning
 
@@ -163,6 +164,20 @@ The original range-profile function computed delays relative to the voxel centro
 At ~695 km slant range, 1 m of cross-range offset subtends ≈ 8×10⁻⁵ degrees; the full 80 m ROI subtends ≈ 0.0066°. An 8-element ULA at λ/2 has a Rayleigh resolution of ≈ 0.886·λ/(Nd) ≈ **12.7°** (upper-bound estimate; even a finer reading λ/D ≈ 14.3° is orders of magnitude larger). Therefore mono-static angle information cannot localize targets within the ROI: ML cross-range RMSE ≈ 11.8 m reflects exactly this wall (its cross-range output is driven by class priors and training statistics, not observable angles). This is a physical geometry bound, not an implementation artifact — but it is a bound on **angle-only mono-static** localization specifically. The dual-station ISAC scenario already contains the escape route: the ground UE is a second range source, and Section 6.4 shows two-station trilateration breaks the wall by more than an order of magnitude.
 
 ---
+
+### 5.4 Diagnostic Findings Summary (v1.9)
+
+The system-level findings above are collected here as a single reference; each is quantified, reproducible, and bounded by an explicit experiment rather than asserted.
+
+| # | Finding | Evidence | Status |
+|---|---|---|---|
+| D1 | Centroid-relative delays silently discard absolute target position → ML localization collapses to a class prior (≈1.7× 2D-RMSE gap vs absolute-range features) | §5.2, single-voxel controlled experiment | Fixed (`center='roi'`), regression-tested |
+| D2 | Far-field angle wall: mono-static cross-range localization is physically unavailable at ~695 km (ROI subtends 0.0066° vs ULA-8 ≈ 13° resolution) | §5.3, analytic + MUSIC | Quantified; escape route via two-station trilateration (§6.4, ~35×, budget σ_ρ<5.3 m) |
+| D3 | Headline boosts are baseline-relative: they depend on the ROI scatterer object and the phase design; the K=8 "harmful" sign was an artifact of the weak 1-path design | §6.3 Finding 3/4, §2.3 | Regenerated under full-model closed-form |
+| D4 | **The RIS does not carry the sensing signal** in the default spaceborne mode: RIS-reflected echo / comm ≈ 9e-20 (ground mode ≈ 6e-5); sensing is dominated by the direct BS→ROI→UE path | §7 item 10, `audit_ris_doppler.py` power gate | STOP gate for any RIS-coupled sensing mechanism |
+| D5 | Measurement model must match the reported geometry: the v1.5–v1.6 two-station study used horizontal distances while reporting the 3D angle γ — theory and MC never agreed until the v1.7 3D slant-range correction | §6.4 | Corrected; theory = MC in linear region |
+
+**Methodology takeaway (D4/D5):** every proposed mechanism is gated on a *signal-path power check* and a *model–report consistency check* before implementation. Both gates are cheap (minutes) and would have caught the two failed directions in this report before any implementation effort.
 
 ## 6. Experiments and Reproducibility
 
