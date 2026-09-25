@@ -1,0 +1,67 @@
+{
+  "results": {
+    "alpha_beta": {
+      "rmse_mean": 0.19890094577233733,
+      "recall_mean": 0.26416666666666666,
+      "idsw_mean": 49.333333333333336,
+      "per_seed": [
+        {
+          "rmse": 0.19201346049383106,
+          "recall": 0.28,
+          "id_switches": 57
+        },
+        {
+          "rmse": 0.21155452534153527,
+          "recall": 0.22,
+          "id_switches": 11
+        },
+        {
+          "rmse": 0.1931348514816457,
+          "recall": 0.2925,
+          "id_switches": 80
+        }
+      ]
+    },
+    "kalman_crb": {
+      "rmse_mean": 0.20808762300198658,
+      "recall_mean": 0.29583333333333334,
+      "idsw_mean": 68.66666666666667,
+      "per_seed": [
+        {
+          "rmse": 0.1929218364233989,
+          "recall": 0.34,
+          "id_switches": 91
+        },
+        {
+          "rmse": 0.22081742976233706,
+          "recall": 0.2075,
+          "id_switches": 24
+        },
+        {
+          "rmse": 0.21052360282022378,
+          "recall": 0.34,
+          "id_switches": 91
+        }
+      ]
+    }
+  },
+  "R": [
+    [
+      0.01565713242230255,
+      0.0
+    ],
+    [
+      0.0,
+      0.01565713242230255
+    ]
+  ],
+  "Q_trace": 0.2573136119619075,
+  "crb_pos_steady": 0.013848261035698846,
+  "eta_track": 0.3198178819479374,
+  "rmse_gain_pct": -4.618719732064203,
+  "verdicts": {
+    "T2_kf_rmse_better": false,
+    "T3_eta_track_ge_090": false,
+    "T4_no_degradation": false
+  }
+}

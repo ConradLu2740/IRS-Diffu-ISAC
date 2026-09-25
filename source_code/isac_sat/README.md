@@ -67,6 +67,7 @@ make demo     # 感知-通信闭环 demo（自动训练 + 闭环）
 | `verify_vae_scale.py` | VAE 训练规模实验（天花板/生成质量/CV 配对对比） | `python verify_vae_scale.py --seeds 42 43` | ~1 秒 |
 | `verify_gen_scale.py` | M3 生成训练预算实验（100 vs 400 epoch 配对对比） | `python verify_gen_scale.py --seeds 42 43` | ~1 秒 |
 | `verify_cond_probe.py` | 条件信息充分性门禁（cond/HRRP → 潜变量探针 + 类别标签参照） | `python verify_cond_probe.py --n_total 384` | ~10 秒 |
+| `verify_tracker_kalman.py` | MOT 跟踪器 α-β vs CRB 一致卡尔曼（配对比较 + Q 扫描） | `python verify_tracker_kalman.py --seeds 7 8 9` | ~8 秒 |
 | `eval_sat.py` | 扩散重建评估：CD / F-Score / Voxel IoU + 可视化 | `python eval_sat.py` | 分钟级 |
 
 ### 演示（面向读者 / 评审）

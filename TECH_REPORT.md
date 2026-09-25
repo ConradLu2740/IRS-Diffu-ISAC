@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.20 (2026-09-26) — companion to the open-source repository
+**Version**: v1.21 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -21,6 +21,7 @@
 *v1.18 additions: the generative training-budget experiment (Section 6.13, proposition M3). With the scaled VAE fixed, 4x generative training (100 -> 400 epochs) does not improve quality and significantly hurts one seed (FM NFE=1 0.1457 -> 0.2471) — an overfitting signature. A conceptual correction follows: comparing generative CD against the VAE oracle CD compares a distributional bound with a per-sample reconstruction bound; the "15-30x gap to the ceiling" framing is retracted. The bottleneck investigation arc closes as: VAE undertraining (fixed, ceiling -48%) -> generative training budget (falsified) -> the real candidates are the conditional-structure collapse (G15) and data diversity. M2 (FM NFE=1 < DDPM NFE=100 under the scaled VAE) holds in 4/4 paired observations across two independent runs, still at n=2 seeds.*
 *v1.19 additions: the conditional-information sufficiency gate (Section 6.14). Probe experiments (cond -> VAE latent, 384 strictly paired samples) show the narrowband condition explains R2 = 0.140 of the latent variance — less than the trivial class-label reference (R2 = 0.245, analytic). The G15 residual Delta(t) ~ 0 is therefore a source-information property, not a training artifact: drop=0.5 null retraining is not worth doing, and the only information-viable path to conditional generative sensing is HRRP conditioning (registered as proposition C1).*
 *v1.20 additions: proposition C1 is executed and passes decisively (Section 6.15). Retraining the FM with HRRP conditioning (wideband range profile broadcast as the condition; VAE reused from the scaled run) produces the first measurable conditional information channel in the generative model: Delta(0) = 0.302 (6x the registered 0.05 threshold), monotone non-increasing in t, with the CFM identity holding to machine precision; 21.8% of the latent variance is condition-explained. Side effect: under HRRP conditioning the FM NFE=1 advantage over DDPM NFE=100 reappears (CD 0.2269 vs 0.2637, -14%).*
+*v1.21 additions: the MOT tracker upgrade (alpha-beta -> Kalman with CRB-consistent noise) is a clean negative result (Section 6.16). On identical detection streams (3 scenes x 40 frames, paired), the Kalman filter does not beat the fixed-gain alpha-beta filter (RMSE 0.2081 vs 0.1989), robustly across a two-decade Q sweep; eta_track = CRB/RMSE2 = 0.320. The error budget is dominated by data association (recall 0.26-0.30, ID switches 50-72), not by filter gains - the next MOT lever is the association layer, not the smoother.*
 
 ---
 
@@ -643,6 +644,26 @@ predicted monotone shape). The diagnostic chain closes: narrowband condition inf
 "conditional generative sensing" narrative now has a measured substrate. Remaining gap: 78% of
 the latent variance is still unexplained by the condition (fine pose/position information);
 registered as C2 (Delta(0) >= 0.40 via condition augmentation or dual-domain fusion).
+
+### 6.16 MOT Tracker: The Kalman Upgrade Is a Clean Negative (v1.21)
+
+Registered propositions T1-T4 asked whether replacing the fixed-gain alpha-beta smoother
+(alpha=0.6, beta=0.2) with a Kalman filter using CRB-consistent noise (R from the measured
+detection noise sigma^2 = 0.0157 per axis; Q from the scene kinematics via a white-noise-
+acceleration model) improves tracking. Protocol (`verify_tracker_kalman.py`): identical detection
+streams (same detector checkpoint, 3 scenes x 40 frames), paired comparison:
+
+| Tracker | RMSE | Recall | ID switches |
+|---|---|---|---|
+| alpha-beta (current) | **0.1989** | 0.264 | **49.3** |
+| Kalman (CRB-consistent R/Q) | 0.2081 | 0.296 | 68.7 |
+
+Robustness: a two-decade Q sweep (x0.03 ... x3) keeps the Kalman RMSE at 0.200-0.208 — it never
+beats alpha-beta, so the verdict is not a tuning artifact. eta_track = CRB/RMSE2 = 0.320: the
+smoother operates far from its own steady-state floor, but that floor is irrelevant because the
+error budget is dominated by data association (recall 0.26-0.30, ID switches 50-72). T2/T3/T4 all
+FAIL. Conclusion: the next MOT lever is the association layer (gating, confirmation logic, or
+detection quality), not the smoother.
 
 ## 7. Limitations and Honest Discussion
 
