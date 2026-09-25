@@ -63,6 +63,7 @@ make demo     # 感知-通信闭环 demo（自动训练 + 闭环）
 | `verify_fm_shape_loop.py` | FM 生成形状 vs 手工盒子先验的闭环对比（η_sense/L1） | `python verify_fm_shape_loop.py --n_seeds 8` | ~11 秒 |
 | `diagnose_condenc_collapse.py` | 条件编码器坍塌动力学诊断（G15 根因） | `python diagnose_condenc_collapse.py` | ~4 分钟 |
 | `verify_elbo_consistency.py` | ELBO 一致性 + 逐维白化 A/B 证书（白化 KL / CD 对比） | `python verify_elbo_consistency.py` | ~5 秒 |
+| `verify_headline_multiseed.py` | M1 多种子头条验证（FM vs DDPM 符号一致性 + CI） | `python verify_headline_multiseed.py --seeds 42 43 44` | ~1 秒 |
 | `eval_sat.py` | 扩散重建评估：CD / F-Score / Voxel IoU + 可视化 | `python eval_sat.py` | 分钟级 |
 
 ### 演示（面向读者 / 评审）

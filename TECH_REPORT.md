@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.15 (2026-09-26) — companion to the open-source repository
+**Version**: v1.16 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -16,6 +16,7 @@
 *v1.13 additions: the conditional-encoder collapse reported in v1.12 is root-caused and fixed (lr_cond 1e-3 -> 1e-4; condition sensitivity restored 4x10^4-fold, see Section 6.8). The pre-registered side-information claim (Delta(0) >= 0.05) is partially falsified: Delta(t) remains ~0 at 256 samples/100 epochs even though condition information now flows into the velocity field. Side benefit: with the fixed encoder the sat-mode FM NFE=1 CD improves 0.3166 -> 0.2922 and the headline strengthens (FM NFE=1 0.2922 vs best DDPM NFE=100 0.4055-0.4326 across two lr_cond settings). The FM-vs-DDPM equal-compute comparison is unaffected by the fix.*
 *v1.14 additions: the G-kappa gate finding (box prior is the closed-loop bottleneck) is repaired — the FM generative model becomes a real closed-loop component: an NFE=1 sampled shape (voxelized, translated to the MLP position estimate) replaces the hand-crafted box ROI (Section 6.9). Measured over 8 seeds with the design-on-estimate/evaluate-on-truth protocol: eta_sense 0.840 -> 0.932 (+10.9%), voxel l1 error 0.58x, projected eta_total ~0.736. demo.py gains an optional --fm_shape flag (default unchanged).*
 *v1.15 additions: two variational-inference consistency fixes are applied and A/B-certified (Section 6.10): the transport objective now uses posterior samples z~q instead of the posterior mean (ELBO consistency: the generative prior should match the aggregate posterior), and latent normalization is per-dimension whitening instead of a scalar. Held-out aggregate-posterior Gaussian KL drops 29.4%. The A/B is not quality-neutral and corrects the headline: the previous "FM NFE=1 beats DDPM NFE=100 by 22-33%" was partly an artifact of inconsistent training penalizing DDPM more; under consistent training FM NFE=1 is -9% (within the +/-20% run-to-run variance of DDPM) and FM NFE>=10 beats DDPM NFE=100 by 26-36%. Run-to-run variance across four same-protocol DDPM runs (0.36-0.56) is reported, and a multi-seed paired A/B is registered as proposition M1.*
+*v1.16 additions: the multi-seed paired A/B (Section 6.11, proposition M1) falsifies the statistical basis of any quality-superiority claim between the two generative paradigms at this training scale: across 3 seeds the FM(NFE=1)-DDPM(NFE=100) difference is sign-inconsistent (+4.5% / -20.5% / -4.4%) with a Bootstrap 95% CI crossing zero, and DDPM itself has 18% cross-seed CV. The headline is therefore restated as matched-quality sampling-efficiency parity (50-100x fewer network evaluations), and the remaining 15-20x gap to the VAE ceiling is attributed to the VAE/training scale rather than the generative objective.*
 
 ---
 
@@ -504,6 +505,36 @@ defensible claims are: FM NFE=1 ≈ DDPM NFE=100 (-9.1%, within variance), and F
 DDPM NFE=100 by 26-36%. Caveat: four same-protocol DDPM runs gave 0.4055 / 0.4326 / 0.5629 / 0.3626
 (+/-20% run-to-run variance), so any single-run A/B is provisional; a 3-seed paired A/B is registered as
 proposition M1 (the FM(1)-DDPM(100) difference must be sign-consistent across seeds).
+
+### 6.11 Multi-Seed Paired A/B: The Quality Claim Is Not Statistically Resolvable (v1.16)
+
+Because four same-protocol DDPM runs varied by +/-20% (Section 6.10), the single-run A/B was
+provisional. Registered proposition M1 required the FM-vs-DDPM difference to be sign-consistent
+across seeds. Three seeds (42/43/44), fixed configuration (posterior-sample targets, per-dim
+whitening, lr_cond=1e-4), full retrain per seed (`verify_headline_multiseed.py`):
+
+| seed | DDPM NFE=100 | FM NFE=1 | FM NFE=10 | FM1-DDPM | FM10-DDPM | VAE oracle |
+|---|---|---|---|---|---|---|
+| 42 | 0.3063 | 0.3201 | 0.2349 | +4.5% | -23.3% | 0.0146 |
+| 43 | 0.3465 | 0.2756 | 0.2363 | -20.5% | -31.8% | 0.0155 |
+| 44 | 0.4645 | 0.4442 | 0.5246 | -4.4% | +12.9% | 0.0222 |
+
+**M1a and M1b both FAIL**: the difference is sign-inconsistent across seeds and the Bootstrap 95%
+CI crosses zero (FM1: [-20.5%, +4.5%]; FM10: [-31.8%, +12.9%]); DDPM NFE=100 has 18% cross-seed
+CV, and seed 44 is a globally degraded run (its VAE oracle is 0.0222 vs 0.0146/0.0155).
+
+**Consequences for the claims of this report**:
+1. No quality-superiority claim between the generative paradigms is supportable at this training
+   scale (256 samples, 100 epochs). The defensible statement is **matched-quality
+   sampling-efficiency parity**: FM reaches DDPM-100-step quality with 1-10 ODE steps, i.e. 50-100x
+   fewer network evaluations at inference.
+2. The sampler-side certificates of Section 6.7 (Euler order -0.87, straightness ratio 0.006,
+   crossover NFE<=2) are unaffected: they are properties of ODE integration on a single trained
+   model, not of the training comparison.
+3. The generative quality (CD 0.23-0.32) sits 15-20x above the VAE ceiling (0.015), and the
+   cross-seed CV (18%) shows this gap is dominated by VAE/training variance, not by the choice of
+   generative objective. The next optimization target is therefore the VAE capacity / data volume /
+   training duration, not another change of generative paradigm.
 
 ## 7. Limitations and Honest Discussion
 
