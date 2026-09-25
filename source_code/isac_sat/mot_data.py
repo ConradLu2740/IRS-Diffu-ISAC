@@ -138,21 +138,25 @@ class MovingTargetScene:
             tg.step()
 
     # ------------------------------------------------------------------
-    def range_profile_sequence(self, snr_db=20.0, stack=1):
+    def range_profile_sequence(self, snr_db=20.0, stack=1, n_avg=1):
         """生成整个场景的距离像序列（每帧）。
 
-        stack>1 时返回 [T, stack, K] 多帧堆叠（当前帧 + 前 stack-1 帧，
-        边界处用最早帧填充）——多帧融合检测的时间上下文输入。
+        stack>1 时返回 [T, stack, K] 多帧堆叠；n_avg>1 时每帧平均 n_avg 个
+        独立噪声 realizing（测量分集：同几何独立噪声，如 UE 侧接收回波）。
 
         返回 (rps [T, (stack,) K], ground_truth [T, N, (cls, cx, cy)])
         """
         rps, gts = [], []
         for t in range(self.n_frames):
             roi = self.render_roi(t)
-            rp = compute_range_profile(
-                roi, self.mid["target_pos"], self.mid["ground_pos"],
-                self.scenario.wavelength_m, snr_db=snr_db, seed=t, align=False)
-            rps.append(rp)
+            acc = None
+            for a in range(n_avg):
+                rp = compute_range_profile(
+                    roi, self.mid["target_pos"], self.mid["ground_pos"],
+                    self.scenario.wavelength_m, snr_db=snr_db, seed=t * 100 + a,
+                    align=False)
+                acc = rp if acc is None else acc + rp
+            rps.append(acc / n_avg)
             gts.append(self.targets_at(t))
             self.step()
         rps = np.array(rps)                        # [T, K]

@@ -40,8 +40,8 @@ def load_model(args, name):
     return model, ckpt
 
 
-def scene_dets(args, seeds, name, stack, thr=0.3):
-    """滚动缓冲区收集多帧堆叠检测。"""
+def scene_dets(args, seeds, name, stack, thr=0.3, n_avg=1):
+    """收集检测（stack>1 多帧堆叠；n_avg>1 同帧多 realizing 平均）。"""
     model, _ = load_model(args, name)
     seqs = []
     rng = random.Random(999)
@@ -53,9 +53,14 @@ def scene_dets(args, seeds, name, stack, thr=0.3):
         frames = []
         for t in range(args.n_frames):
             roi = scene.render_roi(t)
-            rp = data_sat.compute_range_profile(
-                roi, scene.mid["target_pos"], scene.mid["ground_pos"],
-                scene.scenario.wavelength_m, snr_db=args.snr_db, seed=t, align=False)
+            acc = None
+            for a in range(n_avg):
+                rp = data_sat.compute_range_profile(
+                    roi, scene.mid["target_pos"], scene.mid["ground_pos"],
+                    scene.scenario.wavelength_m, snr_db=args.snr_db,
+                    seed=t * 100 + a, align=False)
+                acc = rp if acc is None else acc + rp
+            rp = acc / n_avg
             buf.append(rp)
             if len(buf) > stack:
                 buf.pop(0)
@@ -108,14 +113,21 @@ def main(args):
     print(f"{'=' * 70}")
 
     seqs_single = scene_dets(args, args.calib_seeds, args.base_name, 1)
-    seqs_multi = scene_dets(args, args.calib_seeds, args.f1_name, args.stack)
+    if args.mode == "diversity":
+        seqs_multi = scene_dets(args, args.calib_seeds, args.f1_name, 1,
+                                n_avg=args.stack)
+    else:
+        seqs_multi = scene_dets(args, args.calib_seeds, args.f1_name, args.stack)
     p_single = pr_at_recall(seqs_single)
     p_multi = pr_at_recall(seqs_multi)
-    print(f"F1 P@R=0.67: 单帧 {p_single:.3f} → 多帧(stack={args.stack}) {p_multi:.3f}"
-          f"（目标 ≥0.65）")
+    _mode_tag = f"n_avg={args.stack}" if args.mode == "diversity" else f"stack={args.stack}"
+    print(f"P@R=0.67: 基线 {p_single:.3f} → {_mode_tag} {p_multi:.3f}（目标 ≥0.65）")
 
     mot_single = scene_dets(args, args.mot_seeds, args.base_name, 1)
-    mot_multi = scene_dets(args, args.mot_seeds, args.f1_name, args.stack)
+    if args.mode == "diversity":
+        mot_multi = scene_dets(args, args.mot_seeds, args.f1_name, 1, n_avg=args.stack)
+    else:
+        mot_multi = scene_dets(args, args.mot_seeds, args.f1_name, args.stack)
     res = {}
     for name, seqs in [("single", mot_single), ("multi", mot_multi)]:
         per = []
@@ -152,6 +164,7 @@ if __name__ == "__main__":
     parser.add_argument("--base_name", type=str, default="detect_best_d2.pth")
     parser.add_argument("--f1_name", type=str, default="detect_best_f1.pth")
     parser.add_argument("--stack", type=int, default=4)
+    parser.add_argument("--mode", choices=["stack", "diversity"], default="stack")
     parser.add_argument("--n_targets", type=int, default=10)
     parser.add_argument("--n_frames", type=int, default=40)
     parser.add_argument("--snr_db", type=float, default=20.0)

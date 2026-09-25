@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.27 (2026-09-26) — companion to the open-source repository
+**Version**: v1.28 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -28,6 +28,7 @@
 *v1.25 additions: registered proposition D3 (variable-count detection head) exposes a benchmark artifact (Section 6.20). The count head reaches 1.000 counting accuracy only because every MOT scene has exactly 10 targets; on variable-count scenes (5/7/9/10/12) it always predicts 10 (0% accuracy). Top-K selection is worse than threshold filtering in the constant-count regime (P@R=0.67 0.556 vs 0.596). The architecture hypothesis is therefore not testable on the current benchmark; registered D4: variable-count MOT scenes plus count-head retraining.*
 *v1.26 additions: registered proposition D4 (variable-count MOT benchmark) executes the architecture hypothesis on its proper benchmark and falsifies it (Section 6.21). Trained on random per-scene counts (5-12), the count head reaches 55% accuracy (|Δn| ≤ 1; up from 0% off-distribution), but top-K selection is decisively worse than threshold filtering (P@R=0.67 0.432 vs 0.599; MOT recall 0.629 vs 0.699) — count errors convert directly into missed/false detections. The MOT investigation closes: threshold filtering + alpha-beta is the practical optimum on this benchmark; further gains require new observations (two-station ranging, multi-frame), not detector-internal tuning.*
 *v1.27 additions: the first "new observation" candidate from the MOT conclusion — naive multi-frame stacking (M=4 range profiles as detector input) — is falsified (Section 6.22): P@R=0.67 drops 0.599 -> 0.441 and MOT recall 0.699 -> 0.594. Mechanism: target motion de-aligns the stack (the same target sits in different range cells across frames; a detector has no motion model) plus a 4x input dimension. Effective temporal fusion needs motion-compensated stacks or complex slow-time (Doppler), which the magnitude-only forward model does not provide. The correct form of "new observation" is physical-layer measurement (two-station ranging, whose CRB analysis already proved the FIM rank completion, or complex slow-time Doppler), not post-processor stacking.*
+*v1.28 additions: the measurement-diversity candidate (4 independent realizations averaged per frame, trained and evaluated consistently) degrades precision (P@R=0.67 0.591 -> 0.407) while reducing ID switches by 21% (Section 6.23). The detection precision limit is therefore not input-noise-driven but structural (slot-assignment ambiguity under the x-sorted matching loss). The detection line closes with a precise remaining hypothesis: DETR-style set prediction (differentiable matching) or genuinely new geometry (two-station differential delay structure).*
 
 ---
 
@@ -810,6 +811,29 @@ a detector is supposed to find) or complex slow-time (Doppler), which the magnit
 model does not provide. The correct form of "new observation" is therefore physical-layer
 measurement: two-station ranging (whose CRB analysis in Section 6.6 already proved the FIM rank
 completion) or complex slow-time Doppler.
+
+### 6.23 N1: Measurement Diversity Fails on Precision — the Limit Is Structural (v1.28)
+
+The cheapest physical "new observation" is measurement diversity: the same bistatic geometry with
+independent noise (e.g., a UE-side receive of the same echo), implemented as averaging 4 independent
+realizations per frame (noise variance /4), trained and evaluated consistently
+(`train_detect.py --n_avg 4`; `verify_detect_multiframe.py --mode diversity`):
+
+| Metric | Single realization | n_avg=4 diversity |
+|---|---|---|
+| P@R=0.67 | **0.591** | 0.407 (worse) |
+| MOT recall | **0.700** | 0.592 |
+| MOT ID switches | 184.7 | **146.0 (-21%)** |
+
+Two findings: (i) the precision limit is **not input-noise-driven** — averaging 4 realizations
+degrades precision, so the limit is structural: the fixed slot assignment under the x-sorted
+matching loss is ambiguous when several targets share the profile (the slot-to-target pairing is
+learned only through that weak matching loss); combined with the 0% same-range-cell result
+(Section 6.19), the ambiguity is in slot ordering, not physical co-location. (ii) Cleaner inputs
+do help association (ID switches -21%), consistent with F1. The detection line closes with a
+precise remaining hypothesis: DETR-style set prediction with a differentiable matching loss, or
+genuinely new geometry (a two-station differential delay structure that breaks the ordering
+ambiguity physically).
 
 ## 7. Limitations and Honest Discussion
 

@@ -89,7 +89,8 @@ def match_loss(clss, poss, targets, device):
     return loss_cls / B, loss_pos / B
 
 
-def build_dataset(n_scenes, n_frames, seed0, snr_db=20.0, n_targets_range=None, stack=1):
+def build_dataset(n_scenes, n_frames, seed0, snr_db=20.0, n_targets_range=None, stack=1,
+                  n_avg=1):
     """生成 n_scenes 个移动场景 → 帧级训练样本。
 
     n_targets_range: (lo, hi) 时每场景随机目标数（D4 变计数 benchmark）；
@@ -100,7 +101,7 @@ def build_dataset(n_scenes, n_frames, seed0, snr_db=20.0, n_targets_range=None, 
     for s in range(n_scenes):
         n_t = rng.randint(*n_targets_range) if n_targets_range else 10
         scene = MovingTargetScene(n_targets=n_t, n_frames=n_frames, seed=seed0 + s)
-        rps, gts = scene.range_profile_sequence(snr_db=snr_db, stack=stack)
+        rps, gts = scene.range_profile_sequence(snr_db=snr_db, stack=stack, n_avg=n_avg)
         rps_all.append(rps)
         tg_all.extend(gts)
     rps = np.concatenate(rps_all, axis=0)
@@ -143,9 +144,9 @@ def main(args):
     print(f"生成训练数据 ({args.n_scenes} 场景 × {args.n_frames} 帧)...")
     ntr = tuple(args.n_targets_range) if args.n_targets_range else None
     tr_rps, tr_tg = build_dataset(args.n_scenes, args.n_frames, args.seed, args.snr_db,
-                                  n_targets_range=ntr, stack=args.stack)
+                                  n_targets_range=ntr, stack=args.stack, n_avg=args.n_avg)
     te_rps, te_tg = build_dataset(8, args.n_frames, args.seed + 1000, args.snr_db,
-                                  n_targets_range=ntr, stack=args.stack)
+                                  n_targets_range=ntr, stack=args.stack, n_avg=args.n_avg)
     print(f"训练样本: {tr_rps.shape[0]}, 测试样本: {te_rps.shape[0]}")
 
     model = DetectNet(count_head=True, stack=args.stack).to(device)
@@ -205,6 +206,8 @@ if __name__ == "__main__":
                         help="每场景随机目标数范围 (lo hi)（D4 变计数 benchmark）")
     parser.add_argument("--stack", type=int, default=1,
                         help="多帧堆叠输入（F1：时间上下文检测，1=单帧）")
+    parser.add_argument("--n_avg", type=int, default=1,
+                        help="每帧平均的独立 realizing 数（N1：测量分集，1=单 realizing）")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"

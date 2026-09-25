@@ -142,6 +142,9 @@ verify-detect-count-var: ## D4 变计数 benchmark（计数头重训后 top-K vs
 verify-detect-multiframe: ## F1 多帧堆叠检测 vs 单帧（变计数场景，~20 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_detect_multiframe.py
 
+verify-detect-diversity: ## N1 测量分集（4 realizing 平均）vs 单 realizing，~25 秒
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_detect_multiframe.py --mode diversity --f1_name detect_best_n1.pth --stack 4
+
 train-fm: ## Flow Matching 训练（扩散同架构/同数据，3 种 IRS 模式）
 	cd $(ISAC) && ../../$(VENV)/bin/python train_fm.py
 
