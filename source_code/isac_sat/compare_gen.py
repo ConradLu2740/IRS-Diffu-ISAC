@@ -44,6 +44,21 @@ from train import (
 from fm_utils import train_1D_FM, sample_conditional_FM
 from eval_sat import f_score, voxel_iou
 
+class _PairView(torch.utils.data.Dataset):
+    """把 (pc, cond, *rest) 数据集包装成 (pc, cond) 对（宽带特征丢弃）。"""
+
+    def __init__(self, base):
+        self.base = base
+
+    def __len__(self):
+        return len(self.base)
+
+    def __getitem__(self, i):
+        out = self.base[i]
+        return out[0], out[1]
+
+
+
 
 def new_gen_models(cond_dim, args, device):
     condenc = AdvancedCondEncoder(seq_len=args.tau, input_size=cond_dim,
@@ -73,12 +88,16 @@ def run_mode(args, irs_mode):
     frames = scenario.build_frames()
     channels = SatScenarioChannels(frames, irs_mode=irs_mode, device=device)
     train_ds = SatROIDataset(args.train_data, channels, num_points=args.num_points,
-                             device=device, tau=args.tau, phase_mode=args.phase_mode)
+                             device=device, tau=args.tau, phase_mode=args.phase_mode,
+                             cond_feat=args.cond_feat)
     test_ds = SatROIDataset(args.test_data, channels, num_points=args.num_points,
-                            device=device, tau=args.tau, phase_mode=args.phase_mode)
-    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=0)
-    test_loader = DataLoader(test_ds, batch_size=args.batch_size, shuffle=False, num_workers=0)
-    cond_dim = channels.frame_cond_dim()
+                            device=device, tau=args.tau, phase_mode=args.phase_mode,
+                            cond_feat=args.cond_feat)
+    train_loader = DataLoader(_PairView(train_ds), batch_size=args.batch_size,
+                              shuffle=True, num_workers=0)
+    test_loader = DataLoader(_PairView(test_ds), batch_size=args.batch_size,
+                             shuffle=False, num_workers=0)
+    cond_dim = train_ds[0][1].shape[-1]   # 由实际样本推断（hrrp 模式为 512）
 
     save_dir = os.path.join(args.save_dir, irs_mode)
     os.makedirs(save_dir, exist_ok=True)
@@ -239,6 +258,8 @@ if __name__ == "__main__":
                         help="潜空间归一化：perdim=逐维白化（默认，恢复逐维高斯恒等式）；scalar=旧标量")
     parser.add_argument("--vae_ckpt", type=str, default=None,
                         help="提供 VAE checkpoint 目录则复用（跳过 VAE 训练，隔离生成侧变量）")
+    parser.add_argument("--cond_feat", choices=["narrowband", "hrrp"], default="narrowband",
+                        help="条件输入：narrowband（默认）或 hrrp（C1：宽带距离像广播）")
     parser.add_argument("--T", type=int, default=100)
     parser.add_argument("--depth", type=int, default=2)
     parser.add_argument("--tau", type=int, default=8)

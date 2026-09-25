@@ -575,9 +575,11 @@ class SatROIDataset(Dataset):
                  tau=ss.TAU, p_snr=P_SNR, power_sigma=POWER_SIGMA,
                  phase_mode="random", target_source="ground", with_label=False,
                  wideband=False, wideband_snr_db=20.0, isar=False, rp_align=True,
-                 center=None, multi=False, hrrp_legacy=False):
+                 center=None, multi=False, hrrp_legacy=False, cond_feat="narrowband"):
         """center: 显式指定距离像投影中心（'roi' 保留位置 / 'centroid' 形状特征）。
-        None 时由 rp_align 决定：align=False → 'roi'（定位），align=True → 'centroid'。"""
+        None 时由 rp_align 决定：align=False → 'roi'（定位），align=True → 'centroid'。
+        cond_feat: 'narrowband'（默认，逐帧窄带 cond）或 'hrrp'（宽带距离像广播到
+        每帧作为条件——C1：条件信息充分性实验的条件输入）。"""
         self.n = n_samples
         self.ch = channels
         self.device = device
@@ -589,7 +591,8 @@ class SatROIDataset(Dataset):
         self.phase_mode = phase_mode
         self.target_source = target_source
         self.with_label = with_label
-        self.wideband = wideband or isar   # ISAR 隐含宽带
+        self.cond_feat = cond_feat
+        self.wideband = wideband or isar or (cond_feat == "hrrp")   # HRRP 条件隐含宽带
         self.wideband_snr_db = wideband_snr_db
         self.isar = isar
         self.rp_align = rp_align
@@ -690,6 +693,8 @@ class SatROIDataset(Dataset):
             cond_list.append(cond_t)
 
         cond = torch.stack(cond_list).float()        # [Tau, cond_dim]
+        if self.cond_feat == "hrrp":
+            pass  # HRRP 条件在下方 feat 计算后替换
         if self.wideband:
             if self.isar:
                 feat = torch.from_numpy(compute_isar_sequence(
@@ -700,6 +705,8 @@ class SatROIDataset(Dataset):
                     ROI_np, self._target_ecef, self._ground_ecef, self.ch.wavelength_m,
                     snr_db=self.wideband_snr_db, seed=idx, align=self.rp_align,
                     center=self.rp_center, sat_ecef=self._sat_ecef)).float()  # [K]
+            if self.cond_feat == "hrrp":
+                cond = feat.unsqueeze(0).expand(self.tau, -1).contiguous().float()
             if self.with_label:
                 if self.multi:
                     return point_cloud.float(), cond, feat, targets

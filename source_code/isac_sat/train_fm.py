@@ -35,6 +35,21 @@ from train import (
 )
 from fm_utils import train_1D_FM, sample_conditional_FM
 
+class _PairView(torch.utils.data.Dataset):
+    """把 (pc, cond, *rest) 数据集包装成 (pc, cond) 对（宽带特征丢弃）。"""
+
+    def __init__(self, base):
+        self.base = base
+
+    def __len__(self):
+        return len(self.base)
+
+    def __getitem__(self, i):
+        out = self.base[i]
+        return out[0], out[1]
+
+
+
 
 def run_mode(args, irs_mode):
     """训练并评估一种 IRS 模式，返回 {nfe: CD} 字典。"""
@@ -48,12 +63,16 @@ def run_mode(args, irs_mode):
     channels = SatScenarioChannels(frames, irs_mode=irs_mode, device=device)
 
     train_ds = SatROIDataset(args.train_data, channels, num_points=args.num_points,
-                             device=device, tau=args.tau, phase_mode=args.phase_mode)
+                             device=device, tau=args.tau, phase_mode=args.phase_mode,
+                             cond_feat=args.cond_feat)
     test_ds = SatROIDataset(args.test_data, channels, num_points=args.num_points,
-                            device=device, tau=args.tau, phase_mode=args.phase_mode)
-    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=0)
-    test_loader = DataLoader(test_ds, batch_size=args.batch_size, shuffle=False, num_workers=0)
-    cond_dim = channels.frame_cond_dim()
+                            device=device, tau=args.tau, phase_mode=args.phase_mode,
+                            cond_feat=args.cond_feat)
+    train_loader = DataLoader(_PairView(train_ds), batch_size=args.batch_size,
+                              shuffle=True, num_workers=0)
+    test_loader = DataLoader(_PairView(test_ds), batch_size=args.batch_size,
+                             shuffle=False, num_workers=0)
+    cond_dim = train_ds[0][1].shape[-1]
     print(f"[{irs_mode}] cond_dim={cond_dim}, train={len(train_ds)}, test={len(test_ds)}")
 
     save_dir = os.path.join(args.save_dir, irs_mode)
@@ -136,6 +155,8 @@ if __name__ == "__main__":
     parser.add_argument("--posterior_sample", type=int, default=1,
                         help="1=后验样本 z~q（ELBO 一致性，默认）；0=后验均值 μ（旧行为）")
     parser.add_argument("--whiten", choices=["scalar", "perdim"], default="perdim")
+    parser.add_argument("--cond_feat", choices=["narrowband", "hrrp"], default="narrowband",
+                        help="条件输入：narrowband（默认）或 hrrp（宽带距离像广播）")
     parser.add_argument("--depth", type=int, default=2)
     parser.add_argument("--tau", type=int, default=8)
     parser.add_argument("--kl_weight", type=float, default=1e-4, help="VAE KL 权重")

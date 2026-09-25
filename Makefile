@@ -121,6 +121,9 @@ verify-gen-scale: ## M3 生成训练预算实验（需先训 sat_model_m3_<seed>
 verify-cond-probe: ## 条件信息充分性门禁（cond/HRRP → 潜变量探针 R²，~10 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_cond_probe.py --n_total 384
 
+verify-c1-channel: ## C1：HRRP 条件化信息通道证书（需先训 sat_model_c1，~13 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_info_audit.py --save_dir ./sat_model_c1 --mc 0 --null_ab_epochs 0 --cond_feat hrrp
+
 train-fm: ## Flow Matching 训练（扩散同架构/同数据，3 种 IRS 模式）
 	cd $(ISAC) && ../../$(VENV)/bin/python train_fm.py
 

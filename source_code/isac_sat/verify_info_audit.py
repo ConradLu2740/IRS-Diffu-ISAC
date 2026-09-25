@@ -574,7 +574,10 @@ def load_fm_models(args, device, cond_dim):
     sd = os.path.join(args.save_dir, args.mode)
     vae = PointVAE(num_points=args.num_points, z_dim=256).to(device)
     vae.load_state_dict(torch.load(os.path.join(sd, "vae_best.pth"), map_location=device))
-    condenc = AdvancedCondEncoder(seq_len=args.tau, input_size=cond_dim,
+    # 从 checkpoint 推断条件输入维度（narrowband=61/88 或 hrrp=512）
+    ce_sd = torch.load(os.path.join(sd, "condenc_fm_best.pth"), map_location=device)
+    cond_dim_ckpt = int(ce_sd["lstm.weight_ih_l0"].shape[1])
+    condenc = AdvancedCondEncoder(seq_len=args.tau, input_size=cond_dim_ckpt,
                                   hidden_size=128, out_emb=256).to(device)
     vnet = LatentDiT1D_CrossAttn(z_dim=256, cond_emb=256, hidden_size=256,
                                  depth=args.depth, num_heads=8).to(device)
@@ -598,13 +601,17 @@ def block3_cfm(args):
     channels = SatScenarioChannels(frames, irs_mode=args.mode, device=device)
     cond_dim = channels.frame_cond_dim()
     ds = SatROIDataset(args.fm_n_eval, channels, num_points=args.num_points,
-                       device=device, tau=args.tau, phase_mode="random")
-    pc_gt, cond = next(iter(DataLoader(ds, batch_size=args.fm_n_eval, shuffle=False,
-                                       num_workers=0)))
+                       device=device, tau=args.tau, phase_mode="random",
+                       cond_feat=args.cond_feat)
+    _batch = next(iter(DataLoader(ds, batch_size=args.fm_n_eval, shuffle=False,
+                                  num_workers=0)))
+    pc_gt, cond = _batch[0], _batch[1]
     pc_gt, cond = pc_gt.to(device), cond.to(device)
     vae, condenc, vnet, z_mean, z_std = load_fm_models(args, device, cond_dim)
-    print(f"  z_mean={float(z_mean):.4f} z_std={float(z_std):.4f}（标量归一化 ⇒ 逐维高斯锚点为近似，"
-          f"roadmap §3-4 已标注该缺陷）")
+    _zm = float(z_mean.mean()) if z_mean.numel() > 1 else float(z_mean)
+    _zs = float(z_std.mean()) if z_std.numel() > 1 else float(z_std)
+    _tag = "逐维白化" if z_mean.numel() > 1 else "标量归一化"
+    print(f"  z_mean={_zm:.4f} z_std={_zs:.4f}（{_tag}口径）")
     D = 256
     with torch.no_grad():
         mu, _ = vae.encode(pc_gt)
@@ -694,6 +701,7 @@ def block3_cfm(args):
         torch.manual_seed(args.seed + 999); random.seed(args.seed + 999)
         np.random.seed(args.seed + 999)
         ds_ab = SatROIDataset(args.fm_n_eval, channels, num_points=args.num_points,
+                              cond_feat=args.cond_feat,
                               device=device, tau=args.tau, phase_mode="random")
         loader_ab = DataLoader(ds_ab, batch_size=32, shuffle=True, num_workers=0)
         condenc_ft = copy.deepcopy(condenc)
@@ -779,8 +787,15 @@ def main(args):
           f"MLP 实测 LOS {REPORTED_MLP['rmse_los']}m / cross {REPORTED_MLP['rmse_cross']}m")
     b3 = out["block3_cfm"]
     cs = b3["condition_sensitivity"]
-    cfm_verdict = ("条件坍塌（阴性结果）" if cs.get("collapse_confirmed")
-                   else "Δ≈0 但编码器未坍塌，需另寻原因")
+    _d0 = b3["per_bin"][0]["delta"] if b3.get("per_bin") else 0.0
+    if cs.get("collapse_confirmed"):
+        cfm_verdict = "条件坍塌（阴性结果）"
+    elif _d0 >= 0.05:
+        cfm_verdict = f"信息通道成立：Δ(0)={_d0:.3f} ≥ 0.05（C1 阈值）"
+    elif _d0 >= 0.01:
+        cfm_verdict = f"Δ(0)={_d0:.3f} 边缘（0.01–0.05）"
+    else:
+        cfm_verdict = f"Δ(0)={_d0:.3f}≈0 但编码器未坍塌 ⇒ 信源信息不足（见 cond_probe）"
     print(f"  [3] CFM: 恒等式残差 {b3['identity_max_resid']:.1e}；Δ(t) 最大 |Δ| "
           f"{b3['delta_max_abs']:.2e} ⇒ {cfm_verdict}；null A/B 差 "
           f"{b3['null_ab']['max_abs_gap'] if b3['null_ab'] else 'N/A'}")
@@ -804,6 +819,8 @@ if __name__ == "__main__":
     p.add_argument("--detect_ckpt", type=str,
                    default=os.path.join(HERE, "isac_demo", "detect_best.pth"))
     # Block 2
+    p.add_argument("--cond_feat", choices=["narrowband", "hrrp"], default="narrowband",
+                   help="FM 模型的条件口径（C1: hrrp）")
     p.add_argument("--fim_seeds", type=int, default=4)
     p.add_argument("--fim_seed0", type=int, default=1000)
     p.add_argument("--mc", type=int, default=48, help="ML 蒙特卡洛试验数（0=跳过）")
