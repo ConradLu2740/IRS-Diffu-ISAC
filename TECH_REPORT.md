@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.16 (2026-09-26) — companion to the open-source repository
+**Version**: v1.17 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -17,6 +17,7 @@
 *v1.14 additions: the G-kappa gate finding (box prior is the closed-loop bottleneck) is repaired — the FM generative model becomes a real closed-loop component: an NFE=1 sampled shape (voxelized, translated to the MLP position estimate) replaces the hand-crafted box ROI (Section 6.9). Measured over 8 seeds with the design-on-estimate/evaluate-on-truth protocol: eta_sense 0.840 -> 0.932 (+10.9%), voxel l1 error 0.58x, projected eta_total ~0.736. demo.py gains an optional --fm_shape flag (default unchanged).*
 *v1.15 additions: two variational-inference consistency fixes are applied and A/B-certified (Section 6.10): the transport objective now uses posterior samples z~q instead of the posterior mean (ELBO consistency: the generative prior should match the aggregate posterior), and latent normalization is per-dimension whitening instead of a scalar. Held-out aggregate-posterior Gaussian KL drops 29.4%. The A/B is not quality-neutral and corrects the headline: the previous "FM NFE=1 beats DDPM NFE=100 by 22-33%" was partly an artifact of inconsistent training penalizing DDPM more; under consistent training FM NFE=1 is -9% (within the +/-20% run-to-run variance of DDPM) and FM NFE>=10 beats DDPM NFE=100 by 26-36%. Run-to-run variance across four same-protocol DDPM runs (0.36-0.56) is reported, and a multi-seed paired A/B is registered as proposition M1.*
 *v1.16 additions: the multi-seed paired A/B (Section 6.11, proposition M1) falsifies the statistical basis of any quality-superiority claim between the two generative paradigms at this training scale: across 3 seeds the FM(NFE=1)-DDPM(NFE=100) difference is sign-inconsistent (+4.5% / -20.5% / -4.4%) with a Bootstrap 95% CI crossing zero, and DDPM itself has 18% cross-seed CV. The headline is therefore restated as matched-quality sampling-efficiency parity (50-100x fewer network evaluations), and the remaining 15-20x gap to the VAE ceiling is attributed to the VAE/training scale rather than the generative objective.*
+*v1.17 additions: the VAE training-scale experiment (Section 6.12). Diagnosis from the M1 checkpoints showed the VAE was still improving +24-29% in its last 10 epochs at epoch 50 (undertrained, not capacity-limited). Scaling (200 epochs / 1024 samples vs 50 / 256, two paired seeds) halves the VAE ceiling (0.0146/0.0155 -> 0.0076/0.0081, -47.7%) and reduces cross-seed CV to 3.7%, but generative quality does not follow (FM NFE=10 and DDPM get slightly worse): the bottleneck shifts to the generative models own training budget, with the gap to the (halved) ceiling now 20-30x. Side observation: under the scaled VAE, FM NFE=1 beats DDPM NFE=100 on both seeds (-55% / -43%), suggesting the earlier VAE bottleneck partly masked the few-step advantage; registered as proposition M2 (3-seed confirmation) with M3 (generative training 100 -> 400 epochs).*
 
 ---
 
@@ -535,6 +536,31 @@ CV, and seed 44 is a globally degraded run (its VAE oracle is 0.0222 vs 0.0146/0
    cross-seed CV (18%) shows this gap is dominated by VAE/training variance, not by the choice of
    generative objective. The next optimization target is therefore the VAE capacity / data volume /
    training duration, not another change of generative paradigm.
+
+### 6.12 VAE Training-Scale Experiment: The Bottleneck Shifts (v1.17)
+
+The M1 falsification located the quality bottleneck in the VAE/training scale. Diagnosis from the
+M1 checkpoints: the VAE was still improving +24-29% in test CD over its last 10 epochs at epoch 50
+— undertrained, not capacity-limited. Scaling experiment (`verify_vae_scale.py`; 200 VAE epochs /
+1024 samples vs 50 / 256, two paired seeds, full retrain):
+
+| Metric | Baseline (50ep/256) | Scaled (200ep/1024) | Δ |
+|---|---|---|---|
+| VAE ceiling (oracle CD) | 0.0146 / 0.0155 | **0.0076 / 0.0081** | **-47.7%** |
+| FM NFE=1 | 0.3201 / 0.2756 | 0.1457 / 0.2680 | -54.5% / +2.8% |
+| FM NFE=10 | 0.2349 / 0.2363 | 0.2674 / 0.2482 | -13.8% / -5.1% (worse) |
+| DDPM NFE=100 | 0.3063 / 0.3465 | 0.3215 / 0.4743 | -5.0% / -36.9% (worse) |
+
+Registered verdicts: V1 (VAE CD < 0.010) PASS, V4 (VAE gain >= 20%) PASS, V3 (cross-seed CV < 12%)
+PASS (3.7%), V2 (FM NFE=10 gain >= 15%) **FAIL**. Reading: (i) the VAE was genuinely undertrained —
+4x training halves the ceiling and removes the outlier-run variance class; (ii) generative quality
+does not follow — with the ceiling halved, the generative CD (0.15-0.27) now sits 20-30x above it,
+so the binding constraint shifts to the generative models' own training budget; (iii) side
+observation (n=2, registered as M2 for 3-seed confirmation): under the scaled VAE, FM NFE=1 beats
+DDPM NFE=100 on both seeds (-55% / -43%), suggesting the earlier VAE bottleneck partly masked the
+few-step advantage. Registered follow-ups: M2 (3-seed sign-consistency of FM1 < DDPM100 under the
+scaled config) and M3 (generative training 100 -> 400 epochs with the scaled VAE fixed, testing
+convergence toward the new ceiling).
 
 ## 7. Limitations and Honest Discussion
 
