@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.28 (2026-09-26) — companion to the open-source repository
+**Version**: v1.29 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -29,6 +29,7 @@
 *v1.26 additions: registered proposition D4 (variable-count MOT benchmark) executes the architecture hypothesis on its proper benchmark and falsifies it (Section 6.21). Trained on random per-scene counts (5-12), the count head reaches 55% accuracy (|Δn| ≤ 1; up from 0% off-distribution), but top-K selection is decisively worse than threshold filtering (P@R=0.67 0.432 vs 0.599; MOT recall 0.629 vs 0.699) — count errors convert directly into missed/false detections. The MOT investigation closes: threshold filtering + alpha-beta is the practical optimum on this benchmark; further gains require new observations (two-station ranging, multi-frame), not detector-internal tuning.*
 *v1.27 additions: the first "new observation" candidate from the MOT conclusion — naive multi-frame stacking (M=4 range profiles as detector input) — is falsified (Section 6.22): P@R=0.67 drops 0.599 -> 0.441 and MOT recall 0.699 -> 0.594. Mechanism: target motion de-aligns the stack (the same target sits in different range cells across frames; a detector has no motion model) plus a 4x input dimension. Effective temporal fusion needs motion-compensated stacks or complex slow-time (Doppler), which the magnitude-only forward model does not provide. The correct form of "new observation" is physical-layer measurement (two-station ranging, whose CRB analysis already proved the FIM rank completion, or complex slow-time Doppler), not post-processor stacking.*
 *v1.28 additions: the measurement-diversity candidate (4 independent realizations averaged per frame, trained and evaluated consistently) degrades precision (P@R=0.67 0.591 -> 0.407) while reducing ID switches by 21% (Section 6.23). The detection precision limit is therefore not input-noise-driven but structural (slot-assignment ambiguity under the x-sorted matching loss). The detection line closes with a precise remaining hypothesis: DETR-style set prediction (differentiable matching) or genuinely new geometry (two-station differential delay structure).*
+*v1.29 additions: registered proposition S1 implements DETR-style set prediction (Hungarian matching in the loss, `train_detect.py --match hungarian`). The diagnosed structural cause is confirmed and improved: MOT RMSE -4.7% (0.2010 -> 0.1915), recall +0.4pp, ID switches -11% (178.0 -> 158.3). But slot-level confidence ranking degrades (P@R=0.67 0.599 -> 0.441) because optimal matching supervises every slot and the max-softmax confidence loses discriminability — the architecture lacks a dedicated objectness head. Registered S2: Hungarian matching plus a binary objectness head (Section 6.24).*
 
 ---
 
@@ -834,6 +835,28 @@ do help association (ID switches -21%), consistent with F1. The detection line c
 precise remaining hypothesis: DETR-style set prediction with a differentiable matching loss, or
 genuinely new geometry (a two-station differential delay structure that breaks the ordering
 ambiguity physically).
+
+### 6.24 S1: DETR-Style Hungarian Matching — Geometry Improves, Confidence Degrades (v1.29)
+
+Registered proposition S1 attacks the structural root cause diagnosed in Section 6.23 (slot-
+assignment ambiguity under x-sorted matching): per-sample Hungarian assignment in the loss
+(`train_detect.py --match hungarian`; the assignment is discrete but the supervised pairs are
+differentiable, the standard DETR construction). Isolated comparison (same data and scenes; both
+models filtered at threshold 0.3 to exclude count-head interference):
+
+| Metric | Baseline (sorted) | S1 (Hungarian) |
+|---|---|---|
+| P@R=0.67 (slot-level) | **0.599** | 0.441 (worse) |
+| MOT RMSE | 0.2010 | **0.1915 (-4.7%)** |
+| MOT recall | 0.699 | **0.703** |
+| MOT ID switches | 178.0 | **158.3 (-11%)** |
+
+The diagnosis is confirmed: the matching loss improves every MOT metric (geometry and ID
+stability), i.e. the slot-assignment ambiguity was real. But the slot-level confidence ranking
+degrades — under optimal matching every slot receives supervision against some target, so the max-
+softmax confidence loses discriminability. The missing piece is a dedicated objectness head (the
+DETR "is-object" classifier). Registered S2: Hungarian matching plus a binary objectness head
+(matched = 1 / unmatched = 0), targeting P@R=0.67 >= 0.65 with MOT ID switches <= 0.9x baseline.
 
 ## 7. Limitations and Honest Discussion
 

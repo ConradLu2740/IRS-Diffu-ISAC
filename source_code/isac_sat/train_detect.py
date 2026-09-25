@@ -21,6 +21,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
+from scipy.optimize import linear_sum_assignment
 
 from mot_data import MovingTargetScene, CLASS_NAMES
 from data_sat import WIDEBAND_K
@@ -84,6 +85,37 @@ def match_loss(clss, poss, targets, device):
                     pred_pos[k], torch.tensor([cx, cy, cz], dtype=torch.float32, device=device))
             else:
                 # 空槽：推远位置 + 均匀类别（弱正则）
+                loss_pos = loss_pos + 4.0 * F.mse_loss(
+                    pred_pos[k], torch.tensor([2.0, 2.0, 2.0], device=device))
+    return loss_cls / B, loss_pos / B
+
+
+def match_loss_hungarian(clss, poss, targets, device):
+    """DETR 式集合预测损失：每样本匈牙利匹配（位置代价）后对匹配对施加
+    CE+MSE，未匹配槽推远。与 match_loss（x 排序配对）的区别：分配是
+    最优双射而非排序启发式——直接消解槽位分配歧义（§7.19 诊断的根因）。"""
+    B = poss[0].shape[0]
+    loss_cls = loss_pos = 0.0
+    for b in range(B):
+        tg = targets[b]
+        n_t = len(tg)
+        pred_pos = torch.stack([p[b] for p in poss])      # [K, 3]
+        pred_cls = torch.stack([c[b] for c in clss])      # [K, C]
+        if n_t > 0:
+            gt_pos = torch.tensor([t[1] for t in tg], dtype=torch.float32, device=device)
+            gt_cls = torch.tensor([t[0] for t in tg], device=device)
+            with torch.no_grad():
+                cost = torch.cdist(pred_pos, gt_pos).cpu().numpy()
+                rows, cols = linear_sum_assignment(cost)
+            for r, c in zip(rows, cols):
+                loss_cls = loss_cls + F.cross_entropy(
+                    pred_cls[r].unsqueeze(0), gt_cls[c:c + 1])
+                loss_pos = loss_pos + F.mse_loss(pred_pos[r], gt_pos[c])
+            matched = set(rows.tolist())
+        else:
+            matched = set()
+        for k in range(K_MAX):
+            if k not in matched:
                 loss_pos = loss_pos + 4.0 * F.mse_loss(
                     pred_pos[k], torch.tensor([2.0, 2.0, 2.0], device=device))
     return loss_cls / B, loss_pos / B
@@ -165,7 +197,11 @@ def main(args):
             if args.stack == 1:
                 x = x.unsqueeze(1)              # [B, 1, K] 与堆叠口径一致
             clss, poss, cnt = model(x)
-            lc, lp = match_loss(clss, poss, [tr_tg[j] for j in idx.tolist()], device)
+            tgs = [tr_tg[j] for j in idx.tolist()]
+            if args.match == "hungarian":
+                lc, lp = match_loss_hungarian(clss, poss, tgs, device)
+            else:
+                lc, lp = match_loss(clss, poss, tgs, device)
             loss = lc + args.pos_weight * lp
             if cnt is not None:
                 n_true = torch.tensor([min(len(tr_tg[j]), K_MAX) for j in idx.tolist()],
@@ -208,6 +244,8 @@ if __name__ == "__main__":
                         help="多帧堆叠输入（F1：时间上下文检测，1=单帧）")
     parser.add_argument("--n_avg", type=int, default=1,
                         help="每帧平均的独立 realizing 数（N1：测量分集，1=单 realizing）")
+    parser.add_argument("--match", choices=["sorted", "hungarian"], default="sorted",
+                        help="slot-目标分配：sorted（旧行为，x 排序）或 hungarian（DETR 式可微集合预测）")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"

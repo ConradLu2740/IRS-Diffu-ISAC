@@ -39,9 +39,9 @@ def load_model(args, name):
     return model, ckpt
 
 
-def scene_frames(args, seeds, mode, count_model=None, thr=0.3):
-    """mode: 'count'（top-K）或 'thr'（固定阈值）。"""
-    model, _ = load_model(args, args.d3_name if mode == "count" else args.base_name)
+def scene_frames(args, seeds, mode, count_model=None, thr=0.3, name=None):
+    """mode: 'count'（top-K）或 'thr'（固定阈值）；name 指定 checkpoint。"""
+    model, _ = load_model(args, name or (args.d3_name if mode == "count" else args.base_name))
     seqs = []
     rng = random.Random(999)
     for sd in seeds:
@@ -138,21 +138,18 @@ def main(args):
     print(f"D3a 计数准确率（|Δn|≤1）: {acc1:.3f}（目标 ≥0.80）")
 
     # 同等 recall 下的 precision（held-out 校准场景）
-    seqs_count = scene_frames(args, args.calib_seeds, "count")
-    seqs_thr = scene_frames(args, args.calib_seeds, "thr", thr=0.3)
-    p_count = pr_at_recall(seqs_count)
+    # S1 隔离匹配损失效应：新模型与基线都用阈值过滤（不用计数头 top-K）
+    seqs_new = scene_frames(args, args.calib_seeds, "thr", thr=0.3, name=args.d3_name)
+    seqs_thr = scene_frames(args, args.calib_seeds, "thr", thr=0.3, name=args.base_name)
+    p_count = pr_at_recall(seqs_new)
     p_thr = pr_at_recall(seqs_thr)
-    print(f"D3b P@R=0.67: top-K {p_count:.3f} vs 固定阈值0.3 {p_thr:.3f}"
-          f"（D2 参考 0.573）")
+    print(f"P@R=0.67: 新模型(阈值0.3) {p_count:.3f} vs 基线(阈值0.3) {p_thr:.3f}")
 
-    # MOT 配对
+    # MOT 配对（场景与校准不相交）
     res = {}
-    for name, seqs in [("thr_0.3", seqs_thr), ("topk", seqs_count)]:
-        pass
-    # MOT 场景单独跑（与校准场景不相交）
-    mot_thr = scene_frames(args, args.mot_seeds, "thr", thr=0.3)
-    mot_cnt = scene_frames(args, args.mot_seeds, "count")
-    for name, seqs in [("thr_0.3", mot_thr), ("topk", mot_cnt)]:
+    mot_thr = scene_frames(args, args.mot_seeds, "thr", thr=0.3, name=args.base_name)
+    mot_new = scene_frames(args, args.mot_seeds, "thr", thr=0.3, name=args.d3_name)
+    for name, seqs in [("baseline", mot_thr), ("new_model", mot_new)]:
         per = []
         for frames in seqs:
             tr = run_tracker(frames, lambda: MOTTracker(n_classes=len(CLASS_NAMES),
@@ -167,8 +164,8 @@ def main(args):
     verdicts = {
         "D3a_count_acc_ge_080": bool(acc1 >= 0.80),
         "D3b_precision_gain_ge_005": bool(p_count >= p_thr + 0.05),
-        "D3c_mot_recall_ge_058": bool(res["topk"]["recall"] >= 0.58),
-        "D3c2_idsw_le_080x": bool(res["topk"]["idsw"] <= 0.8 * res["thr_0.3"]["idsw"]),
+        "D3c_mot_recall_ge_058": bool(res["new_model"]["recall"] >= 0.58),
+        "D3c2_idsw_le_080x": bool(res["new_model"]["idsw"] <= 0.8 * res["baseline"]["idsw"]),
     }
     print(f"\n  裁决: {json.dumps(verdicts, indent=2)}")
 
