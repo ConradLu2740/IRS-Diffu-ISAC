@@ -46,7 +46,7 @@ make demo     # 自动训练 + 感知-通信闭环
 ```text
 isac_sim/
 ├── channels/     # L0 自由空间（默认）→ L1 莱斯衰落（K 因子，功率对齐）→ L2 3GPP TR 38.811 NTN（规划）
-├── waveforms/    # OFDM 感知波形（默认）→ OTFS / AFDM（规划）
+├── waveforms/    # OFDM 感知波形（默认）→ OTFS / AFDM（已实现，ICI 恒等式验证）
 ├── ris/          # 连续相位（默认）· 1-bit 离散 · 分段重构（K-sweep，与模型解耦）
 ├── comm/         # QPSK over AWGN 最小链路（实测 BER 对照理论）
 ├── sensing/      # 一维 CA-CFAR（向量化）· 2D-CFAR/MUSIC/ML 适配器（规划）
@@ -283,6 +283,10 @@ bash run_demo.sh                              # 2. 闭环 demo（自动训练）
 - [x] **莱斯衰落下的 K-sweep 稳健性**（`verify_tracking_rician.py`：K=10/5/0 dB × 5 种子——定性结论跨信道档位保持；`make track-rician`）
 - [x] **Sionna 2.x CDL 标准信道对照**（`verify_sionna_channel.py`：3GPP TR 38.901 CDL-D，K≈9 dB——量化平坦衰落与逐帧独立近似的适用边界，标准 K 档位确认 K-sweep 结论；`make verify-sionna`，可选依赖 `pip install sionna`）
 - [ ] **`isac_sim/channels` L2 完整 NTN 对齐**：3GPP TR 38.811 NTN 专用剖面（几何驱动的时延/角度扩展）；在 L2 下重跑闭环
+- [x] **DP 最优 RIS 重构调度**（精确最优重构时刻 + 穷举证书；均匀 K 次优性精确间隙 40.1%/42.1%；`make verify-tracking-dp`）
+- [x] **感知-通信 Pareto 前沿**（闭式 σ(R)=40.97/(2^R−1) + 多帧融合 + HRRP 信息底噪 0.5165mm；`make verify-pareto`）
+- [x] **Pilot-FIM / η_est 三相分解**（genie-CSI 无害认证 η_est(17)=0.9999994；`make verify-fim`）
+- [x] **互信息审计**（Fano 阶梯 0.19/1.71/2.07 bit；发现条件编码器坍塌，CFG 近无效；`make verify-info-audit`）
 - [x] **`isac_sim/findings` 角度墙扫描 + 双站反例**：shortfall 热力图、破墙精度预算（σ_ρ < 5.3 m @默认几何）、秩亏警告（`make finding-angle-wall`、`make twostation`）
 - [ ] **`isac_sim/comm` 链路升级**：高阶 QAM / 简单编码 / 频谱效率指标
 - [x] **`isac_sim/channels` × Sionna 交叉验证**（v1.6，见上）
@@ -292,7 +296,7 @@ bash run_demo.sh                              # 2. 闭环 demo（自动训练）
 - [ ] **太空碎片 / 卫星几何目标**（替换简单模板）
 - [ ] **星载计算约束**：模型蒸馏 / 量化
 - [ ] **低 SNR 鲁棒性**评估套件
-- [ ] **OTFS / AFDM 波形扩展**（高动态 LEO ISAC 的多普勒鲁棒波形；OTFS/AFDM 是 3GPP Rel-20 ISAC 讨论中的主流候选波形）
+- [x] **OTFS / AFDM 波形扩展**（ICI 恒等式 28.35% 实测验证，OTFS BER=0 vs OFDM 7.7e-2 @ 真实 ±611 kHz 多普勒；`isac_sim/waveforms/otfs.py`+`afdm.py`，`make verify-waveforms`）
 - [x] **Flow matching 生成基线**（2026 生成模型趋势——与条件扩散等算力公平对比：FM NFE=1 在三模式全指标胜 DDPM NFE=100；`make compare-gen` / `make train-fm` / `make verify-fm-bounds`；收敛阶、曲率、crossover 见 `verify_fm_bounds.py`）
 
 ---

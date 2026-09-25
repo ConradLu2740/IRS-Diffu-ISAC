@@ -46,7 +46,7 @@ Beyond the space-ground showcase above, this repo is growing into a **layered, p
 ```text
 isac_sim/
 ├── channels/     # L0 free-space (default) → L1 Rician (K-factor, power-aligned) → L2 3GPP TR 38.811 NTN (planned)
-├── waveforms/    # OFDM sensing waveform (default) → OTFS / AFDM (planned)
+├── waveforms/    # OFDM sensing waveform (default) → OTFS / AFDM (implemented, ICI identity verified)
 ├── ris/          # continuous phase (default) · 1-bit binary · segmented reconfiguration (K-sweep, model-agnostic)
 ├── comm/         # QPSK-over-AWGN minimal link (measured BER vs theory)
 ├── sensing/      # 1D CA-CFAR (vectorized) · 2D-CFAR/MUSIC/ML adapters (planned)
@@ -123,6 +123,12 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 | Classic baseline (MUSIC) | ULA-8 target direction MAE **0.017°** (synthetic snapshots); far-field angle resolution physically insufficient for intra-ROI localization |
 | ML vs classic (fair) | ML (absolute-range feature) LOS RMSE **2.3 m** vs CFAR 8.1 m; centroid-relative feature = class prior only (2D RMSE 22.6 m); feature bug fixed (`center='roi'`) |
 | Multi-orbit / Ka-band | ISS / Starlink ×30 / 28 GHz all PASS, physics consistency verified |
+| DP-optimal RIS reconfiguration | Uniform K suboptimality gap **40.1% (K=2) / 42.1% (K=4)** exact; exhaustive-search certificate 0.00e+00; drift non-uniformity ratio median 9.26 |
+| Sensing-comm Pareto frontier (finding) | σ_cross(R) = 40.97/(2^R−1) closed form (slope −1.0000, R²=1.0); break-wall 5.3 m ⇔ R≥3.13 bps/Hz; multi-frame fusion G(8)=6.95–8.15 |
+| HRRP information floor (finding) | Single-scatterer path CRB **0.5165 mm** (MC/CRB=0.984); assumed σ_ρ=0.15 m is **290× conservative** → 0.34 m two-station RMSE is model-limited, not information-limited |
+| Pilot FIM / η_est | genie-CSI harmlessness certified: η_est(17)=**0.9999994**; 50%-loss critical SNR −31.2 dB; joint optimum K=1, n_p=17 |
+| Information audit | Fano ladder **0.19 / 1.71 / 2.07 bit** (narrowband→HRRP→ISAR); Van Trees λ⊥/λ∥~6.6e-9 (angle wall); **conditional encoder collapsed — CFG effectively inert (G15)** |
+| OTFS/AFDM vs real Doppler | ICI identity **28.35%** @ ±611 kHz (MC 10⁶); OTFS BER **0** vs OFDM 7.7e-2 (equal SNR); ISAR frozen-geometry threshold 32.3 Hz vs actual ≥2.53 kHz (**78× violation**) |
 | Angle-wall scan (finding) | Resolving the 80 m ROI needs a 77 m aperture (N≈15,394) — shortfall **1889×** at N=8; wall active in all practical configs |
 | Two-station trilateration (finding) | Cross-range RMSE **0.34 m** @ default geometry (γ=131°, σ_ρ=0.15 m, 3D slant-range model) — **~35×** better than the 11.8 m mono-static wall; break-wall budget σ_ρ < 5.3 m |
 
@@ -281,6 +287,10 @@ Recipes & parameter quick-reference: [`configs/README.md`](configs/README.md)
 - [x] **K-sweep robustness under Rician fading** (`verify_tracking_rician.py`: K=10/5/0 dB × 5 seeds — qualitative conclusion holds; `make track-rician`)
 - [x] **Sionna 2.x CDL standard-channel cross-validation** (`verify_sionna_channel.py`: 3GPP TR 38.901 CDL-D, K≈9 dB — flat-fading & per-frame-independence approximations quantified, K-sweep confirmed at the standard K; `make verify-sionna`, optional dep `pip install sionna`)
 - [ ] **`isac_sim/channels` L2 full NTN alignment**: 3GPP TR 38.811 NTN-specific profiles (geometry-dependent delay/angle spreads); re-run closed loop under L2
+- [x] **DP-optimal RIS reconfiguration scheduling**（精确最优重构时刻 + 穷举证书；均匀 K 次优性精确间隙 40.1%/42.1%；`make verify-tracking-dp`）
+- [x] **Sensing-communication Pareto frontier**（闭式 σ(R)=40.97/(2^R−1) + 多帧融合 + HRRP 信息底噪 0.5165mm；`make verify-pareto`）
+- [x] **Pilot-FIM / η_est 三相分解**（genie-CSI 无害认证 η_est(17)=0.9999994；`make verify-fim`）
+- [x] **Information audit**（Fano 阶梯 0.19/1.71/2.07 bit；发现条件编码器坍塌，CFG 近无效；`make verify-info-audit`）
 - [x] **`isac_sim/findings` angle-wall scan + two-station counter-example**: shortfall heatmap, break-the-wall budget (σ_ρ < 5.3 m @ default geometry), rank-deficiency warning (`make finding-angle-wall`, `make twostation`)
 - [ ] **`isac_sim/comm` link upgrade**: higher-order QAM / simple coding / spectral-efficiency metrics
 - [x] **`isac_sim/channels` × Sionna cross-validation** (v1.6, see above)
@@ -290,7 +300,7 @@ Recipes & parameter quick-reference: [`configs/README.md`](configs/README.md)
 - [ ] **Space debris / satellite geometry targets** (replace simple templates)
 - [ ] **On-board computational constraints**: model distillation / quantization
 - [ ] **Low-SNR robustness** evaluation suite
-- [ ] **OTFS / AFDM waveform extension** (Doppler-robust waveforms for high-dynamics LEO ISAC; OTFS/AFDM are the leading waveform candidates discussed for 3GPP Rel-20 ISAC)
+- [x] **OTFS / AFDM waveform extension**（多普勒韧性波形：ICI 恒等式 28.35% 实测验证，OTFS BER=0 vs OFDM 7.7e-2 @ 真实 ±611 kHz 多普勒；`isac_sim/waveforms/otfs.py`+`afdm.py`，`make verify-waveforms`）
 - [x] **Flow-matching generative baseline**（2026 trend — 与扩散等算力公平对比：FM NFE=1 在三模式全指标胜 DDPM NFE=100；`make compare-gen` / `make train-fm` / `make verify-fm-bounds`；收敛阶、曲率、crossover 见 `verify_fm_bounds.py`）
 
 ---
@@ -341,7 +351,7 @@ IRS-Diffu-ISAC/
 ## 📚 Documentation
 
 - **[TECH_REPORT.md](TECH_REPORT.md)** — arXiv-ready technical report: system model, closed-loop results, classical baselines (2D-CFAR + MUSIC), physical findings
-- **Versioning**: git release tags (currently `v1.2.0`) mark repo milestones; the report has its own version (currently **v1.11**). Current mapping: **tag `v1.2.0` ↔ TECH_REPORT v1.5** (Sections 6.3/6.4: Rician robustness + two-station escape from the angle wall); later report versions v1.6–v1.11 (Sionna CDL cross-validation, physics audit, flow-matching equal-compute comparison with certificates, strong baselines, generalization, SDR optimality bracket, 16-seed decomposition) are not yet tagged; the **Markdown report is authoritative** (`TECH_REPORT.md`), the `.tex` is a stale auto-conversion.
+- **Versioning**: git release tags (currently `v1.2.0`) mark repo milestones; the report has its own version (currently **v1.12**). Current mapping: **tag `v1.2.0` ↔ TECH_REPORT v1.5** (Sections 6.3/6.4: Rician robustness + two-station escape from the angle wall); later report versions v1.6–v1.11 (Sionna CDL cross-validation, physics audit, flow-matching equal-compute comparison with certificates, strong baselines, generalization, SDR optimality bracket, 16-seed decomposition) are not yet tagged; the **Markdown report is authoritative** (`TECH_REPORT.md`), the `.tex` is a stale auto-conversion.
 - **[space_isac_design.md](space_isac_design.md)** — complete design: physical model, experiments, physical conclusions, pitfalls
 - **[docs/optimization_roadmap.md](docs/optimization_roadmap.md)** — four-angle optimization roadmap (math architecture / optimization theory / information theory / mobile communications), with measured results, falsified predictions, and a pre-registered proposition table
 - Original project docs (archived): [`archive/original-docs/`](archive/original-docs/) — [`architecture.md`](archive/original-docs/architecture.md) / [`Code_Wiki.md`](archive/original-docs/Code_Wiki.md)
