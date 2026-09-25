@@ -138,10 +138,13 @@ class MovingTargetScene:
             tg.step()
 
     # ------------------------------------------------------------------
-    def range_profile_sequence(self, snr_db=20.0):
+    def range_profile_sequence(self, snr_db=20.0, stack=1):
         """生成整个场景的距离像序列（每帧）。
 
-        返回 (rps [T, K], ground_truth [T, N, (cls, cx, cy)])
+        stack>1 时返回 [T, stack, K] 多帧堆叠（当前帧 + 前 stack-1 帧，
+        边界处用最早帧填充）——多帧融合检测的时间上下文输入。
+
+        返回 (rps [T, (stack,) K], ground_truth [T, N, (cls, cx, cy)])
         """
         rps, gts = [], []
         for t in range(self.n_frames):
@@ -152,7 +155,12 @@ class MovingTargetScene:
             rps.append(rp)
             gts.append(self.targets_at(t))
             self.step()
-        return np.array(rps), gts
+        rps = np.array(rps)                        # [T, K]
+        if stack > 1:
+            padded = np.concatenate([np.repeat(rps[:1], stack - 1, axis=0), rps], axis=0)
+            stacks = np.stack([padded[i:i + stack] for i in range(rps.shape[0])], axis=0)
+            return stacks, gts                    # [T, stack, K]
+        return rps, gts
 
     # ------------------------------------------------------------------
     def summary(self):

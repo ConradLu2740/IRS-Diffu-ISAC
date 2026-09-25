@@ -1,0 +1,23 @@
+{
+  "p_single": 0.5991902834008097,
+  "p_multi": 0.4406548431105048,
+  "mot": {
+    "single": {
+      "rmse": 0.2010171436569044,
+      "recall": 0.6993055555555556,
+      "idsw": 178.0
+    },
+    "multi": {
+      "rmse": 0.2086778123280536,
+      "recall": 0.59375,
+      "idsw": 161.33333333333334
+    }
+  },
+  "stack": 4,
+  "verdicts": {
+    "F1_precision_ge_065": false,
+    "F1b_gain_over_single": false,
+    "F2_mot_recall_ge_070": false,
+    "F2b_idsw_le_090x": false
+  }
+}

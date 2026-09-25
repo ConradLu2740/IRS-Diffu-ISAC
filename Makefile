@@ -139,6 +139,9 @@ verify-detect-count: ## D3 可变计数检测头（计数准确率 + top-K vs �
 verify-detect-count-var: ## D4 变计数 benchmark（计数头重训后 top-K vs 阈值，~20 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_detect_count.py --d3_name detect_best_d4.pth --n_targets_range 5 12
 
+verify-detect-multiframe: ## F1 多帧堆叠检测 vs 单帧（变计数场景，~20 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_detect_multiframe.py
+
 train-fm: ## Flow Matching 训练（扩散同架构/同数据，3 种 IRS 模式）
 	cd $(ISAC) && ../../$(VENV)/bin/python train_fm.py
 
