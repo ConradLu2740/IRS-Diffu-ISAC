@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.24 (2026-09-26) — companion to the open-source repository
+**Version**: v1.25 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -25,6 +25,7 @@
 *v1.22 additions: the MOT association-layer upgrade (Mahalanobis gating + second-chance assignment) is a second negative result (Section 6.17). With smoother and association both falsified, the bottleneck is located at the detection layer: at the current confidence threshold 0.5 only 1.1 detections per frame survive and GT coverage is 8.9%. The detection operating curve shows the knee at conf=0.3: recall 0.264 -> 0.584 (+121%) for a 7.6% RMSE cost; below 0.3 false positives saturate. MOT quality is detection-operating-point limited, not filter- or association-limited; confidence calibration is registered as proposition D1.*
 *v1.23 additions: registered proposition D1 (detector confidence temperature calibration) is executed: calibration improves NLL by 4.5% (T*=0.60) but yields no operating-point gain, because the max-prob slot ranking is temperature-robust (Section 6.18). With smoother, association, and threshold/calibration all falsified, the MOT diagnostic chain closes at the detector itself: the intrinsic PR limit is precision 0.54 at recall 0.67 (half the surviving detections are false positives). The next MOT lever is detector quality (architecture / training volume), registered as D2.*
 *v1.24 additions: registered proposition D2 (detector data scaling, 25 -> 100 scenes) gives a partial gain: held-out precision@recall=0.67 0.541 -> 0.573 (below the registered +0.10), AP +0.061, MOT recall +20% (0.584 -> 0.700) with RMSE -4.7% (Section 6.19). The physical range-cell-mixing explanation is refuted: same-range-cell target pairs are 0.0% under the correct LOS<0.3m threshold. The remaining precision gap is a learning/architecture limit (the fixed K=10 slot detection head); registered as D3 (variable-count detection head).*
+*v1.25 additions: registered proposition D3 (variable-count detection head) exposes a benchmark artifact (Section 6.20). The count head reaches 1.000 counting accuracy only because every MOT scene has exactly 10 targets; on variable-count scenes (5/7/9/10/12) it always predicts 10 (0% accuracy). Top-K selection is worse than threshold filtering in the constant-count regime (P@R=0.67 0.556 vs 0.596). The architecture hypothesis is therefore not testable on the current benchmark; registered D4: variable-count MOT scenes plus count-head retraining.*
 
 ---
 
@@ -743,6 +744,27 @@ assignment is learned only through the matching loss. Registered as D3: a variab
 head (peak-based counting or anchor-free design) targeting precision@recall=0.67 >= 0.65. The MOT
 diagnostic chain is now: smoother (negative) -> association (negative) -> calibration (negative) ->
 data scale (partial) -> architecture (next lever).
+
+### 6.20 D3: The Count Head Exposes a Benchmark Artifact (v1.25)
+
+Registered proposition D3: replace the fixed K=10 slot output with a learned count head
+(targets per scene, n in [0, 10]) and top-K selection instead of threshold filtering.
+Implementation: DetectNet gains a count head (trained jointly, weight 0.5);
+`verify_detect_count.py` evaluates counting accuracy, PR at matched recall, and MOT.
+
+Surface results: D3a "passes" with counting accuracy 1.000 (|Δn| ≤ 1); D3b fails
+(top-K P@R=0.67 = 0.556 vs threshold-0.3 0.596); MOT top-K recall 0.669 vs 0.700
+(ID switches 189 vs 195, slightly better). The interpretation is the finding:
+**the counting accuracy is a benchmark artifact** — every MovingTargetScene has exactly
+10 targets, so predicting the constant 10 is perfect. A generalization check on
+variable-count scenes (5/7/9/10/12 targets) shows the count head always predicts 10
+(0% accuracy off the training constant). The fixed-slot architecture is only a
+limitation when the count actually varies; in the constant-count regime, threshold
+filtering beats top-K. Registered D4: variable-count MOT scenes (n_targets drawn from
+[5, 12]) plus count-head retraining — the correct experiment for the architecture
+hypothesis. The MOT investigation arc is now complete: four post-processing layers
+falsified, data scaling partially effective, and the architecture hypothesis awaiting
+its proper benchmark.
 
 ## 7. Limitations and Honest Discussion
 

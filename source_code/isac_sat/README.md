@@ -70,6 +70,7 @@ make demo     # 感知-通信闭环 demo（自动训练 + 闭环）
 | `verify_tracker_kalman.py` | MOT 跟踪器 α-β vs CRB 一致卡尔曼（配对比较 + Q 扫描） | `python verify_tracker_kalman.py --seeds 7 8 9` | ~8 秒 |
 | `verify_detect_calibration.py` | D1 检测器置信度温度校准（NLL + 同 recall 工作点 + MOT 配对） | `python verify_detect_calibration.py` | ~20 秒 |
 | `verify_detect_scale.py` | D2 检测器数据规模（held-out PR + 同距单元分析 + MOT 配对） | `python verify_detect_scale.py` | ~20 秒 |
+| `verify_detect_count.py` | D3 可变计数检测头（计数准确率 + 泛化 + top-K vs 阈值） | `python verify_detect_count.py` | ~20 秒 |
 | `eval_sat.py` | 扩散重建评估：CD / F-Score / Voxel IoU + 可视化 | `python eval_sat.py` | 分钟级 |
 
 ### 演示（面向读者 / 评审）

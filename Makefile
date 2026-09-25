@@ -133,6 +133,9 @@ verify-detect-calib: ## D1 检测器置信度温度校准（NLL + 同 recall 工
 verify-detect-scale: ## D2 检测器数据规模实验（held-out PR + MOT 配对，~20 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_detect_scale.py
 
+verify-detect-count: ## D3 可变计数检测头（计数准确率 + top-K vs 阈值，~20 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_detect_count.py
+
 train-fm: ## Flow Matching 训练（扩散同架构/同数据，3 种 IRS 模式）
 	cd $(ISAC) && ../../$(VENV)/bin/python train_fm.py
 

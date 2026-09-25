@@ -36,7 +36,7 @@ def pr_protocol(args, ckpt_name, seeds):
     (conf, 正确性)，返回 PR 曲线与目标 recall 处的 precision。"""
     device = args.device
     ckpt = torch.load(os.path.join(args.ckpt_dir, ckpt_name), map_location=device)
-    model = DetectNet().to(device)
+    model = DetectNet(count_head=bool(ckpt.get("count_head", False))).to(device)
     model.load_state_dict(ckpt["model"]); model.eval()
 
     confs, labels = [], []
@@ -50,7 +50,7 @@ def pr_protocol(args, ckpt_name, seeds):
                 roi, scene.mid["target_pos"], scene.mid["ground_pos"],
                 scene.scenario.wavelength_m, snr_db=args.snr_db, seed=t, align=False)
             with torch.no_grad():
-                clss, poss = model(torch.from_numpy(rp).float().unsqueeze(0).to(device))
+                clss, poss, _cnt = model(torch.from_numpy(rp).float().unsqueeze(0).to(device))
             gt = np.array([g[1] for g in scene.targets_at(t)])
             det_pos = np.array([p.squeeze(0).cpu().numpy() for p in poss])
             # 同距单元目标对（物理极限佐证：LOS 距离 < 0.3m = 2× 距离分辨率；
@@ -91,7 +91,7 @@ def mot_at_threshold(args, ckpt_name, seeds, thr):
     """MOT 配对评估（给定 checkpoint 与阈值）。"""
     device = args.device
     ckpt = torch.load(os.path.join(args.ckpt_dir, ckpt_name), map_location=device)
-    model = DetectNet().to(device)
+    model = DetectNet(count_head=bool(ckpt.get("count_head", False))).to(device)
     model.load_state_dict(ckpt["model"]); model.eval()
     per = []
     for sd in seeds:
@@ -106,7 +106,7 @@ def mot_at_threshold(args, ckpt_name, seeds, thr):
                 roi, scene.mid["target_pos"], scene.mid["ground_pos"],
                 scene.scenario.wavelength_m, snr_db=args.snr_db, seed=t, align=False)
             with torch.no_grad():
-                clss, poss = model(torch.from_numpy(rp).float().unsqueeze(0).to(device))
+                clss, poss, _cnt = model(torch.from_numpy(rp).float().unsqueeze(0).to(device))
             dets = []
             for k in range(len(clss)):
                 lg = clss[k].squeeze(0)

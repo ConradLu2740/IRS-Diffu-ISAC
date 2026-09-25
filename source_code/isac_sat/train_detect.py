@@ -30,11 +30,16 @@ K_MAX = 10
 
 
 class DetectNet(nn.Module):
-    """距离像 → K 组检测（共享编码 + K×(分类头+定位头)）。"""
+    """距离像 → K 组检测（共享编码 + K×(分类头+定位头)）+ 计数头（D3）。
 
-    def __init__(self, in_dim=WIDEBAND_K, k=K_MAX, hidden=512):
+    计数头预测场景目标数 n ∈ [0, K_MAX]；推理时输出按置信度排序的前 n 个
+    槽（top-K 选择），替代固定阈值过滤——可变计数检测头。
+    """
+
+    def __init__(self, in_dim=WIDEBAND_K, k=K_MAX, hidden=512, count_head=True):
         super().__init__()
         self.k = k
+        self.count_head = count_head
         self.shared = nn.Sequential(
             nn.Linear(in_dim, hidden), nn.BatchNorm1d(hidden), nn.ReLU(), nn.Dropout(0.3),
             nn.Linear(hidden, hidden // 2), nn.BatchNorm1d(hidden // 2), nn.ReLU(),
@@ -45,12 +50,16 @@ class DetectNet(nn.Module):
         self.pos_heads = nn.ModuleList(
             [nn.Sequential(nn.Linear(hidden // 2, 128), nn.ReLU(), nn.Linear(128, 3))  # 3D
              for _ in range(k)])
+        if count_head:
+            self.count = nn.Sequential(
+                nn.Linear(hidden // 2, 64), nn.ReLU(), nn.Linear(64, k + 1))
 
     def forward(self, x):
         feat = self.shared(x)
         clss = [h(feat) for h in self.cls_heads]
         poss = [h(feat) for h in self.pos_heads]
-        return clss, poss
+        cnt = self.count(feat) if self.count_head else None
+        return clss, poss, cnt
 
 
 def match_loss(clss, poss, targets, device):
@@ -95,7 +104,7 @@ def evaluate(model, rps, targets, device, iou_thr=0.25):
     model.eval()
     total_t = detected = cls_ok = 0
     pos_err = 0.0
-    clss, poss = model(torch.from_numpy(rps).float().to(device))
+    clss, poss, _cnt = model(torch.from_numpy(rps).float().to(device))
     B = rps.shape[0]
     for b in range(B):
         tg = sorted(targets[b], key=lambda t: t[1][0])
@@ -138,9 +147,13 @@ def main(args):
         for i in range(0, n, args.batch_size):
             idx = perm[i:i + args.batch_size]
             x = torch.from_numpy(tr_rps[idx]).float().to(device)
-            clss, poss = model(x)
+            clss, poss, cnt = model(x)
             lc, lp = match_loss(clss, poss, [tr_tg[j] for j in idx.tolist()], device)
             loss = lc + args.pos_weight * lp
+            if cnt is not None:
+                n_true = torch.tensor([min(len(tr_tg[j]), K_MAX) for j in idx.tolist()],
+                                      device=device)
+                loss = loss + args.count_weight * F.cross_entropy(cnt, n_true)
             opt.zero_grad(); loss.backward(); opt.step()
             tot += loss.item()
         det, cls_acc, pos_e = evaluate(model, te_rps, te_tg, device)
@@ -149,7 +162,7 @@ def main(args):
                   f"detect={det:.3f} cls={cls_acc:.3f} pos_err={pos_e:.3f}")
         if det > best_det:
             best_det = det
-            torch.save({"model": model.state_dict(), "k": K_MAX,
+            torch.save({"model": model.state_dict(), "k": K_MAX, "count_head": True,
                         "n_classes": N_CLASSES, "classes": CLASS_NAMES},
                        os.path.join(args.save_dir, args.save_name))
 
@@ -169,6 +182,8 @@ if __name__ == "__main__":
     parser.add_argument("--save_dir", type=str, default="./isac_demo")
     parser.add_argument("--save_name", type=str, default="detect_best.pth",
                         help="checkpoint 文件名（D2 等对比实验用）")
+    parser.add_argument("--count_weight", type=float, default=0.5,
+                        help="计数头 loss 权重（D3）")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"

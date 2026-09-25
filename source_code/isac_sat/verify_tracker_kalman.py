@@ -160,7 +160,7 @@ def collect_detections(args, seeds):
     """跑检测管线，返回每帧 (dets, gt)。dets 与 gt 配对供两个跟踪器共用。"""
     device = args.device
     ckpt = torch.load(args.checkpoint, map_location=device)
-    model = DetectNet().to(device)
+    model = DetectNet(count_head=bool(ckpt.get("count_head", False))).to(device)
     model.load_state_dict(ckpt["model"]); model.eval()
 
     seqs = []
