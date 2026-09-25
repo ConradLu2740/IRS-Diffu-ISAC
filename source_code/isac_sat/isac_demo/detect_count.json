@@ -1,21 +1,21 @@
 {
-  "count_acc": 1.0,
-  "p_at_recall_topk": 0.5555555555555556,
-  "p_at_recall_thr": 0.5962314939434724,
+  "count_acc": 0.55,
+  "p_at_recall_topk": 0.4318181818181818,
+  "p_at_recall_thr": 0.5991902834008097,
   "mot": {
     "thr_0.3": {
-      "rmse": 0.20400033650175753,
-      "recall": 0.7000000000000001,
-      "idsw": 194.66666666666666
+      "rmse": 0.2010171436569044,
+      "recall": 0.6993055555555556,
+      "idsw": 178.0
     },
     "topk": {
-      "rmse": 0.20873152325810684,
-      "recall": 0.6691666666666668,
-      "idsw": 189.33333333333334
+      "rmse": 0.20908543493233753,
+      "recall": 0.6291666666666668,
+      "idsw": 167.33333333333334
     }
   },
   "verdicts": {
-    "D3a_count_acc_ge_080": true,
+    "D3a_count_acc_ge_080": false,
     "D3b_precision_gain_ge_005": false,
     "D3c_mot_recall_ge_058": true,
     "D3c2_idsw_le_080x": false

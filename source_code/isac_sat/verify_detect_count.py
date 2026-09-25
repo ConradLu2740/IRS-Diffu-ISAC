@@ -43,9 +43,11 @@ def scene_frames(args, seeds, mode, count_model=None, thr=0.3):
     """mode: 'count'（top-K）或 'thr'（固定阈值）。"""
     model, _ = load_model(args, args.d3_name if mode == "count" else args.base_name)
     seqs = []
+    rng = random.Random(999)
     for sd in seeds:
         torch.manual_seed(sd); random.seed(sd); np.random.seed(sd)
-        scene = MovingTargetScene(n_targets=args.n_targets, n_frames=args.n_frames, seed=sd)
+        n_t = rng.randint(*args.n_targets_range) if args.n_targets_range else args.n_targets
+        scene = MovingTargetScene(n_targets=n_t, n_frames=args.n_frames, seed=sd)
         frames = []
         for t in range(args.n_frames):
             roi = scene.render_roi(t)
@@ -80,9 +82,11 @@ def scene_frames(args, seeds, mode, count_model=None, thr=0.3):
 def count_accuracy(args):
     model, _ = load_model(args, args.d3_name)
     ok1 = 0; tot = 0
+    rng = random.Random(999)
     for sd in args.calib_seeds:
         torch.manual_seed(sd); random.seed(sd); np.random.seed(sd)
-        scene = MovingTargetScene(n_targets=args.n_targets, n_frames=args.n_frames, seed=sd)
+        n_t = rng.randint(*args.n_targets_range) if args.n_targets_range else args.n_targets
+        scene = MovingTargetScene(n_targets=n_t, n_frames=args.n_frames, seed=sd)
         for t in range(args.n_frames):
             roi = scene.render_roi(t)
             rp = data_sat.compute_range_profile(
@@ -188,6 +192,8 @@ if __name__ == "__main__":
     parser.add_argument("--gate", type=float, default=0.35)
     parser.add_argument("--calib_seeds", nargs="+", type=int, default=[11, 12, 13])
     parser.add_argument("--mot_seeds", nargs="+", type=int, default=[7, 8, 9])
+    parser.add_argument("--n_targets_range", nargs=2, type=int, default=None,
+                        help="评估场景随机目标数范围 (lo hi)（D4）")
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
     main(args)

@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.25 (2026-09-26) — companion to the open-source repository
+**Version**: v1.26 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -26,6 +26,7 @@
 *v1.23 additions: registered proposition D1 (detector confidence temperature calibration) is executed: calibration improves NLL by 4.5% (T*=0.60) but yields no operating-point gain, because the max-prob slot ranking is temperature-robust (Section 6.18). With smoother, association, and threshold/calibration all falsified, the MOT diagnostic chain closes at the detector itself: the intrinsic PR limit is precision 0.54 at recall 0.67 (half the surviving detections are false positives). The next MOT lever is detector quality (architecture / training volume), registered as D2.*
 *v1.24 additions: registered proposition D2 (detector data scaling, 25 -> 100 scenes) gives a partial gain: held-out precision@recall=0.67 0.541 -> 0.573 (below the registered +0.10), AP +0.061, MOT recall +20% (0.584 -> 0.700) with RMSE -4.7% (Section 6.19). The physical range-cell-mixing explanation is refuted: same-range-cell target pairs are 0.0% under the correct LOS<0.3m threshold. The remaining precision gap is a learning/architecture limit (the fixed K=10 slot detection head); registered as D3 (variable-count detection head).*
 *v1.25 additions: registered proposition D3 (variable-count detection head) exposes a benchmark artifact (Section 6.20). The count head reaches 1.000 counting accuracy only because every MOT scene has exactly 10 targets; on variable-count scenes (5/7/9/10/12) it always predicts 10 (0% accuracy). Top-K selection is worse than threshold filtering in the constant-count regime (P@R=0.67 0.556 vs 0.596). The architecture hypothesis is therefore not testable on the current benchmark; registered D4: variable-count MOT scenes plus count-head retraining.*
+*v1.26 additions: registered proposition D4 (variable-count MOT benchmark) executes the architecture hypothesis on its proper benchmark and falsifies it (Section 6.21). Trained on random per-scene counts (5-12), the count head reaches 55% accuracy (|Δn| ≤ 1; up from 0% off-distribution), but top-K selection is decisively worse than threshold filtering (P@R=0.67 0.432 vs 0.599; MOT recall 0.629 vs 0.699) — count errors convert directly into missed/false detections. The MOT investigation closes: threshold filtering + alpha-beta is the practical optimum on this benchmark; further gains require new observations (two-station ranging, multi-frame), not detector-internal tuning.*
 
 ---
 
@@ -765,6 +766,27 @@ filtering beats top-K. Registered D4: variable-count MOT scenes (n_targets drawn
 hypothesis. The MOT investigation arc is now complete: four post-processing layers
 falsified, data scaling partially effective, and the architecture hypothesis awaiting
 its proper benchmark.
+
+### 6.21 D4: The Architecture Hypothesis Falsified on Its Proper Benchmark (v1.26)
+
+Registered proposition D4: build the benchmark the architecture hypothesis needs — per-scene random
+target counts (5-12) in both training and evaluation — and retrain the count head. Results
+(`train_detect.py --n_targets_range 5 12`; `verify_detect_count.py --n_targets_range 5 12`):
+
+| Metric | Top-K (count head) | Threshold 0.3 | Verdict |
+|---|---|---|---|
+| Counting accuracy (|Δn| ≤ 1) | 0.550 (target ≥ 0.80) | — | FAIL |
+| P@R=0.67 | 0.432 | **0.599** | FAIL |
+| MOT recall | 0.629 | **0.699** | worse |
+| MOT ID switches | 167 | 178 | slightly better |
+
+The count head improves from 0% (off-distribution constant) to 55% — variable counts are partly
+learnable — but top-K selection is decisively worse than threshold filtering: count errors convert
+directly into missed/false detections and precision collapses (0.432 vs 0.599). Counting targets
+from a single mixed range profile is itself a hard problem (overlapping peaks). The MOT
+investigation is closed: on this benchmark the practical optimum is the current threshold filter
+plus alpha-beta smoother; further gains require new observations (two-station ranging, multi-frame
+fusion), not detector-internal tuning.
 
 ## 7. Limitations and Honest Discussion
 

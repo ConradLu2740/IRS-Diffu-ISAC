@@ -87,11 +87,17 @@ def match_loss(clss, poss, targets, device):
     return loss_cls / B, loss_pos / B
 
 
-def build_dataset(n_scenes, n_frames, seed0, snr_db=20.0):
-    """生成 n_scenes 个移动场景 → 帧级训练样本。"""
+def build_dataset(n_scenes, n_frames, seed0, snr_db=20.0, n_targets_range=None):
+    """生成 n_scenes 个移动场景 → 帧级训练样本。
+
+    n_targets_range: (lo, hi) 时每场景随机目标数（D4 变计数 benchmark）；
+    None 时固定 10（旧行为）。
+    """
     rps_all, tg_all = [], []
+    rng = random.Random(seed0)
     for s in range(n_scenes):
-        scene = MovingTargetScene(n_targets=10, n_frames=n_frames, seed=seed0 + s)
+        n_t = rng.randint(*n_targets_range) if n_targets_range else 10
+        scene = MovingTargetScene(n_targets=n_t, n_frames=n_frames, seed=seed0 + s)
         rps, gts = scene.range_profile_sequence(snr_db=snr_db)
         rps_all.append(rps)
         tg_all.extend(gts)
@@ -130,8 +136,11 @@ def main(args):
     print(f"Device: {device}, classes={CLASS_NAMES}, K={K_MAX}")
 
     print(f"生成训练数据 ({args.n_scenes} 场景 × {args.n_frames} 帧)...")
-    tr_rps, tr_tg = build_dataset(args.n_scenes, args.n_frames, args.seed, args.snr_db)
-    te_rps, te_tg = build_dataset(8, args.n_frames, args.seed + 1000, args.snr_db)
+    ntr = tuple(args.n_targets_range) if args.n_targets_range else None
+    tr_rps, tr_tg = build_dataset(args.n_scenes, args.n_frames, args.seed, args.snr_db,
+                                  n_targets_range=ntr)
+    te_rps, te_tg = build_dataset(8, args.n_frames, args.seed + 1000, args.snr_db,
+                                  n_targets_range=ntr)
     print(f"训练样本: {tr_rps.shape[0]}, 测试样本: {te_rps.shape[0]}")
 
     model = DetectNet().to(device)
@@ -184,6 +193,8 @@ if __name__ == "__main__":
                         help="checkpoint 文件名（D2 等对比实验用）")
     parser.add_argument("--count_weight", type=float, default=0.5,
                         help="计数头 loss 权重（D3）")
+    parser.add_argument("--n_targets_range", nargs=2, type=int, default=None,
+                        help="每场景随机目标数范围 (lo hi)（D4 变计数 benchmark）")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
