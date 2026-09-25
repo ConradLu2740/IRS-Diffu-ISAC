@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.23 (2026-09-26) — companion to the open-source repository
+**Version**: v1.24 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -24,6 +24,7 @@
 *v1.21 additions: the MOT tracker upgrade (alpha-beta -> Kalman with CRB-consistent noise) is a clean negative result (Section 6.16). On identical detection streams (3 scenes x 40 frames, paired), the Kalman filter does not beat the fixed-gain alpha-beta filter (RMSE 0.2081 vs 0.1989), robustly across a two-decade Q sweep; eta_track = CRB/RMSE2 = 0.320. The error budget is dominated by data association (recall 0.26-0.30, ID switches 50-72), not by filter gains - the next MOT lever is the association layer, not the smoother.*
 *v1.22 additions: the MOT association-layer upgrade (Mahalanobis gating + second-chance assignment) is a second negative result (Section 6.17). With smoother and association both falsified, the bottleneck is located at the detection layer: at the current confidence threshold 0.5 only 1.1 detections per frame survive and GT coverage is 8.9%. The detection operating curve shows the knee at conf=0.3: recall 0.264 -> 0.584 (+121%) for a 7.6% RMSE cost; below 0.3 false positives saturate. MOT quality is detection-operating-point limited, not filter- or association-limited; confidence calibration is registered as proposition D1.*
 *v1.23 additions: registered proposition D1 (detector confidence temperature calibration) is executed: calibration improves NLL by 4.5% (T*=0.60) but yields no operating-point gain, because the max-prob slot ranking is temperature-robust (Section 6.18). With smoother, association, and threshold/calibration all falsified, the MOT diagnostic chain closes at the detector itself: the intrinsic PR limit is precision 0.54 at recall 0.67 (half the surviving detections are false positives). The next MOT lever is detector quality (architecture / training volume), registered as D2.*
+*v1.24 additions: registered proposition D2 (detector data scaling, 25 -> 100 scenes) gives a partial gain: held-out precision@recall=0.67 0.541 -> 0.573 (below the registered +0.10), AP +0.061, MOT recall +20% (0.584 -> 0.700) with RMSE -4.7% (Section 6.19). The physical range-cell-mixing explanation is refuted: same-range-cell target pairs are 0.0% under the correct LOS<0.3m threshold. The remaining precision gap is a learning/architecture limit (the fixed K=10 slot detection head); registered as D3 (variable-count detection head).*
 
 ---
 
@@ -718,6 +719,30 @@ precision 0.54 at recall 0.67, i.e. half the surviving detections are false posi
 binding constraint. The next lever is detector quality itself (architecture or training volume),
 registered as D2: retrain with more scenes / augmentation and require precision@recall=0.67
 >= 0.65 under the same PR protocol.
+
+### 6.19 D2: Detector Data Scaling Partially Unlocks; the Physical Explanation Is Refuted (v1.24)
+
+Registered proposition D2: does 4x training data (25 -> 100 scenes, epochs 50 -> 100) lift the
+detector's held-out PR curve? Same PR protocol as Section 6.18 (calibration scenes 11-13, disjoint
+from training seeds):
+
+| Metric | Baseline (25 scenes) | D2 (100 scenes) | Δ |
+|---|---|---|---|
+| Precision @ recall=0.67 | 0.541 | 0.573 | +0.032 (target +0.10, missed) |
+| AP | 0.551 | 0.612 | +0.061 |
+| MOT recall (thr 0.3) | 0.584 | **0.700** | **+20%** |
+| MOT RMSE | 0.2140 | 0.2040 | -4.7% |
+| MOT ID switches | 161.7 | 194.7 | +20% |
+
+D2a fails the registered margin but the direction is positive. Critically, the physical
+range-cell-mixing hypothesis is **refuted**: under the correct LOS < 0.3 m threshold (2 range cells,
+0.3 m of the 80 m ROI), same-range-cell target pairs are 0.0% — targets are essentially never in the
+same range cell. The remaining precision gap is therefore a learning/architecture limit: the fixed
+K=10 slot detection head forces exactly ten outputs regardless of the scene, and the slot-to-target
+assignment is learned only through the matching loss. Registered as D3: a variable-count detection
+head (peak-based counting or anchor-free design) targeting precision@recall=0.67 >= 0.65. The MOT
+diagnostic chain is now: smoother (negative) -> association (negative) -> calibration (negative) ->
+data scale (partial) -> architecture (next lever).
 
 ## 7. Limitations and Honest Discussion
 

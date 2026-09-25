@@ -1,0 +1,32 @@
+{
+  "pr_baseline": {
+    "precision_at_recall067": 0.5407124681933843,
+    "ap": 0.551383410192632,
+    "same_range_pair_frac": 0.0,
+    "n_slots": 1200,
+    "n_pos": 633.0
+  },
+  "pr_d2": {
+    "precision_at_recall067": 0.5730622617534943,
+    "ap": 0.6124161187980093,
+    "same_range_pair_frac": 0.0,
+    "n_slots": 1200,
+    "n_pos": 672.0
+  },
+  "mot_baseline": {
+    "rmse": 0.21400272082034957,
+    "recall": 0.5841666666666666,
+    "idsw": 161.66666666666666
+  },
+  "mot_d2": {
+    "rmse": 0.20400033650175753,
+    "recall": 0.7000000000000001,
+    "idsw": 194.66666666666666
+  },
+  "verdicts": {
+    "D2a_precision_gain_ge_010": false,
+    "physical_mixing_refuted": true,
+    "interpretation": "data scaling gives partial gain; physical range-cell mixing refuted (0% same-cell pairs) => remaining gap is learning/architecture (registered D3)"
+  },
+  "d2_scenes": 100
+}

@@ -151,10 +151,10 @@ def main(args):
             best_det = det
             torch.save({"model": model.state_dict(), "k": K_MAX,
                         "n_classes": N_CLASSES, "classes": CLASS_NAMES},
-                       os.path.join(args.save_dir, "detect_best.pth"))
+                       os.path.join(args.save_dir, args.save_name))
 
     print(f"\n[detect] 最佳: detect={best_det:.3f}, cls={cls_acc:.3f}, pos_err={pos_e:.3f}")
-    print(f"[detect] checkpoint: {args.save_dir}/detect_best.pth")
+    print(f"[detect] checkpoint: {args.save_dir}/{args.save_name}")
 
 
 if __name__ == "__main__":
@@ -167,6 +167,8 @@ if __name__ == "__main__":
     parser.add_argument("--pos_weight", type=float, default=1.0)
     parser.add_argument("--snr_db", type=float, default=20.0)
     parser.add_argument("--save_dir", type=str, default="./isac_demo")
+    parser.add_argument("--save_name", type=str, default="detect_best.pth",
+                        help="checkpoint 文件名（D2 等对比实验用）")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
