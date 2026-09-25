@@ -1,67 +1,92 @@
 {
   "results": {
     "alpha_beta": {
-      "rmse_mean": 0.19890094577233733,
-      "recall_mean": 0.26416666666666666,
-      "idsw_mean": 49.333333333333336,
+      "rmse_mean": 0.21400272082034957,
+      "recall_mean": 0.5841666666666666,
+      "idsw_mean": 161.66666666666666,
       "per_seed": [
         {
-          "rmse": 0.19201346049383106,
-          "recall": 0.28,
-          "id_switches": 57
+          "rmse": 0.2065885637243514,
+          "recall": 0.65,
+          "id_switches": 193
         },
         {
-          "rmse": 0.21155452534153527,
-          "recall": 0.22,
-          "id_switches": 11
+          "rmse": 0.22345945392014113,
+          "recall": 0.4975,
+          "id_switches": 105
         },
         {
-          "rmse": 0.1931348514816457,
-          "recall": 0.2925,
-          "id_switches": 80
+          "rmse": 0.21196014481655628,
+          "recall": 0.605,
+          "id_switches": 187
         }
       ]
     },
     "kalman_crb": {
-      "rmse_mean": 0.20808762300198658,
-      "recall_mean": 0.29583333333333334,
-      "idsw_mean": 68.66666666666667,
+      "rmse_mean": 0.2148520531737196,
+      "recall_mean": 0.6183333333333333,
+      "idsw_mean": 179.0,
       "per_seed": [
         {
-          "rmse": 0.1929218364233989,
-          "recall": 0.34,
-          "id_switches": 91
+          "rmse": 0.2087393722413739,
+          "recall": 0.71,
+          "id_switches": 228
         },
         {
-          "rmse": 0.22081742976233706,
-          "recall": 0.2075,
-          "id_switches": 24
+          "rmse": 0.22232732243879974,
+          "recall": 0.5,
+          "id_switches": 102
         },
         {
-          "rmse": 0.21052360282022378,
-          "recall": 0.34,
-          "id_switches": 91
+          "rmse": 0.21348946484098513,
+          "recall": 0.645,
+          "id_switches": 207
+        }
+      ]
+    },
+    "improved_assoc": {
+      "rmse_mean": 0.2136027326357419,
+      "recall_mean": 0.5741666666666667,
+      "idsw_mean": 179.0,
+      "per_seed": [
+        {
+          "rmse": 0.20872391100994844,
+          "recall": 0.6625,
+          "id_switches": 214
+        },
+        {
+          "rmse": 0.22119373625122396,
+          "recall": 0.4575,
+          "id_switches": 116
+        },
+        {
+          "rmse": 0.21089055064605325,
+          "recall": 0.6025,
+          "id_switches": 207
         }
       ]
     }
   },
   "R": [
     [
-      0.01565713242230255,
+      0.018217427467650305,
       0.0
     ],
     [
       0.0,
-      0.01565713242230255
+      0.018217427467650305
     ]
   ],
   "Q_trace": 0.2573136119619075,
-  "crb_pos_steady": 0.013848261035698846,
-  "eta_track": 0.3198178819479374,
-  "rmse_gain_pct": -4.618719732064203,
+  "crb_pos_steady": 0.015952138164999814,
+  "eta_track": 0.3455730658624711,
+  "rmse_gain_pct": -0.3968792313080227,
   "verdicts": {
     "T2_kf_rmse_better": false,
     "T3_eta_track_ge_090": false,
-    "T4_no_degradation": false
+    "T4_no_degradation": false,
+    "A1_recall_gain_ge_005": false,
+    "A2_idsw_reduce_ge_20pct": false,
+    "A3_rmse_no_worse": true
   }
 }

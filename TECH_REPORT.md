@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.21 (2026-09-26) — companion to the open-source repository
+**Version**: v1.22 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -22,6 +22,7 @@
 *v1.19 additions: the conditional-information sufficiency gate (Section 6.14). Probe experiments (cond -> VAE latent, 384 strictly paired samples) show the narrowband condition explains R2 = 0.140 of the latent variance — less than the trivial class-label reference (R2 = 0.245, analytic). The G15 residual Delta(t) ~ 0 is therefore a source-information property, not a training artifact: drop=0.5 null retraining is not worth doing, and the only information-viable path to conditional generative sensing is HRRP conditioning (registered as proposition C1).*
 *v1.20 additions: proposition C1 is executed and passes decisively (Section 6.15). Retraining the FM with HRRP conditioning (wideband range profile broadcast as the condition; VAE reused from the scaled run) produces the first measurable conditional information channel in the generative model: Delta(0) = 0.302 (6x the registered 0.05 threshold), monotone non-increasing in t, with the CFM identity holding to machine precision; 21.8% of the latent variance is condition-explained. Side effect: under HRRP conditioning the FM NFE=1 advantage over DDPM NFE=100 reappears (CD 0.2269 vs 0.2637, -14%).*
 *v1.21 additions: the MOT tracker upgrade (alpha-beta -> Kalman with CRB-consistent noise) is a clean negative result (Section 6.16). On identical detection streams (3 scenes x 40 frames, paired), the Kalman filter does not beat the fixed-gain alpha-beta filter (RMSE 0.2081 vs 0.1989), robustly across a two-decade Q sweep; eta_track = CRB/RMSE2 = 0.320. The error budget is dominated by data association (recall 0.26-0.30, ID switches 50-72), not by filter gains - the next MOT lever is the association layer, not the smoother.*
+*v1.22 additions: the MOT association-layer upgrade (Mahalanobis gating + second-chance assignment) is a second negative result (Section 6.17). With smoother and association both falsified, the bottleneck is located at the detection layer: at the current confidence threshold 0.5 only 1.1 detections per frame survive and GT coverage is 8.9%. The detection operating curve shows the knee at conf=0.3: recall 0.264 -> 0.584 (+121%) for a 7.6% RMSE cost; below 0.3 false positives saturate. MOT quality is detection-operating-point limited, not filter- or association-limited; confidence calibration is registered as proposition D1.*
 
 ---
 
@@ -664,6 +665,37 @@ smoother operates far from its own steady-state floor, but that floor is irrelev
 error budget is dominated by data association (recall 0.26-0.30, ID switches 50-72). T2/T3/T4 all
 FAIL. Conclusion: the next MOT lever is the association layer (gating, confirmation logic, or
 detection quality), not the smoother.
+
+### 6.17 MOT Association Layer: Second Negative; the Bottleneck Is the Detection Operating Point (v1.22)
+
+Following Section 6.16, the association layer was upgraded (registered A1-A3): Mahalanobis gating
+(chi^2@0.95 tight, chi^2@0.99 for a second-chance assignment round) using the Kalman prediction
+covariance. On identical detection streams (conf threshold 0.5, 3 scenes, paired):
+
+| Tracker | RMSE | Recall | ID switches |
+|---|---|---|---|
+| alpha-beta (current) | **0.1989** | 0.264 | **49.3** |
+| Kalman (CRB-consistent) | 0.2081 | 0.296 | 68.7 |
+| Kalman + association upgrade | 0.2035 | 0.282 | 65.3 |
+
+A1/A2 FAIL, A3 PASS — the association upgrade only marginally improves the Kalman variant, which
+still trails alpha-beta on ID switches. With smoother and association both falsified, the bottleneck
+is located at the detection layer: at the current confidence threshold 0.5, only 1.1 detections per
+frame survive the filter and GT coverage is 8.9% — the tracker cannot associate what is not
+detected. The detection operating curve (alpha-beta tracker, 3 scenes):
+
+| conf threshold | RMSE | Recall | ID switches |
+|---|---|---|---|
+| 0.5 (current default) | 0.1989 | 0.264 | 49.3 |
+| 0.4 | 0.2111 | 0.444 | 113.3 |
+| **0.3 (knee)** | 0.2140 | **0.584** | 161.7 |
+| 0.2 | 0.2162 | 0.579 | 163.0 |
+
+Lowering the threshold 0.5 -> 0.3 raises recall by 121% for a 7.6% RMSE cost; below 0.3 false
+positives saturate. Conclusion: MOT quality is detection-operating-point (confidence calibration)
+limited, not filter- or association-limited. Registered as proposition D1: temperature-scale the
+detector confidences on a held-out set and select the threshold from the PR curve (target: recall
+>= 0.55 with ID switches <= 0.6x the current default).
 
 ## 7. Limitations and Honest Discussion
 

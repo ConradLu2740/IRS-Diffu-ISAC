@@ -92,6 +92,70 @@ class KalmanMOTTracker(MOTTracker):
 # 实验
 # ----------------------------------------------------------------------
 
+class ImprovedMOTTracker(KalmanMOTTracker):
+    """关联层改进（pre-registered A1-A3）：
+      1. 马氏距离门控（χ² 检验，用 KF 预测协方差 S）替代固定欧氏门限
+      2. 第二轮补救关联（未匹配轨迹 × 未匹配检测，放宽 χ² 门限）
+    """
+
+    CHI2_TIGHT = 5.991      # 2 自由度 χ²@0.95
+    CHI2_LOOSE = 9.210      # 2 自由度 χ²@0.99
+
+    def update(self, detections):
+        if not self.tracks or len(detections) == 0:
+            for d in detections:
+                self._new_track(*d)
+        else:
+            preds = [t.predict() for t in self.tracks]
+            dets = np.array([d[0] for d in detections])
+            S_inv = []
+            for t in self.tracks:
+                S = t.H @ t.P @ t.H.T + t.R
+                S_inv.append(np.linalg.inv(S))
+            # 马氏距离矩阵
+            D = np.zeros((len(self.tracks), len(detections)))
+            for i, t in enumerate(self.tracks):
+                for j in range(len(detections)):
+                    dz = dets[j, :2] - preds[i][:2]
+                    D[i, j] = float(dz @ S_inv[i] @ dz)
+            rows, cols = linear_sum_assignment(D)
+            matched_t, matched_d = set(), set()
+            for r, c in zip(rows, cols):
+                if D[r, c] <= self.CHI2_TIGHT:
+                    self.tracks[r].update(*detections[c])
+                    matched_t.add(r); matched_d.add(c)
+            # 第二轮补救关联（放宽门限）
+            rem_t = [i for i in range(len(self.tracks)) if i not in matched_t]
+            rem_d = [j for j in range(len(detections)) if j not in matched_d]
+            if rem_t and rem_d:
+                sub = D[np.ix_(rem_t, rem_d)]
+                r2, c2 = linear_sum_assignment(sub)
+                for a, b in zip(r2, c2):
+                    if sub[a, b] <= self.CHI2_LOOSE:
+                        self.tracks[rem_t[a]].update(*detections[rem_d[b]])
+                        matched_t.add(rem_t[a]); matched_d.add(rem_d[b])
+            for c in range(len(detections)):
+                if c not in matched_d:
+                    self._new_track(*detections[c])
+            for r in range(len(self.tracks)):
+                if r not in matched_t:
+                    self.tracks[r].miss_frame()
+
+        self.tracks = [t for t in self.tracks if t.miss <= MAX_MISS]
+        for t in self.tracks:
+            if np.argmax(t.cls_probs) not in self.air_cls:
+                t.pos[2] = self.ground_z
+                if t.history:
+                    t.history[-1][2] = self.ground_z
+        out = []
+        for t in self.tracks:
+            if t.confirmed:
+                out.append((t.id, int(np.argmax(t.cls_probs)),
+                            t.pos.copy(), float(np.max(t.cls_probs))))
+        return out
+
+
+
 def collect_detections(args, seeds):
     """跑检测管线，返回每帧 (dets, gt)。dets 与 gt 配对供两个跟踪器共用。"""
     device = args.device
@@ -212,6 +276,8 @@ def main(args):
                                           class_names=CLASS_NAMES)),
         ("kalman_crb", lambda: KalmanMOTTracker(n_classes=len(CLASS_NAMES),
                                                 class_names=CLASS_NAMES, R=R, Q=Q)),
+        ("improved_assoc", lambda: ImprovedMOTTracker(n_classes=len(CLASS_NAMES),
+                                                      class_names=CLASS_NAMES, R=R, Q=Q)),
     ]:
         per_seed = []
         for frames in seqs:
@@ -254,6 +320,12 @@ def main(args):
                                   res["alpha_beta"]["recall_mean"] - 0.02 and
                                   res["kalman_crb"]["idsw_mean"] <=
                                   res["alpha_beta"]["idsw_mean"] + 1),
+        "A1_recall_gain_ge_005": bool(res["improved_assoc"]["recall_mean"] >=
+                                      res["kalman_crb"]["recall_mean"] + 0.05),
+        "A2_idsw_reduce_ge_20pct": bool(res["improved_assoc"]["idsw_mean"] <=
+                                        0.8 * res["kalman_crb"]["idsw_mean"]),
+        "A3_rmse_no_worse": bool(res["improved_assoc"]["rmse_mean"] <=
+                                 res["kalman_crb"]["rmse_mean"] * 1.05),
     }
     print(f"  裁决: {json.dumps(verdicts, indent=2)}")
 
