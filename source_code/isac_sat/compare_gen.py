@@ -98,13 +98,13 @@ def run_mode(args, irs_mode):
     sched = DDPMScheduler(T=args.T, device=device)
     train_1D_DDPM(vae, condenc_d, epsnet, sched, train_loader, test_loader,
                   z_mean, z_std, device=device, epochs=args.gen_epochs,
-                  save_dir=save_dir)
+                  lr_cond=args.lr_cond, save_dir=save_dir)
 
     print(f"[{irs_mode}] Stage 2b: Flow Matching (epochs={args.gen_epochs})")
     condenc_f, vnet = new_gen_models(cond_dim, args, device)
     train_1D_FM(vae, condenc_f, vnet, train_loader, test_loader,
                 z_mean, z_std, device=device, epochs=args.gen_epochs,
-                save_dir=save_dir)
+                lr_cond=args.lr_cond, save_dir=save_dir)
 
     # ---- 同一测试批评估 ----
     pc_gt, cond = next(iter(test_loader))
@@ -220,6 +220,8 @@ if __name__ == "__main__":
     parser.add_argument("--num_points", type=int, default=512)
     parser.add_argument("--vae_epochs", type=int, default=10)
     parser.add_argument("--gen_epochs", type=int, default=10)
+    parser.add_argument("--lr_cond", type=float, default=1e-4,
+                        help="条件编码器学习率（G15: 1e-3 会导致条件坍塌，默认 1e-4）")
     parser.add_argument("--T", type=int, default=100)
     parser.add_argument("--depth", type=int, default=2)
     parser.add_argument("--tau", type=int, default=8)
