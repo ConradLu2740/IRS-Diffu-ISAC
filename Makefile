@@ -70,6 +70,30 @@ smoke: ## 全链路最小复现（legacy 扩散重建 smoke test）
 smoke-sim: ## isac_sim 分层骨架冒烟（信道/波形/RIS/通信/感知/跟踪，秒级）
 	$(PY) tests/test_smoke_isac_sim.py
 
+smoke-fm: ## Flow Matching 冒烟（CFM 数学 / 训练收敛 / ODE 采样，秒级）
+	$(PY) tests/test_smoke_fm.py
+
+verify-ris-sdr: ## RIS 恒模 QCQP 的 SDR 最优性证书（双侧括号 + 秩-1 证书，~30s）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_ris_sdr_certificate.py --n_seeds 4
+
+verify-gen-hardening: ## 生成侧补强：Lipschitz 实测 + NFE=1 多样性 + 全模式指标表
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_gen_hardening.py
+
+verify-decomp: ## 闭环最优性分解（16 种子 + Bootstrap 95% CI）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_optimality_decomposition.py --n_seeds 16
+
+verify-p1-gates: ## P1 前置证伪门：κ(H_V) / VAU 坍缩 / FIM 可分离性（~10 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_p1_gates.py --n_seeds 6
+
+verify-baselines: ## 强 baseline 同口径对比（DDIM 少步 / FM / 渐进蒸馏，GPU ~2-3 分钟）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_baselines_strong.py
+
+train-fm: ## Flow Matching 训练（扩散同架构/同数据，3 种 IRS 模式）
+	cd $(ISAC) && ../../$(VENV)/bin/python train_fm.py
+
+compare-gen: ## 扩散 vs Flow Matching 等算力对比（共享 VAE，输出 NFE 曲线 + JSON）
+	cd $(ISAC) && ../../$(VENV)/bin/python compare_gen.py
+
 finding-angle-wall: ## 角度墙配置扫描热力图 + 双站反例出图（CPU 秒级）
 	$(PY) isac_sim/findings/plot_angle_wall_scan.py
 

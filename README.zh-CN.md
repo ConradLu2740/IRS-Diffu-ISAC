@@ -79,7 +79,7 @@ make smoke-sim
 | | |
 |---|---|
 | 🛰️ **真实轨道仿真** | SGP4 传播真实 LEO 卫星（ISS / Starlink TLE），动态几何 + 多普勒 + 时延，与真实物理值吻合 |
-| 📡 **RIS 动态相位跟踪** | 全模型闭式相位对齐（含直达 + 两条 RIS 路径），逐帧跟踪功率 **+173%**（K=1；坐标上升上界 +256%）；分段跟踪（K=2/4/8）量化"RIS 重构速率 vs 信道相干时间"权衡——K=8 增益大幅缩水 |
+| 📡 **RIS 动态相位跟踪** | 全模型闭式相位对齐（含直达 + 两条 RIS 路径），逐帧跟踪功率 **+173%**（K=1；坐标上升可达值 +256%——注意它是全局最优的**下界**，认证设计因子区间 [0.73, 0.83]，见 TECH_REPORT v1.11 §6.7）；分段跟踪（K=2/4/8）量化"RIS 重构速率 vs 信道相干时间"权衡——K=8 增益大幅缩水 |
 | 🎯 **感知-通信闭环** | 通信信号感知目标（分类 + 定位）→ 自动配置 IRS → 通信功率 **+374%**（达成理想闭环 73.3%） |
 | 🚁 **3D 多目标追踪** | 同时追踪 **10 个移动目标**（轿车 / 无人机 / 自行车 / 行人 / 火车 5 类），**完整 3D 轨迹**——无人机天上飞、地面目标贴地锁死 |
 | 🖥️ **交互式演示** | 单文件 HTML 播放器（场景切换 / 时间轴 / UTC 真实过境时间）+ GIF 动画，双击即开可分享 |
@@ -293,7 +293,7 @@ bash run_demo.sh                              # 2. 闭环 demo（自动训练）
 - [ ] **星载计算约束**：模型蒸馏 / 量化
 - [ ] **低 SNR 鲁棒性**评估套件
 - [ ] **OTFS / AFDM 波形扩展**（高动态 LEO ISAC 的多普勒鲁棒波形；OTFS/AFDM 是 3GPP Rel-20 ISAC 讨论中的主流候选波形）
-- [ ] **Flow matching 生成基线**（2026 生成模型趋势——与条件扩散对比 3D 点云重建）
+- [x] **Flow matching 生成基线**（2026 生成模型趋势——与条件扩散等算力公平对比：FM NFE=1 在三模式全指标胜 DDPM NFE=100；`make compare-gen` / `make train-fm` / `make verify-fm-bounds`；收敛阶、曲率、crossover 见 `verify_fm_bounds.py`）
 
 ---
 
@@ -327,6 +327,10 @@ IRS-Diffu-ISAC/
 │   ├── source_code.zip                # 历史快照
 │   └── original-docs/                 # 原项目文档（architecture.md / Code_Wiki.md / 图）
 ├── space_isac_design.md               # 完整设计文档（物理、结果、踩坑）
+├── docs/
+│   ├── optimization_roadmap.md        # 四角度优化路线图（实测结果 + 预注册命题）
+│   ├── arxiv_report_outline.md
+│   └── physics_audit_table.md
 ├── CONTRIBUTING.md
 ├── README.md / README.zh-CN.md
 └── LICENSE
@@ -341,6 +345,7 @@ IRS-Diffu-ISAC/
 - **[TECH_REPORT.md](TECH_REPORT.md)** — arXiv 版技术报告：系统模型、闭环结果、经典基线（2D-CFAR + MUSIC）、物理发现
 - **版本对应**：git release tag（当前 `v1.2.0`）标记仓库里程碑；技术报告有独立版本号（当前 **v1.6**）。当前对应：**tag `v1.2.0` ↔ TECH_REPORT v1.5**（6.3/6.4 节：莱斯稳健性 + 双站破墙）；**TECH_REPORT v1.6** 新增 Sionna CDL 标准信道对照（6.5 节，尚未打 tag）。
 - **[space_isac_design.md](space_isac_design.md)** — 完整设计：物理模型、实验结果、物理结论、踩坑记录
+- **[docs/optimization_roadmap.md](docs/optimization_roadmap.md)** — 四角度优化路线图（数学架构 / 最优化理论 / 信息论 / 移动通信），含实测结果、被证伪的预测、预注册命题登记表
 - 原项目文档（已归档）：[`archive/original-docs/`](archive/original-docs/) — [`architecture.md`](archive/original-docs/architecture.md) / [`Code_Wiki.md`](archive/original-docs/Code_Wiki.md)
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — 贡献指南
 

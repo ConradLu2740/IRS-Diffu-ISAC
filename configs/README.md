@@ -75,6 +75,18 @@ make demo-multi   # 多目标感知闭环（train_sensing_multi + demo_multi）
 make mot          # 10 目标检测 + 跟踪 + 3D HTML
 ```
 
+### 配方 7：扩散 vs Flow Matching 等算力对比（生成式感知，2026 趋势）
+
+```bash
+make compare-gen  # compare_gen.py：共享 VAE/数据/超参的 DDPM vs FM 对比
+                  # 输出 NFE-质量曲线 + compare_gen.json（sat_model_cmp/）
+make train-fm     # 只训 Flow Matching 版本（train_fm.py，3 种 IRS 模式）
+make smoke-fm     # CFM 数学 / 训练收敛 / ODE 采样冒烟（秒级）
+```
+
+> 关键参数：`--gen_epochs`（两种生成模型训练 epoch，等算力）、`--T`（DDPM 扩散步数 = 其 NFE）、
+> `--nfe_list`（FM 的 ODE 采样步数扫描，可低至 1 步）、`--solver`（euler / midpoint）。
+
 ## 如何改造成自己的实验
 
 | 想改什么 | 改哪里 | 说明 |

@@ -36,6 +36,9 @@ make demo     # 感知-通信闭环 demo（自动训练 + 闭环）
 | `train_sensing_multi.py` | 多目标感知（最多 K=2 目标分类 + 定位） | `python train_sensing_multi.py --wideband` | `isac_demo/sensing_multi_best.pth` |
 | `train_detect.py` | 10 目标检测器（5 类分类 + 定位，宽带距离像输入） | `python train_detect.py --n_scenes 25 --epochs 50` | `isac_demo/detect_best.pth` |
 | `train_sat.py` | 星-地 ISAC 扩散 3D 重建对比训练（none/sat/ground） | `python train_sat.py --irs_mode sat` | `sat_model/{mode}/` |
+| `fm_utils.py` | Flow Matching（OT-CFM）训练/采样工具（与 legacy/train.py 的 DDPM 工具同构） | （被 train_fm / compare_gen 引用） | — |
+| `train_fm.py` | Flow Matching 版 3D 重建训练（与 train_sat.py 同数据/同架构/同超参） | `python train_fm.py --modes sat --nfe_list 1 10 50` | `sat_model_fm/{mode}/` |
+| `compare_gen.py` | 扩散 vs Flow Matching 等算力公平对比（共享 VAE，NFE 扫描） | `python compare_gen.py --modes sat --gen_epochs 100` | `sat_model_cmp/`（JSON + NFE 曲线） |
 | `task_sat.py` | 感知任务升级：目标分类 + 姿态估计 | `python task_sat.py` | 评估输出 |
 | `baseline_classic.py` | 经典基线对比：2D-CFAR + MUSIC vs 学习式感知 | `python baseline_classic.py` | 对比图 |
 
@@ -46,6 +49,12 @@ make demo     # 感知-通信闭环 demo（自动训练 + 闭环）
 | `verify_sat.py` | 物理正确性：轨道参数 / 多普勒 / 信道（ALL PASS 即正确） | `python verify_sat.py` | ~1 分钟 |
 | `verify_tracking.py` | 动态 RIS 相位跟踪 vs random 基线 | `python verify_tracking.py` | ~1 分钟 |
 | `verify_robustness.py` | 多轨道（ISS/Starlink）× Ka 频段鲁棒性 | `python verify_robustness.py` | ~1 分钟 |
+| `verify_ris_sdr_certificate.py` | RIS 恒模 QCQP 的 SDR 最优性证书（双侧括号 + 秩-1 检测） | `python verify_ris_sdr_certificate.py --n_seeds 4` | ~30 秒 |
+| `verify_gen_hardening.py` | 生成侧补强：Lipschitz 实测 + NFE=1 多样性 + 全模式指标表 | `python verify_gen_hardening.py` | ~10 秒 |
+| `verify_optimality_decomposition.py` | 闭环最优性分解（η_sense×η_design，Bootstrap CI） | `python verify_optimality_decomposition.py --n_seeds 16` | ~30 秒 |
+| `verify_fm_bounds.py` | FM 收敛阶 / 轨迹直线性 / crossover NFE 验证（支持 --mode/--sat 泛化） | `python verify_fm_bounds.py` | ~40 秒 |
+| `verify_p1_gates.py` | P1 前置证伪门：κ(H_V) / VAE 坍缩 / FIM 可分离性 | `python verify_p1_gates.py --n_seeds 6` | ~10 秒 |
+| `verify_baselines_strong.py` | 强 baseline：DDIM 少步 / FM / 渐进蒸馏同口径对比 | `python verify_baselines_strong.py` | 2-3 分钟 |
 | `eval_sat.py` | 扩散重建评估：CD / F-Score / Voxel IoU + 可视化 | `python eval_sat.py` | 分钟级 |
 
 ### 演示（面向读者 / 评审）

@@ -79,7 +79,7 @@ Run locally? See [Quick Start](#-quick-start).
 | | |
 |---|---|
 | 🛰️ **Real Orbit Simulation** | SGP4 propagation of real LEO satellites (ISS / Starlink TLE), dynamic geometry + Doppler + delay, physics-verified against real values |
-| 📡 **Dynamic RIS Phase Tracking** | Full-model closed-form phase alignment (direct path + both RIS paths), frame-by-frame tracking power **+173%** (K=1; coordinate-ascent upper bound +256%); segmented tracking (K=2/4/8) quantifies the "RIS reconfiguration rate vs channel coherence time" trade-off — K=8 gain largely shrinks |
+| 📡 **Dynamic RIS Phase Tracking** | Full-model closed-form phase alignment (direct path + both RIS paths), frame-by-frame tracking power **+173%** (K=1; coordinate-ascent reachable value +256% — a *lower* bound on the global optimum, certified design-factor interval [0.73, 0.83], see TECH_REPORT v1.11 §6.7); segmented tracking (K=2/4/8) quantifies the "RIS reconfiguration rate vs channel coherence time" trade-off — K=8 gain largely shrinks |
 | 🎯 **Sensing–Communication Closed-Loop** | Sense targets from communication signals (classification + localization) → auto-configure IRS → communication power **+374%** (73.3% of the ideal closed-form oracle) |
 | 🚁 **Multi-Object Tracking in 3D** | Simultaneously track **10 moving targets** (car / drone / bicycle / pedestrian / train) with **full 3D trajectories** — drones in the air, ground targets locked to the ground |
 | 🖥️ **Interactive Demos** | Single-file HTML players (scene switching / timeline / real UTC overpass time) + GIF animations, shareable with a double-click |
@@ -114,7 +114,7 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 |------------|--------|
 | Orbit physics verification (ISS) | Altitude 418 km / velocity 7.66 km/s / period 92.9 min (matches real values) |
 | Overpass Doppler (30 GHz) | −610 ~ +610 kHz (S-curve, real LEO order of magnitude) |
-| RIS dynamic tracking | Frame-by-frame power **+173%** (K=1, full-model closed form; numeric upper bound +256%); K=8 segmented **+16%** (−8% at the numeric upper bound) |
+| RIS dynamic tracking | Frame-by-frame power **+173%** (K=1, full-model closed form; coordinate-ascent reachable value +256% = lower bound on global optimum, certified interval [0.73, 0.83]); K=8 segmented **+16%** (−8% at the coordinate-ascent value) |
 | Wideband HRRP classification | **0.80** (5-class templates; early 6-class experiments: 0.383 → 0.867 → ISAR 0.933) |
 | Sensing–comm closed-loop (single) | Classification 80%, comm gain **+374%** (73.3% of the ideal closed-form oracle) |
 | Sensing–comm closed-loop (multi) | Detection 0/2 (single scene), IRS pointing gain **+577%** (86% of the ideal closed-form oracle) |
@@ -159,7 +159,7 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 
 | Project | Reported metrics |
 |---|---|
-| **IRS-Diffu-ISAC** | HRRP classification **0.80** (5-class) · closed-loop comm gain **+374%** (73.3% of ideal oracle) · RIS tracking **+173%** (K=1; numeric upper bound +256%) · MOT recall **0.60** (10 targets / 5 classes) · 2D-CFAR detection 100%, LOS RMSE 8.1 m · 3D reconstruction CD 0.137–0.183 (space ISAC; vs 0.233 without RIS) |
+| **IRS-Diffu-ISAC** | HRRP classification **0.80** (5-class) · closed-loop comm gain **+374%** · RIS tracking **+173%** (K=1) · MOT recall **0.60** · 2D-CFAR detection 100%, LOS RMSE 8.1 m · 3D reconstruction CD 0.137–0.183 (space ISAC; vs 0.233 without RIS) · **Flow Matching: NFE=1 beats diffusion NFE=100 on all metrics in all 3 IRS modes** (CD −22~−33%; Euler order −0.87; 50–100× fewer sampling steps; certified design-factor interval [0.73, 0.83]; η_total 0.694±0.108) |
 | PVD (ShapeNet) | CD ~1.5e-3 on ShapeNet — standard *generation* benchmark, different task (unconditional 3D generation, no channel/ISAC physics) |
 | ISAC-PLM | Link-level sensing MSE / NMSE for 60 GHz 802.11ay (short-range PHY layer) |
 | 5G ISAC System-Level | 5G NR system-level simulation (sensing via 2D-CFAR / MUSIC, cellular scenario) |
@@ -291,7 +291,7 @@ Recipes & parameter quick-reference: [`configs/README.md`](configs/README.md)
 - [ ] **On-board computational constraints**: model distillation / quantization
 - [ ] **Low-SNR robustness** evaluation suite
 - [ ] **OTFS / AFDM waveform extension** (Doppler-robust waveforms for high-dynamics LEO ISAC; OTFS/AFDM are the leading waveform candidates discussed for 3GPP Rel-20 ISAC)
-- [ ] **Flow-matching generative baseline** (2026 trend in generative models — compare flow matching against conditional diffusion for 3D point-cloud reconstruction)
+- [x] **Flow-matching generative baseline**（2026 trend — 与扩散等算力公平对比：FM NFE=1 在三模式全指标胜 DDPM NFE=100；`make compare-gen` / `make train-fm` / `make verify-fm-bounds`；收敛阶、曲率、crossover 见 `verify_fm_bounds.py`）
 
 ---
 
@@ -325,6 +325,10 @@ IRS-Diffu-ISAC/
 │   ├── source_code.zip                # Historical snapshot
 │   └── original-docs/                 # Original project docs (architecture.md / Code_Wiki.md / figures)
 ├── space_isac_design.md               # Full design document (physics, results, pitfalls)
+├── docs/
+│   ├── optimization_roadmap.md        # Four-angle optimization roadmap (measured results + pre-registered propositions)
+│   ├── arxiv_report_outline.md
+│   └── physics_audit_table.md
 ├── CONTRIBUTING.md
 ├── README.md / README.zh-CN.md
 └── LICENSE
@@ -337,8 +341,9 @@ IRS-Diffu-ISAC/
 ## 📚 Documentation
 
 - **[TECH_REPORT.md](TECH_REPORT.md)** — arXiv-ready technical report: system model, closed-loop results, classical baselines (2D-CFAR + MUSIC), physical findings
-- **Versioning**: git release tags (currently `v1.2.0`) mark repo milestones; the report has its own version (currently **v1.6**). Current mapping: **tag `v1.2.0` ↔ TECH_REPORT v1.5** (Sections 6.3/6.4: Rician robustness + two-station escape from the angle wall); **TECH_REPORT v1.6** adds the Sionna CDL channel cross-validation (Section 6.5, not yet tagged); **TECH_REPORT v1.7** adds the physics-consistency audit (docs/physics_audit_table.md, not yet tagged).
+- **Versioning**: git release tags (currently `v1.2.0`) mark repo milestones; the report has its own version (currently **v1.11**). Current mapping: **tag `v1.2.0` ↔ TECH_REPORT v1.5** (Sections 6.3/6.4: Rician robustness + two-station escape from the angle wall); later report versions v1.6–v1.11 (Sionna CDL cross-validation, physics audit, flow-matching equal-compute comparison with certificates, strong baselines, generalization, SDR optimality bracket, 16-seed decomposition) are not yet tagged; the **Markdown report is authoritative** (`TECH_REPORT.md`), the `.tex` is a stale auto-conversion.
 - **[space_isac_design.md](space_isac_design.md)** — complete design: physical model, experiments, physical conclusions, pitfalls
+- **[docs/optimization_roadmap.md](docs/optimization_roadmap.md)** — four-angle optimization roadmap (math architecture / optimization theory / information theory / mobile communications), with measured results, falsified predictions, and a pre-registered proposition table
 - Original project docs (archived): [`archive/original-docs/`](archive/original-docs/) — [`architecture.md`](archive/original-docs/architecture.md) / [`Code_Wiki.md`](archive/original-docs/Code_Wiki.md)
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — how to contribute
 
