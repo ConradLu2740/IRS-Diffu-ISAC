@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.17 (2026-09-26) — companion to the open-source repository
+**Version**: v1.18 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -18,6 +18,7 @@
 *v1.15 additions: two variational-inference consistency fixes are applied and A/B-certified (Section 6.10): the transport objective now uses posterior samples z~q instead of the posterior mean (ELBO consistency: the generative prior should match the aggregate posterior), and latent normalization is per-dimension whitening instead of a scalar. Held-out aggregate-posterior Gaussian KL drops 29.4%. The A/B is not quality-neutral and corrects the headline: the previous "FM NFE=1 beats DDPM NFE=100 by 22-33%" was partly an artifact of inconsistent training penalizing DDPM more; under consistent training FM NFE=1 is -9% (within the +/-20% run-to-run variance of DDPM) and FM NFE>=10 beats DDPM NFE=100 by 26-36%. Run-to-run variance across four same-protocol DDPM runs (0.36-0.56) is reported, and a multi-seed paired A/B is registered as proposition M1.*
 *v1.16 additions: the multi-seed paired A/B (Section 6.11, proposition M1) falsifies the statistical basis of any quality-superiority claim between the two generative paradigms at this training scale: across 3 seeds the FM(NFE=1)-DDPM(NFE=100) difference is sign-inconsistent (+4.5% / -20.5% / -4.4%) with a Bootstrap 95% CI crossing zero, and DDPM itself has 18% cross-seed CV. The headline is therefore restated as matched-quality sampling-efficiency parity (50-100x fewer network evaluations), and the remaining 15-20x gap to the VAE ceiling is attributed to the VAE/training scale rather than the generative objective.*
 *v1.17 additions: the VAE training-scale experiment (Section 6.12). Diagnosis from the M1 checkpoints showed the VAE was still improving +24-29% in its last 10 epochs at epoch 50 (undertrained, not capacity-limited). Scaling (200 epochs / 1024 samples vs 50 / 256, two paired seeds) halves the VAE ceiling (0.0146/0.0155 -> 0.0076/0.0081, -47.7%) and reduces cross-seed CV to 3.7%, but generative quality does not follow (FM NFE=10 and DDPM get slightly worse): the bottleneck shifts to the generative models own training budget, with the gap to the (halved) ceiling now 20-30x. Side observation: under the scaled VAE, FM NFE=1 beats DDPM NFE=100 on both seeds (-55% / -43%), suggesting the earlier VAE bottleneck partly masked the few-step advantage; registered as proposition M2 (3-seed confirmation) with M3 (generative training 100 -> 400 epochs).*
+*v1.18 additions: the generative training-budget experiment (Section 6.13, proposition M3). With the scaled VAE fixed, 4x generative training (100 -> 400 epochs) does not improve quality and significantly hurts one seed (FM NFE=1 0.1457 -> 0.2471) — an overfitting signature. A conceptual correction follows: comparing generative CD against the VAE oracle CD compares a distributional bound with a per-sample reconstruction bound; the "15-30x gap to the ceiling" framing is retracted. The bottleneck investigation arc closes as: VAE undertraining (fixed, ceiling -48%) -> generative training budget (falsified) -> the real candidates are the conditional-structure collapse (G15) and data diversity. M2 (FM NFE=1 < DDPM NFE=100 under the scaled VAE) holds in 4/4 paired observations across two independent runs, still at n=2 seeds.*
 
 ---
 
@@ -561,6 +562,35 @@ DDPM NFE=100 on both seeds (-55% / -43%), suggesting the earlier VAE bottleneck 
 few-step advantage. Registered follow-ups: M2 (3-seed sign-consistency of FM1 < DDPM100 under the
 scaled config) and M3 (generative training 100 -> 400 epochs with the scaled VAE fixed, testing
 convergence toward the new ceiling).
+
+### 6.13 Generative Training Budget: More Epochs Hurt; a Reference-Frame Correction (v1.18)
+
+Following the VAE scaling result (Section 6.12), the next hypothesis was that the generative models'
+own training budget is the binding constraint. Experiment (`verify_gen_scale.py`): VAE fixed at the
+scaled checkpoint (200 epochs / 1024 samples), generative training 100 -> 400 epochs, two paired
+seeds:
+
+| seed | VAE | FM NFE=1 (100ep -> 400ep) | FM NFE=10 | FM NFE=100 | DDPM NFE=100 | gap ratio |
+|---|---|---|---|---|---|---|
+| 42 | 0.0086 | 0.1457 -> **0.2471** | 0.2674 -> **0.3857** | 0.3189 | 0.3368 | 35x -> 45x |
+| 43 | 0.0079 | 0.2680 -> 0.2311 | 0.2482 -> 0.2600 | 0.2939 | 0.3982 | 31x -> 33x |
+
+Registered Ga (FM10 gain >= 20%) and Gb (gap ratio <= 20x) **FAIL**; Gc (FM1 <= FM100) and Gd
+(FM1 < DDPM100) PASS. Reading: 4x generative training does not help and hurts one seed — an
+overfitting signature (1024 synthetic samples against a ~10M-parameter DiT), or a decoupling of the
+latent MSE objective from decoded CD.
+
+**Reference-frame correction.** Comparing generative CD with the VAE oracle CD compares a
+*distributional* bound (the generative model must cover the whole latent prior) with a *per-sample
+reconstruction* bound (the VAE only needs to encode/decode each sample). The "15-30x gap to the
+ceiling" framing of Sections 6.11-6.12 is therefore retracted; the meaningful references for
+generative quality are the conditional structure itself (G15: the condition encoder is collapsed, so
+the generative model is effectively unconditional) and data diversity.
+
+**Bottleneck arc (closed)**: VAE undertraining (fixed; ceiling -48%) -> generative training budget
+(falsified here) -> remaining candidates: the conditional collapse (G15) and data diversity.
+**M2 status**: under the scaled VAE, FM NFE=1 < DDPM NFE=100 holds in 4/4 paired observations
+across two independent runs (100-epoch and 400-epoch generative training), still at n=2 seeds.
 
 ## 7. Limitations and Honest Discussion
 

@@ -83,14 +83,22 @@ def run_mode(args, irs_mode):
     save_dir = os.path.join(args.save_dir, irs_mode)
     os.makedirs(save_dir, exist_ok=True)
 
-    # ---- 共享 PointVAE ----
+    # ---- 共享 PointVAE（--vae_ckpt 提供则复用，跳过训练）----
     vae = PointVAE(num_points=args.num_points, z_dim=256).to(device)
-    print(f"[{irs_mode}] Stage 1 (shared): PointVAE (epochs={args.vae_epochs})")
-    train_PointVAE(vae, train_loader, test_loader, device=device,
-                   epochs=args.vae_epochs, lr=1e-3, kl_weight=args.kl_weight,
-                   kl_warmup_epochs=args.kl_warmup, save_dir=save_dir)
-    z_mean, z_std = estimate_latent_stats(vae, train_loader, device=device,
-                                          per_dim=args.whiten == "perdim")
+    if args.vae_ckpt:
+        sd_src = os.path.join(args.vae_ckpt, irs_mode)
+        vae.load_state_dict(torch.load(os.path.join(sd_src, "vae_best.pth"),
+                                       map_location=device))
+        stats = torch.load(os.path.join(sd_src, "latent_stats.pth"), map_location=device)
+        z_mean, z_std = stats["z_mean"], stats["z_std"]
+        print(f"[{irs_mode}] Stage 1 (shared): PointVAE 复用自 {sd_src}（跳过训练）")
+    else:
+        print(f"[{irs_mode}] Stage 1 (shared): PointVAE (epochs={args.vae_epochs})")
+        train_PointVAE(vae, train_loader, test_loader, device=device,
+                       epochs=args.vae_epochs, lr=1e-3, kl_weight=args.kl_weight,
+                       kl_warmup_epochs=args.kl_warmup, save_dir=save_dir)
+        z_mean, z_std = estimate_latent_stats(vae, train_loader, device=device,
+                                              per_dim=args.whiten == "perdim")
     torch.save({"z_mean": z_mean, "z_std": z_std}, os.path.join(save_dir, "latent_stats.pth"))
 
     # ---- 两种生成模型：同潜空间、同 epoch、同优化器超参 ----
@@ -229,6 +237,8 @@ if __name__ == "__main__":
                         help="1=传输目标用后验样本 z~q（ELBO 一致性，默认）；0=后验均值 μ（旧行为）")
     parser.add_argument("--whiten", choices=["scalar", "perdim"], default="perdim",
                         help="潜空间归一化：perdim=逐维白化（默认，恢复逐维高斯恒等式）；scalar=旧标量")
+    parser.add_argument("--vae_ckpt", type=str, default=None,
+                        help="提供 VAE checkpoint 目录则复用（跳过 VAE 训练，隔离生成侧变量）")
     parser.add_argument("--T", type=int, default=100)
     parser.add_argument("--depth", type=int, default=2)
     parser.add_argument("--tau", type=int, default=8)
