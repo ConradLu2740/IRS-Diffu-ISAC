@@ -1,0 +1,27 @@
+{
+  "claim1_convergence_order": {
+    "slope_euler": -0.8523670118135048,
+    "theory_euler": -1.0,
+    "slope_midpoint": -1.0450890831117605,
+    "theory_midpoint": -2.0,
+    "cd_ref_midpoint_nfe1000": 0.37119024991989136
+  },
+  "claim2_straightness": {
+    "fm_curvature": 133.30411456990987,
+    "ddpm_curvature": 21725.950241088867,
+    "ratio": 0.006135709282708405
+  },
+  "claim3_crossover": {
+    "cd_ddpm_t100": 0.32660776376724243,
+    "crossover_nfe": 1,
+    "speedup_x": 100.0
+  },
+  "protocol": {
+    "seed": 42,
+    "x0_seed": 7,
+    "n_eval": 32,
+    "T": 100,
+    "cfg_scale": 2.0,
+    "torch": "2.11.0+cu128"
+  }
+}

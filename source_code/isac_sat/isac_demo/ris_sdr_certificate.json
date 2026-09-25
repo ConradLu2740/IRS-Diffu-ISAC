@@ -1,0 +1,30 @@
+{
+  "n_frames": 32,
+  "n_seeds": 4,
+  "c1_violations": 0,
+  "ratio_ca_upper": {
+    "mean": 0.880490567731048,
+    "std": 0.057713493936605534,
+    "frac_below_0.95": 0.84375
+  },
+  "gap_upper_over_lower": {
+    "mean": 1.1408412900210445,
+    "median": 1.1554860146037824,
+    "max": 1.4174709841400244
+  },
+  "eta_design_interval": {
+    "lower": 0.7321684185573601,
+    "upper_reported": 0.8322868555089886
+  },
+  "ratio_round_gershgorin": {
+    "mean": 0.13128286666627403,
+    "std": 0.025445196562960997
+  },
+  "gain_sdr_vs_cf": 0.5549773680029517,
+  "gain_ca_vs_cf": 0.22109718310012222,
+  "lambda2": {
+    "mean": 3.8760980516672134,
+    "frac_rank1": 0.0
+  },
+  "bm_vs_ca": 0.46204498135147437
+}
