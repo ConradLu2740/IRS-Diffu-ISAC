@@ -27,7 +27,7 @@ from phase_optimizer_sat import PhaseOptimizerSat
 # ----------------------------------------------------------------------
 # 参数
 # ----------------------------------------------------------------------
-IRS_ELEMENTS = 16              # 单块 RIS 面板（4×4）
+IRS_ELEMENTS = int(os.environ.get("ISAC_RIS_ELEMENTS", "16"))   # 单块 RIS 面板（默认 4×4；泛化实验可用环境变量覆盖）
 IRS_GAIN = 100.0               # RIS 每元素增益（线性，~20dB/元素）；大孔径面板的孔径增益补偿路径损耗
 P_SNR = 20                     # 参考 SNR dB（与 setup.py 一致）
 POWER_SIGMA = 0.01             # 噪声功率
@@ -525,6 +525,8 @@ def calculate_value_sat(ROI_voxel, phase, X, Ht, Power_sigma, t_rel, wavelength_
     N = X.shape[0]
 
     H_BS_ROI = Ht["H_BS_ROI"]; H_ROI_UE = Ht["H_ROI_UE"]
+    dev = H_ROI_UE.device
+    S_c = S_c.to(dev)
     f_d1 = Ht["f_d_bs_roi"]
     dop1 = torch.exp(torch.tensor(1j * 2 * math.pi * f_d1 * t_rel, dtype=torch.complex64))
 
@@ -533,7 +535,7 @@ def calculate_value_sat(ROI_voxel, phase, X, Ht, Power_sigma, t_rel, wavelength_
     H_total = H_BS_ROI_UE                               # [4, 4]
 
     if "H_ROI_IRS" in Ht:
-        v = torch.exp(1j * torch.tensor(phase, dtype=torch.float32)).to(torch.complex64)  # [N]
+        v = torch.exp(1j * torch.tensor(phase, dtype=torch.float32)).to(torch.complex64).to(dev)  # [N]
         f_d2 = Ht["f_d_bs_irs"]
         dop2 = torch.exp(torch.tensor(1j * 2 * math.pi * f_d2 * t_rel, dtype=torch.complex64))
 
@@ -666,9 +668,10 @@ class SatROIDataset(Dataset):
                 ROI_voxel, phases, self.X_fixed, frame, self.power_sigma,
                 t_rel, self.ch.wavelength_m)
             Y_feat = data_progress_amp_phase_db(Y_t.detach().cpu())     # 12 维（dB）
+            phases_cpu = phases.detach().cpu()
 
-            if len(phases) > 0:
-                IRS_feat = torch.cat([torch.sin(phases), torch.cos(phases)], dim=0).float()  # 2N
+            if len(phases_cpu) > 0:
+                IRS_feat = torch.cat([torch.sin(phases_cpu), torch.cos(phases_cpu)], dim=0).float()  # 2N
             else:
                 IRS_feat = torch.tensor([])
 
@@ -681,7 +684,7 @@ class SatROIDataset(Dataset):
             ], dtype=torch.float32)
 
             # RCS 功率特征（物理：目标散射截面 → 回波功率，类别可分主特征）
-            y_pow = torch.log10(Y_t.abs().pow(2).mean() + 1e-12)
+            y_pow = torch.log10(Y_t.detach().cpu().abs().pow(2).mean() + 1e-12)
 
             cond_t = torch.cat([X_feat, Y_feat, IRS_feat, dyn, y_pow.view(1)], dim=0).float()
             cond_list.append(cond_t)
