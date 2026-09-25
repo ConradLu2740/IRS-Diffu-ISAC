@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.14 (2026-09-25) — companion to the open-source repository
+**Version**: v1.15 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -15,6 +15,7 @@
 *v1.12 additions: the extended verification suite (Section 6.8): DP-optimal RIS reconfiguration scheduling with an exhaustive-search certificate (uniform-K suboptimality gap 40.1%/42.1% at K=2/4); the closed-form sensing-communication Pareto frontier sigma_cross(R)=40.97/(2^R-1) with multi-frame fusion gain and an HRRP information floor of 0.5165 mm (290x more conservative than the assumed sigma_rho=0.15 m); a pilot-FIM analysis certifying genie-CSI harmlessness (eta_est(17)=0.9999994); an information audit (Fano ladder 0.19/1.71/2.07 bit, Van Trees confirmation of the angle wall, CFM conditional-loss identity) that uncovers a conditional-encoder collapse (CFG effectively inert); and an OTFS/AFDM waveform layer with the exact OFDM ICI identity (28.35% ICI at the real +-611 kHz LEO Doppler; OTFS BER=0 vs OFDM 7.7e-2 at equal SNR). Two pre-registered predictions were falsified and are reported as such (critical SNR -8 dB vs measured -31.2 dB; "OFDM SIR <= 5 dB" vs measured 11.7 dB in the all-pilot regime).*
 *v1.13 additions: the conditional-encoder collapse reported in v1.12 is root-caused and fixed (lr_cond 1e-3 -> 1e-4; condition sensitivity restored 4x10^4-fold, see Section 6.8). The pre-registered side-information claim (Delta(0) >= 0.05) is partially falsified: Delta(t) remains ~0 at 256 samples/100 epochs even though condition information now flows into the velocity field. Side benefit: with the fixed encoder the sat-mode FM NFE=1 CD improves 0.3166 -> 0.2922 and the headline strengthens (FM NFE=1 0.2922 vs best DDPM NFE=100 0.4055-0.4326 across two lr_cond settings). The FM-vs-DDPM equal-compute comparison is unaffected by the fix.*
 *v1.14 additions: the G-kappa gate finding (box prior is the closed-loop bottleneck) is repaired — the FM generative model becomes a real closed-loop component: an NFE=1 sampled shape (voxelized, translated to the MLP position estimate) replaces the hand-crafted box ROI (Section 6.9). Measured over 8 seeds with the design-on-estimate/evaluate-on-truth protocol: eta_sense 0.840 -> 0.932 (+10.9%), voxel l1 error 0.58x, projected eta_total ~0.736. demo.py gains an optional --fm_shape flag (default unchanged).*
+*v1.15 additions: two variational-inference consistency fixes are applied and A/B-certified (Section 6.10): the transport objective now uses posterior samples z~q instead of the posterior mean (ELBO consistency: the generative prior should match the aggregate posterior), and latent normalization is per-dimension whitening instead of a scalar. Held-out aggregate-posterior Gaussian KL drops 29.4%. The A/B is not quality-neutral and corrects the headline: the previous "FM NFE=1 beats DDPM NFE=100 by 22-33%" was partly an artifact of inconsistent training penalizing DDPM more; under consistent training FM NFE=1 is -9% (within the +/-20% run-to-run variance of DDPM) and FM NFE>=10 beats DDPM NFE=100 by 26-36%. Run-to-run variance across four same-protocol DDPM runs (0.36-0.56) is reported, and a multi-seed paired A/B is registered as proposition M1.*
 
 ---
 
@@ -468,6 +469,41 @@ box prior (92 vs 159 voxels mean), and the box baseline reproduces the decomposi
 gap is the phase-design factor, already shown to be near its certified ceiling (Section 6.7).
 `demo.py --fm_shape <ckpt>` exposes the upgrade as an optional flag (default protocol unchanged;
 single-scene demo 73.3% -> 74.9%, within single-scene noise).
+
+### 6.10 Variational-Inference Consistency Fixes, A/B-Certified (v1.15)
+
+Two inconsistencies in the generative stack are fixed (now the defaults; legacy behavior remains
+reproducible via `--posterior_sample 0 --whiten scalar`):
+
+1. **ELBO consistency**: the DDPM/FM transport objective was trained on the posterior *mean* mu(x). The
+   generative prior should match the *aggregate posterior* integral q(z|x)p(x|c)dz, so the target is now
+   a reparameterized posterior sample z ~ q (one-line change in `train_1D_DDPM` / `train_1D_FM`).
+2. **Per-dimension whitening**: latent normalization used a scalar (z - mu)/sigma, leaving an anisotropic
+   aggregate posterior and breaking the per-dimension Gaussian identities that all CFM/DDPM theory
+   assumes. `estimate_latent_stats(per_dim=True)` now whitens per dimension.
+
+**Certificate (held-out split, `verify_elbo_consistency.py`)**: aggregate-posterior Gaussian KL
+0.5*sum(mu_i^2 + sigma_i^2 - 1 - ln sigma_i^2) on held-out latents: scalar 80.7 nat -> per-dim 57.0 nat
+(**-29.4%**; per-dim variance std 0.62 -> 0.97). Registered W1 (>= 30%) is a near-miss, honestly reported.
+
+**A/B (same protocol, only the two flags differ, sat mode, single seed)**:
+
+| Model | Before (mu + scalar) | After (z~q + per-dim) | ΔCD |
+|---|---|---|---|
+| DDPM NFE=100 | 0.5629 | **0.3626** | **-35.6%** |
+| FM NFE=1 | 0.2922 | 0.3296 | +12.8% |
+| FM NFE=10 | 0.3354 | **0.2316** | **-31.0%** |
+| FM NFE=100 | 0.2747 | 0.3383 | +23.1% |
+| VAE oracle | 0.0266 | 0.0215 | -19.2% |
+
+Registered E1 (quality-neutral within 10%) is **falsified**: the fixes are not neutral — they help DDPM
+far more than FM. E2 (prior-mismatch should help NFE=1 most) is **not supported**. The headline
+consequence, stated plainly: the earlier "FM NFE=1 beats DDPM NFE=100 by 22-33% CD" (Sections 6.7) was
+measured under inconsistent training that penalized DDPM more than FM. Under consistent training the
+defensible claims are: FM NFE=1 ≈ DDPM NFE=100 (-9.1%, within variance), and FM NFE >= 10 beats
+DDPM NFE=100 by 26-36%. Caveat: four same-protocol DDPM runs gave 0.4055 / 0.4326 / 0.5629 / 0.3626
+(+/-20% run-to-run variance), so any single-run A/B is provisional; a 3-seed paired A/B is registered as
+proposition M1 (the FM(1)-DDPM(100) difference must be sign-consistent across seeds).
 
 ## 7. Limitations and Honest Discussion
 

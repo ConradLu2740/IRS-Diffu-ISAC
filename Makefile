@@ -106,6 +106,9 @@ verify-info-audit: ## 互信息审计（Fano 阶梯 / Van Trees / CFM 恒等式�
 verify-fm-shape: ## FM 生成形状 vs 手工盒子先验的闭环对比（G-κ 门修复，~11 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_fm_shape_loop.py --n_seeds 8
 
+verify-elbo: ## ELBO 一致性 + 逐维白化 A/B 证书（需先训 sat_model_elbo，~5 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_elbo_consistency.py
+
 train-fm: ## Flow Matching 训练（扩散同架构/同数据，3 种 IRS 模式）
 	cd $(ISAC) && ../../$(VENV)/bin/python train_fm.py
 

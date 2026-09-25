@@ -83,6 +83,7 @@ def train_1D_FM(
     lr_cond=1e-3,
     lr_v=1e-4,
     cond_drop_prob=0.1,
+    posterior_sample=False,
     save_dir="./model"
 ):
     """条件流匹配训练，超参数与 train_1D_DDPM 对齐（等算力公平对比）。"""
@@ -120,8 +121,11 @@ def train_1D_FM(
             cond_drop = cond * drop_mask
 
             with torch.no_grad():
-                mu, _ = vae.encode(pc)
-                x1 = (mu - z_mean) / z_std
+                mu, logvar = vae.encode(pc)
+                # ELBO 一致性：posterior_sample=True 时传输目标为后验样本 z~q
+                # （聚合后验匹配），否则为后验均值 μ（旧行为）
+                z_src = vae.reparam(mu, logvar) if posterior_sample else mu
+                x1 = (z_src - z_mean) / z_std
 
             x0 = torch.randn_like(x1)
             t = torch.rand(B, device=device)

@@ -183,7 +183,9 @@ def train_PointVAE(
 
 
 @torch.no_grad()
-def estimate_latent_stats(vae, loader, device="cuda", max_batches=200):
+def estimate_latent_stats(vae, loader, device="cuda", max_batches=200, per_dim=False):
+    """潜空间归一化统计。per_dim=False 为标量（旧行为，已发表数字的口径）；
+    per_dim=True 逐维均值/std（白化，恢复逐维高斯恒等式）。"""
     vae.eval()
     zs = []
 
@@ -194,9 +196,15 @@ def estimate_latent_stats(vae, loader, device="cuda", max_batches=200):
         zs.append(mu.detach())
 
     z = torch.cat(zs, dim=0)
-    z_mean = z.mean()
-    z_std = z.std() + 1e-8
-    print(f"[Latent Stats] 1D Global Mean: {z_mean.item():.4f}, Std: {z_std.item():.4f}")
+    if per_dim:
+        z_mean = z.mean(dim=0)
+        z_std = z.std(dim=0) + 1e-8
+        print(f"[Latent Stats] per-dim: mean|c|={z_mean.abs().mean():.4f}, "
+              f"std(mean)={z_mean.std():.4f}, std(1/std)={z_std.std():.4f}")
+    else:
+        z_mean = z.mean()
+        z_std = z.std() + 1e-8
+        print(f"[Latent Stats] 1D Global Mean: {z_mean.item():.4f}, Std: {z_std.item():.4f}")
     return z_mean, z_std
 
 
@@ -243,6 +251,7 @@ def train_1D_DDPM(
     lr_cond=1e-3,
     lr_eps=1e-4,
     cond_drop_prob=0.1,
+    posterior_sample=False,
     save_dir="./model"
 ):
     vae.eval()
@@ -281,8 +290,11 @@ def train_1D_DDPM(
             cond_drop = cond * drop_mask
 
             with torch.no_grad():
-                mu, _ = vae.encode(pc)
-                z0 = (mu - z_mean) / z_std
+                mu, logvar = vae.encode(pc)
+                # ELBO 一致性：posterior_sample=True 时传输目标为后验样本 z~q
+                # （聚合后验匹配），否则为后验均值 μ（旧行为）
+                z_src = vae.reparam(mu, logvar) if posterior_sample else mu
+                z0 = (z_src - z_mean) / z_std
 
             t = torch.randint(0, sched.T, (B,), device=device, dtype=torch.long)
             noise = torch.randn_like(z0)

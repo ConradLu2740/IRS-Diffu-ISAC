@@ -27,7 +27,7 @@ Most ISAC papers report numbers without reporting the *conditions under which th
 | 📉 **10+ falsified predictions** | SDR gain overestimated an order of magnitude; Hessian-weighted loss dead (value function is a step function); free-bits dead (no posterior collapse); critical SNR −8 dB → measured −31.2 dB; "OFDM SIR ≤ 5 dB" → 11.7 dB; FM advantage at equal NFE non-monotonic — all reported, none hidden |
 | 🧱 **The Wall Map** | four independent methods (information theory, power accounting, global optimization, estimation theory) converge on the same guidance for the field: *calibration and geometry, not phase algorithms* |
 
-**Headline, in one sentence**: a 1-step flow-matching sampler matches 100-step diffusion on every metric in every IRS mode (−22~−33% CD at 50–100× fewer network evaluations), inside a closed loop that provably reaches ≈69% of a *certified* global optimum (Bootstrap 95% CI [0.638, 0.745]).
+**Headline, in one sentence**: under ELBO-consistent training, a 1-step flow-matching sampler matches 100-step diffusion (CD −9%, within run-to-run variance) and a 10-step sampler beats it by 26–36% CD — inside a closed loop that provably reaches ≈69% of a *certified* global optimum (Bootstrap 95% CI [0.638, 0.745], raised to ≈74% with the FM-shape prior, v1.14).
 
 ---
 

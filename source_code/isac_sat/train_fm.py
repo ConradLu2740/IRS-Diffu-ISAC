@@ -77,12 +77,14 @@ def run_mode(args, irs_mode):
 
     # ---- 潜在统计 + 阶段 2：Flow Matching ----
     print(f"[{irs_mode}] Stage 2: Latent Flow Matching (epochs={args.fm_epochs})")
-    z_mean, z_std = estimate_latent_stats(vae, train_loader, device=device)
+    z_mean, z_std = estimate_latent_stats(vae, train_loader, device=device,
+                                          per_dim=(args.whiten == "perdim"))
     torch.save({"z_mean": z_mean, "z_std": z_std}, os.path.join(save_dir, "latent_stats.pth"))
     print(f"[{irs_mode}] latent_stats 已保存")
     train_1D_FM(vae, condenc, vnet, train_loader, test_loader,
                 z_mean, z_std, device=device, epochs=args.fm_epochs,
-                lr_cond=args.lr_cond, save_dir=save_dir)
+                lr_cond=args.lr_cond, posterior_sample=args.posterior_sample,
+                save_dir=save_dir)
 
     # ---- 条件采样 + CD 评估（NFE 扫描）----
     pc_gt, cond = next(iter(test_loader))
@@ -131,6 +133,9 @@ if __name__ == "__main__":
     parser.add_argument("--fm_epochs", type=int, default=1)
     parser.add_argument("--lr_cond", type=float, default=1e-4,
                         help="条件编码器学习率（G15: 1e-3 会导致条件坍塌，默认 1e-4）")
+    parser.add_argument("--posterior_sample", type=int, default=1,
+                        help="1=后验样本 z~q（ELBO 一致性，默认）；0=后验均值 μ（旧行为）")
+    parser.add_argument("--whiten", choices=["scalar", "perdim"], default="perdim")
     parser.add_argument("--depth", type=int, default=2)
     parser.add_argument("--tau", type=int, default=8)
     parser.add_argument("--kl_weight", type=float, default=1e-4, help="VAE KL 权重")
