@@ -118,6 +118,9 @@ verify-vae-scale: ## VAE 训练规模实验（需先训 sat_model_scale_<seed>�
 verify-gen-scale: ## M3 生成训练预算实验（需先训 sat_model_m3_<seed>，~1 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_gen_scale.py --seeds 42 43
 
+verify-cond-probe: ## 条件信息充分性门禁（cond/HRRP → 潜变量探针 R²，~10 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_cond_probe.py --n_total 384
+
 train-fm: ## Flow Matching 训练（扩散同架构/同数据，3 种 IRS 模式）
 	cd $(ISAC) && ../../$(VENV)/bin/python train_fm.py
 

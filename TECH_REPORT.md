@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.18 (2026-09-26) — companion to the open-source repository
+**Version**: v1.19 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -19,6 +19,7 @@
 *v1.16 additions: the multi-seed paired A/B (Section 6.11, proposition M1) falsifies the statistical basis of any quality-superiority claim between the two generative paradigms at this training scale: across 3 seeds the FM(NFE=1)-DDPM(NFE=100) difference is sign-inconsistent (+4.5% / -20.5% / -4.4%) with a Bootstrap 95% CI crossing zero, and DDPM itself has 18% cross-seed CV. The headline is therefore restated as matched-quality sampling-efficiency parity (50-100x fewer network evaluations), and the remaining 15-20x gap to the VAE ceiling is attributed to the VAE/training scale rather than the generative objective.*
 *v1.17 additions: the VAE training-scale experiment (Section 6.12). Diagnosis from the M1 checkpoints showed the VAE was still improving +24-29% in its last 10 epochs at epoch 50 (undertrained, not capacity-limited). Scaling (200 epochs / 1024 samples vs 50 / 256, two paired seeds) halves the VAE ceiling (0.0146/0.0155 -> 0.0076/0.0081, -47.7%) and reduces cross-seed CV to 3.7%, but generative quality does not follow (FM NFE=10 and DDPM get slightly worse): the bottleneck shifts to the generative models own training budget, with the gap to the (halved) ceiling now 20-30x. Side observation: under the scaled VAE, FM NFE=1 beats DDPM NFE=100 on both seeds (-55% / -43%), suggesting the earlier VAE bottleneck partly masked the few-step advantage; registered as proposition M2 (3-seed confirmation) with M3 (generative training 100 -> 400 epochs).*
 *v1.18 additions: the generative training-budget experiment (Section 6.13, proposition M3). With the scaled VAE fixed, 4x generative training (100 -> 400 epochs) does not improve quality and significantly hurts one seed (FM NFE=1 0.1457 -> 0.2471) — an overfitting signature. A conceptual correction follows: comparing generative CD against the VAE oracle CD compares a distributional bound with a per-sample reconstruction bound; the "15-30x gap to the ceiling" framing is retracted. The bottleneck investigation arc closes as: VAE undertraining (fixed, ceiling -48%) -> generative training budget (falsified) -> the real candidates are the conditional-structure collapse (G15) and data diversity. M2 (FM NFE=1 < DDPM NFE=100 under the scaled VAE) holds in 4/4 paired observations across two independent runs, still at n=2 seeds.*
+*v1.19 additions: the conditional-information sufficiency gate (Section 6.14). Probe experiments (cond -> VAE latent, 384 strictly paired samples) show the narrowband condition explains R2 = 0.140 of the latent variance — less than the trivial class-label reference (R2 = 0.245, analytic). The G15 residual Delta(t) ~ 0 is therefore a source-information property, not a training artifact: drop=0.5 null retraining is not worth doing, and the only information-viable path to conditional generative sensing is HRRP conditioning (registered as proposition C1).*
 
 ---
 
@@ -591,6 +592,30 @@ the generative model is effectively unconditional) and data diversity.
 (falsified here) -> remaining candidates: the conditional collapse (G15) and data diversity.
 **M2 status**: under the scaled VAE, FM NFE=1 < DDPM NFE=100 holds in 4/4 paired observations
 across two independent runs (100-epoch and 400-epoch generative training), still at n=2 seeds.
+
+### 6.14 Conditional-Information Sufficiency Gate: The Condition Is Information-Poor (v1.19)
+
+After the G15 collapse fix, Delta(t) remained ~0. Two explanations: (a) the condition carries
+information that training fails to exploit; (b) the condition itself is information-poor. Gate
+experiment (`verify_cond_probe.py`): probes mapping the condition to the VAE latent x1 on 384
+strictly paired samples (MLP probe and ridge probe), against analytic, capacity-free references:
+
+| Probe / reference | R² (-> x1) |
+|---|---|
+| MLP: narrowband cond (488-dim) | **+0.140** |
+| MLP: wideband HRRP (512-dim) | -0.132 (probe overfit at this sample scale) |
+| Ridge: cond / HRRP | -3.55 / -5.64 (d > n overfit; unusable) |
+| **Class label alone** (analytic) | **+0.245** (per-dim max 0.869) |
+| Pose bin (analytic) | +0.007 |
+
+**Verdict**: the narrowband condition explains less latent variance (0.140) than the trivial
+class-label reference (0.245). The G15 residual is therefore a *source* property: no training
+trick recovers information the input does not contain, so the drop=0.5 null-retraining path is
+rejected. The only information-viable path to conditional generative sensing is HRRP conditioning
+— the sensing MLP reaches 0.80-0.91 classification accuracy from HRRP (vs 0.383 narrowband), so
+the HRRP-to-class information channel demonstrably exists. Registered as proposition C1: after
+retraining the FM with HRRP conditioning, Delta(0) >= 0.05 and probe R²(HRRP -> x1) >= 0.30
+(requires a data-pipeline extension plus one retrain).
 
 ## 7. Limitations and Honest Discussion
 

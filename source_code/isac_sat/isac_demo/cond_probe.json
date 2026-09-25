@@ -1,0 +1,10 @@
+{
+  "r2_cond_mlp": 0.082718612761434,
+  "r2_hrp_mlp": -0.363506455260203,
+  "r2_cond_ridge": -0.14577132275037008,
+  "r2_hrp_ridge": -1.247850529183144,
+  "r2_class_label_ref": 0.2449,
+  "n": 128,
+  "verdict": "cond \u4fe1\u606f\u91cf(0.083)\u4f4e\u4e8e\u7c7b\u522b\u6807\u7b7e\u5355\u72ec\u89e3\u91ca\u7387(0.245) \u21d2 \u6761\u4ef6\u8f93\u5165\u4fe1\u606f\u8d2b\u4e4f\uff0c\u8bad\u7ec3\u6280\u5de7\u65e0\u7528 \u21d2 \u8d70 (b) \u6362\u6761\u4ef6\u8f93\u5165\uff08HRRP\uff09",
+  "vae_dir": "./sat_model_scale_42/sat"
+}
