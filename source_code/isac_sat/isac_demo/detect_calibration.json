@@ -1,0 +1,29 @@
+{
+  "T_star": 0.6000000000000001,
+  "nll_raw": 0.7677388787269592,
+  "nll_cal": 0.7335197925567627,
+  "recall_target": 0.6729857819905213,
+  "thr_cal": 0.3673352003097534,
+  "dets_per_frame_raw": 0.6566666666666666,
+  "dets_per_frame_cal": 0.6608333333333334,
+  "precision_raw": 0.5406091370558376,
+  "precision_cal": 0.5372005044136192,
+  "mot": {
+    "raw_0.3": {
+      "rmse": 0.21400272082034957,
+      "recall": 0.5841666666666666,
+      "idsw": 161.66666666666666
+    },
+    "calibrated": {
+      "rmse": 0.2176812477090837,
+      "recall": 0.58,
+      "idsw": 160.0
+    }
+  },
+  "verdicts": {
+    "D1a_nll_improved": true,
+    "D1b_fewer_dets_at_matched_recall": false,
+    "D1c_idsw_le_080x": false,
+    "D1c2_rmse_no_worse": true
+  }
+}

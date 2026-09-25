@@ -127,6 +127,9 @@ verify-c1-channel: ## C1：HRRP 条件化信息通道证书（需先训 sat_mode
 verify-tracker-kalman: ## MOT 跟踪器 α-β vs CRB 一致卡尔曼（需 detect_best.pth，~8 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_tracker_kalman.py --seeds 7 8 9
 
+verify-detect-calib: ## D1 检测器置信度温度校准（NLL + 同 recall 工作点对比，~20 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_detect_calibration.py
+
 train-fm: ## Flow Matching 训练（扩散同架构/同数据，3 种 IRS 模式）
 	cd $(ISAC) && ../../$(VENV)/bin/python train_fm.py
 

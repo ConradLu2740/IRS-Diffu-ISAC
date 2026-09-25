@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.22 (2026-09-26) — companion to the open-source repository
+**Version**: v1.23 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -23,6 +23,7 @@
 *v1.20 additions: proposition C1 is executed and passes decisively (Section 6.15). Retraining the FM with HRRP conditioning (wideband range profile broadcast as the condition; VAE reused from the scaled run) produces the first measurable conditional information channel in the generative model: Delta(0) = 0.302 (6x the registered 0.05 threshold), monotone non-increasing in t, with the CFM identity holding to machine precision; 21.8% of the latent variance is condition-explained. Side effect: under HRRP conditioning the FM NFE=1 advantage over DDPM NFE=100 reappears (CD 0.2269 vs 0.2637, -14%).*
 *v1.21 additions: the MOT tracker upgrade (alpha-beta -> Kalman with CRB-consistent noise) is a clean negative result (Section 6.16). On identical detection streams (3 scenes x 40 frames, paired), the Kalman filter does not beat the fixed-gain alpha-beta filter (RMSE 0.2081 vs 0.1989), robustly across a two-decade Q sweep; eta_track = CRB/RMSE2 = 0.320. The error budget is dominated by data association (recall 0.26-0.30, ID switches 50-72), not by filter gains - the next MOT lever is the association layer, not the smoother.*
 *v1.22 additions: the MOT association-layer upgrade (Mahalanobis gating + second-chance assignment) is a second negative result (Section 6.17). With smoother and association both falsified, the bottleneck is located at the detection layer: at the current confidence threshold 0.5 only 1.1 detections per frame survive and GT coverage is 8.9%. The detection operating curve shows the knee at conf=0.3: recall 0.264 -> 0.584 (+121%) for a 7.6% RMSE cost; below 0.3 false positives saturate. MOT quality is detection-operating-point limited, not filter- or association-limited; confidence calibration is registered as proposition D1.*
+*v1.23 additions: registered proposition D1 (detector confidence temperature calibration) is executed: calibration improves NLL by 4.5% (T*=0.60) but yields no operating-point gain, because the max-prob slot ranking is temperature-robust (Section 6.18). With smoother, association, and threshold/calibration all falsified, the MOT diagnostic chain closes at the detector itself: the intrinsic PR limit is precision 0.54 at recall 0.67 (half the surviving detections are false positives). The next MOT lever is detector quality (architecture / training volume), registered as D2.*
 
 ---
 
@@ -696,6 +697,27 @@ positives saturate. Conclusion: MOT quality is detection-operating-point (confid
 limited, not filter- or association-limited. Registered as proposition D1: temperature-scale the
 detector confidences on a held-out set and select the threshold from the PR curve (target: recall
 >= 0.55 with ID switches <= 0.6x the current default).
+
+### 6.18 D1: Confidence Calibration Is a Third Negative; the Detector Itself Is the Limit (v1.23)
+
+Registered proposition D1: calibrate the detector confidences (temperature scaling, Guo et al.
+2017) so that the same recall is reachable with fewer false positives. Protocol
+(`verify_detect_calibration.py`): 1200 slots from held-out scenes (seeds 11-13, disjoint from
+the MOT scenes) with correctness labels (position-matched within gate); T* fitted by NLL
+minimization; operating points compared at matched recall; MOT compared pairwise.
+
+- **D1a PASS**: NLL 0.7677 -> 0.7335 (T* = 0.60, 4.5% improvement).
+- **D1b/D1c FAIL**: at matched recall (0.673), the calibrated operating point keeps 0.661
+  detections/frame vs raw 0.657 (+0.6%) at precision 0.537 vs 0.541; MOT pairwise: ID switches
+  160.0 vs 161.7, recall 0.580 vs 0.584. No gain — the max-prob ranking across slots is
+  temperature-robust (a monotone sharpening does not reorder slots).
+
+The MOT diagnostic chain is now closed at three levels, all negative: smoother (Section 6.16) ->
+association (6.17) -> threshold/calibration (6.18). The detector's intrinsic PR limit —
+precision 0.54 at recall 0.67, i.e. half the surviving detections are false positives — is the
+binding constraint. The next lever is detector quality itself (architecture or training volume),
+registered as D2: retrain with more scenes / augmentation and require precision@recall=0.67
+>= 0.65 under the same PR protocol.
 
 ## 7. Limitations and Honest Discussion
 
