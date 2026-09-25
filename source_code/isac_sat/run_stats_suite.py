@@ -319,11 +319,80 @@ def summarize():
     print("\n".join(lines))
 
 
+# ---------------------------------------------------------------- suites (v1.12)
+def suite_dp(seeds):
+    """RIS 分段重构 DP 最优调度（verify_tracking_dp.py，多种子）。"""
+    _run([sys.executable, "verify_tracking_dp.py",
+          "--seed", str(seeds[0]), "--n_seeds", str(len(seeds))])
+    data = json.load(open("./isac_demo/tracking_dp.json", encoding="utf-8"))
+    rows = [{"seed": d["seed"], "gap_K": d.get("gap_K"),
+             "ratio_U4_over_K2": d.get("p2", {}).get("ratio_U4_over_K2"),
+             "rho_ratio_eff": d.get("rho_ratio_eff")}
+            for d in data.get("seeds", [])]
+    if not rows:
+        rows = [data.get("aggregate", data)]
+    return _dump("dp", rows)
+
+
+def suite_pareto(seeds):
+    """感知-通信 Pareto 前沿 / 多帧融合 / HRRP 信息底噪（verify_isac_pareto.py）。"""
+    _run([sys.executable, "verify_isac_pareto.py", "--seed", str(seeds[0])])
+    d = json.load(open("./isac_demo/isac_pareto.json", encoding="utf-8"))
+    b1, b2, b3 = d["block1_pareto"], d["block2_fusion"], d["block3_hrrp"]
+    rows = [{"seed": seeds[0],
+             "pareto_slope": b1.get("fit", {}).get("slope"),
+             "pareto_r2": b1.get("fit", {}).get("r2"),
+             "sigma0_s0_m": b1.get("sigma0_s0_m"),
+             "fusion_G8": b2.get("fim", {}).get("G_T"),
+             "fusion_mc_vs_fim": b2.get("fim", {}).get("mc_vs_fim_rel"),
+             "hrrp_sigma_d_mm": b3.get("crb", {}).get("sigma_d_mm"),
+             "hrrp_conservative_factor": b3.get("conservative_factor_vs_sigma_rho"),
+             "twostation_052mm_rmse_mm": b3.get("mc_cross_rmse_mm"),
+             "verdict": b3.get("verdict")}]
+    return _dump("pareto", rows)
+
+
+def suite_fim(seeds):
+    """相位设计 pilot FIM 与 eta_est（verify_phase_fim.py）。"""
+    _run([sys.executable, "verify_phase_fim.py", "--roi_seed", str(seeds[0])])
+    d = json.load(open("./isac_demo/phase_fim.json", encoding="utf-8"))
+    rows = [{"seed": seeds[0],
+             "slopes": d.get("np_scan_verdict", {}).get("slopes"),
+             "eta17": d.get("np_scan_verdict", {}).get("eta17"),
+             "crit_snr_db": d.get("snr_scan_verdict", {}).get("crit"),
+             "verdicts": d.get("verdicts")}]
+    return _dump("fim", rows)
+
+
+def suite_waveforms(seeds):
+    """OTFS/AFDM 真实多普勒验证（verify_waveform_doppler.py，冒烟：减少 MC）。"""
+    _run([sys.executable, "verify_waveform_doppler.py", "--n_mc", "20000"])
+    d = json.load(open("./isac_demo/waveform_doppler.json", encoding="utf-8"))
+    rows = [{"ici_identity": d.get("g9_ici_identity", {}).get("verdict"),
+             "otfs_twisted_conv": d.get("otfs_dd", {}).get("verdict"),
+             "afdm_structure": d.get("afdm", {}).get("verdict"),
+             "ber": d.get("ber", {}),
+             "sensing_sir": d.get("sensing", {}).get("verdict")}]
+    return _dump("waveforms", rows)
+
+
+def suite_info_audit(seeds):
+    """互信息审计：Fano 阶梯 / Van Trees / CFM 恒等式（verify_info_audit.py，冒烟：跳 MC）。"""
+    _run([sys.executable, "verify_info_audit.py", "--mc", "0", "--null_ab_epochs", "0"])
+    d = json.load(open("./isac_demo/info_audit.json", encoding="utf-8"))
+    rows = [{"fano_ladder_bits": d.get("block1_fano", {}).get("ladder"),
+             "vantrees_lambda_ratio": d.get("block2_vantrees", {}).get("lambda_ratio_median"),
+             "cfm_delta_max": d.get("block3_cfm", {}).get("delta_max"),
+             "cfm_identity_residual": d.get("block3_cfm", {}).get("identity_residual_max")}]
+    return _dump("info_audit", rows)
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--suite", default="all",
                    choices=["all", "tracking", "rician", "sensing", "loop",
-                            "multi", "ood", "baseline", "summary"])
+                            "multi", "ood", "baseline", "dp", "pareto", "fim",
+                            "waveforms", "info_audit", "summary"])
     p.add_argument("--n_seeds", type=int, default=2, help="冒烟默认 2；全量用 10")
     p.add_argument("--k_dbs", nargs="+", type=float, default=[10.0, 5.0, 0.0])
     args = p.parse_args()
@@ -331,7 +400,9 @@ def main():
     seeds = list(range(42, 42 + args.n_seeds))
     suites = {"tracking": suite_tracking, "rician": suite_rician,
               "sensing": suite_sensing, "loop": suite_loop,
-              "multi": suite_multi, "ood": suite_ood, "baseline": suite_baseline}
+              "multi": suite_multi, "ood": suite_ood, "baseline": suite_baseline,
+              "dp": suite_dp, "pareto": suite_pareto, "fim": suite_fim,
+              "waveforms": suite_waveforms, "info_audit": suite_info_audit}
     if args.suite == "summary":
         summarize()
         return

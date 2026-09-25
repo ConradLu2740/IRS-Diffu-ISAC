@@ -34,6 +34,10 @@ jobs:
                   'sdr_io','sdr_ingest',
                   'mot_data','mot_tracker','train_detect','demo_mot','demo_mot_html',
                   'baseline_classic','fm_utils','train_fm','compare_gen',
+                  'verify_fm_bounds','verify_optimality_decomposition',
+                  'verify_ris_sdr_certificate','verify_gen_hardening','verify_p1_gates',
+                  'verify_baselines_strong','verify_tracking_dp','verify_isac_pareto',
+                  'verify_phase_fim','verify_waveform_doppler','verify_info_audit',
                   'setup','data','data_no_irs','models','train','phase_optimizer']
           for m in mods:
               importlib.import_module(m)
@@ -51,6 +55,9 @@ jobs:
 
       - name: Flow Matching smoke (CFM math / training / ODE sampling)
         run: python tests/test_smoke_fm.py
+
+      - name: OTFS/AFDM waveform smoke (ICI identity / twisted convolution / chirp structure)
+        run: python tests/test_smoke_waveforms.py
 
       - name: HRRP geometry-true differential-delay check
         run: |

@@ -55,6 +55,11 @@ make demo     # 感知-通信闭环 demo（自动训练 + 闭环）
 | `verify_fm_bounds.py` | FM 收敛阶 / 轨迹直线性 / crossover NFE 验证（支持 --mode/--sat 泛化） | `python verify_fm_bounds.py` | ~40 秒 |
 | `verify_p1_gates.py` | P1 前置证伪门：κ(H_V) / VAE 坍缩 / FIM 可分离性 | `python verify_p1_gates.py --n_seeds 6` | ~10 秒 |
 | `verify_baselines_strong.py` | 强 baseline：DDIM 少步 / FM / 渐进蒸馏同口径对比 | `python verify_baselines_strong.py` | 2-3 分钟 |
+| `verify_tracking_dp.py` | RIS 重构 DP 最优调度（精确间隙 + 128 划分穷举证书） | `python verify_tracking_dp.py --n_seeds 8` | ~16 秒 |
+| `verify_isac_pareto.py` | 感知-通信 Pareto 前沿 / 多帧融合 / HRRP 信息底噪 | `python verify_isac_pareto.py` | ~13 秒 |
+| `verify_phase_fim.py` | 相位设计 pilot FIM 与 η_est（信道估计因子认证） | `python verify_phase_fim.py` | ~10 秒 |
+| `verify_waveform_doppler.py` | OTFS/AFDM 真实多普勒（ICI 恒等式 / BER / SIR / ISAR 模型证书） | `python verify_waveform_doppler.py` | ~2 分钟 |
+| `verify_info_audit.py` | 互信息审计（Fano 阶梯 / Van Trees / CFM 恒等式） | `python verify_info_audit.py` | ~3 分钟 |
 | `eval_sat.py` | 扩散重建评估：CD / F-Score / Voxel IoU + 可视化 | `python eval_sat.py` | 分钟级 |
 
 ### 演示（面向读者 / 评审）

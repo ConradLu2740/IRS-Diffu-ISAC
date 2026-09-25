@@ -88,6 +88,21 @@ verify-p1-gates: ## P1 前置证伪门：κ(H_V) / VAU 坍缩 / FIM 可分离性
 verify-baselines: ## 强 baseline 同口径对比（DDIM 少步 / FM / 渐进蒸馏，GPU ~2-3 分钟）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_baselines_strong.py
 
+verify-tracking-dp: ## RIS 分段重构 DP 最优调度（精确间隙 + 穷举证书，~16 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_tracking_dp.py --n_seeds 8
+
+verify-pareto: ## 感知-通信 Pareto 前沿 / 多帧融合 / HRRP 信息底噪（~13 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_isac_pareto.py
+
+verify-fim: ## 相位设计 pilot FIM 与 eta_est（信道估计因子，~10 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_phase_fim.py
+
+verify-waveforms: ## OTFS/AFDM 真实多普勒验证（ICI 恒等式 / BER / SIR / ISAR 模型证书，~2 分钟）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_waveform_doppler.py
+
+verify-info-audit: ## 互信息审计（Fano 阶梯 / Van Trees / CFM 恒等式，~3 分钟）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_info_audit.py
+
 train-fm: ## Flow Matching 训练（扩散同架构/同数据，3 种 IRS 模式）
 	cd $(ISAC) && ../../$(VENV)/bin/python train_fm.py
 
