@@ -378,7 +378,7 @@ IRS-Diffu-ISAC/
 ## 📚 文档
 
 - **[TECH_REPORT.md](TECH_REPORT.md)** — arXiv 版技术报告：系统模型、闭环结果、经典基线（2D-CFAR + MUSIC）、物理发现
-- **版本对应**：git release tag（当前 `v1.2.0`）标记仓库里程碑；技术报告有独立版本号（当前 **v1.6**）。当前对应：**tag `v1.2.0` ↔ TECH_REPORT v1.5**（6.3/6.4 节：莱斯稳健性 + 双站破墙）；**TECH_REPORT v1.6** 新增 Sionna CDL 标准信道对照（6.5 节，尚未打 tag）。
+- **版本对应**：git release tag（当前 `v1.3.0`）标记仓库里程碑；技术报告有独立版本号（当前 **v1.12**）。当前对应：**tag `v1.3.0` ↔ TECH_REPORT v1.12**（FM 等算力对比 + 证书、强 baseline、泛化、SDR 最优性括号、16 种子分解、DP 调度、Pareto 前沿、互信息审计、OTFS/AFDM）；**Markdown 报告为准**（`TECH_REPORT.md`），`.tex` 为陈旧自动转换版。
 - **[space_isac_design.md](space_isac_design.md)** — 完整设计：物理模型、实验结果、物理结论、踩坑记录
 - **[docs/optimization_roadmap.md](docs/optimization_roadmap.md)** — 四角度优化路线图（数学架构 / 最优化理论 / 信息论 / 移动通信），含实测结果、被证伪的预测、预注册命题登记表
 - 原项目文档（已归档）：[`archive/original-docs/`](archive/original-docs/) — [`architecture.md`](archive/original-docs/architecture.md) / [`Code_Wiki.md`](archive/original-docs/Code_Wiki.md)
