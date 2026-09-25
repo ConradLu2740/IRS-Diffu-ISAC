@@ -1,0 +1,146 @@
+{
+  "meta": {
+    "n_sym": 16,
+    "n_sub": 512,
+    "df_hz": 1953125.0,
+    "nu_headline": 0.312832,
+    "snr_db": 20.0,
+    "n_frames": 48,
+    "n_mc": 20000
+  },
+  "g9_ici_identity": {
+    "rows": [
+      {
+        "nu": 0.05,
+        "theory": 0.00819765988909782,
+        "exact_dirichlet": 0.008197628771668408,
+        "mc": 0.008197628771671758,
+        "dev": -3.111742606122514e-08,
+        "coef_max_dev": 1.8906726660574552e-06,
+        "coef_exact_dev": 7.296665802201308e-14,
+        "pass": true
+      },
+      {
+        "nu": 0.1,
+        "theory": 0.03246879072492104,
+        "exact_dirichlet": 0.032468669301187414,
+        "mc": 0.032468669301193694,
+        "dev": -1.2142372734363915e-07,
+        "coef_max_dev": 3.7656667797106302e-06,
+        "coef_exact_dev": 1.0772832458738531e-13,
+        "pass": true
+      },
+      {
+        "nu": 0.313,
+        "theory": 0.28350289309158205,
+        "exact_dirichlet": 0.2835020121603543,
+        "mc": 0.28350201216037085,
+        "dev": -8.809312112001422e-07,
+        "coef_max_dev": 1.0497163267189635e-05,
+        "coef_exact_dev": 1.142278682782289e-13,
+        "pass": true
+      }
+    ],
+    "pass": true
+  },
+  "otfs_dd": {
+    "identity_err": 1.9389211565826713e-15,
+    "twisted_conv_err": 2.210013198821679e-15,
+    "dd_response_err": 1.9969070959495768e-15,
+    "offgrid": [
+      {
+        "delta": 0.05,
+        "leak": 0.008165795027651024,
+        "theory": 0.00819765988909782
+      },
+      {
+        "delta": 0.25,
+        "leak": 0.188779175328318,
+        "theory": 0.18943053086129769
+      },
+      {
+        "delta": 0.5,
+        "leak": 0.5934106682819636,
+        "theory": 0.5947152654306489
+      }
+    ],
+    "pass": true
+  },
+  "afdm": {
+    "roundtrip_err": 1.4432899320127035e-15,
+    "c_cond_dev": 0.0,
+    "two_n_c1": 3.0,
+    "cpp_reduces_to_cp": true,
+    "row_nonzeros_ok": true,
+    "channel_err": 6.026585550224181e-10,
+    "loc_i": [
+      0.31051197091687593,
+      60.123556479689974,
+      119.99941176275121,
+      179.8754479930198,
+      239.6876367845181
+    ],
+    "pass": true
+  },
+  "ber": {
+    "ofdm": 0.0768585205078125,
+    "otfs": 0.0,
+    "afdm": 1.2715657552083334e-05,
+    "ofdm_single_path": 0.05863189697265625,
+    "theory_ofdm_floor": 0.058975943223359854,
+    "awgn": 7.619853024160595e-24,
+    "n_bits": 786432,
+    "nu": [
+      -0.31051197091687593,
+      -0.12355647968997621,
+      0.0005882372487909886,
+      0.12455200698018974,
+      0.3123632154818929
+    ],
+    "otfs_pass": true,
+    "order_pass": true,
+    "afdm_pass": false
+  },
+  "sensing": {
+    "s1_full_pilot": {
+      "otfs_db": 19.62220634708694,
+      "ofdm_db": 19.63296481655297
+    },
+    "s2_embedded": {
+      "otfs_db": 30.171465672048726,
+      "ofdm_db": 11.68457167516819,
+      "otfs_min": 27.296210907830055,
+      "ofdm_min": 8.240282758963344,
+      "n_pilots": 48,
+      "n_real": 8
+    },
+    "otfs_sir_pass": true,
+    "ofdm_sir_pass": false
+  },
+  "model_certificate": {
+    "default8_abs_fd_hz": {
+      "min": 2531.013495031438,
+      "max": 41556.575447581075
+    },
+    "scurve_peak_abs_fd_hz": 609097.0745046647,
+    "isar_frozen_threshold_hz": 32.25806451612903,
+    "migration_ratio": {
+      "fd8_min": 78.4614183459746,
+      "fd8_max": 1288.2538388750133,
+      "peak": 18882.009309644603
+    },
+    "frozen_geometry_violated": true
+  },
+  "summary": {
+    "G9 OFDM \u5355\u97f3 ICI \u6052\u7b49\u5f0f (MC \u504f\u5dee<\u00b10.005)": true,
+    "OTFS DD \u626d\u66f2\u5377\u79ef (TX/RX \u4e92\u9006 + on-grid + 5\u5f84)": true,
+    "AFDM DAFT/IDAFT + chirp \u6761\u4ef6 + \u4fe1\u9053\u7ed3\u6784": true,
+    "BER: OTFS \u2264 1e-5": true,
+    "BER: OFDM \u226b OTFS (>100\u00d7)": true,
+    "BER: AFDM \u2264 1e-5": false,
+    "SIR: OTFS \u2265 15 dB (\u5d4c\u5165\u5f0f\u5bfc\u9891)": true,
+    "SIR: OFDM \u2264 5 dB (\u5d4c\u5165\u5f0f\u5bfc\u9891)": false,
+    "n_pass": 6,
+    "n_total": 8
+  }
+}

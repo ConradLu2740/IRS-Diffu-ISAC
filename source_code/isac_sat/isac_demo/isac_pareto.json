@@ -1,0 +1,318 @@
+{
+  "meta": {
+    "script": "verify_isac_pareto.py",
+    "date": "2026-09-25",
+    "seed": 42,
+    "n_mc": 4000,
+    "hrrp_mc": 2000,
+    "sigma_rho_m": 0.15,
+    "device": "cpu",
+    "roadmap_ref": "docs/optimization_roadmap.md §4.3-D4 / §7 (G6,G7,G8)",
+    "assumptions": {
+      "sigma0_m": 0.15,
+      "d0_km": 47.7,
+      "s0_convention": "10^(20/10)*G_RIS, G_RIS measured as closed-form K=1 vs random-phase power ratio (+173.1% headline convention)",
+      "crb_ideal_assumptions": "AWGN, single scatterer, known nuisance params; ionospheric/tropospheric delays unmodeled"
+    }
+  },
+  "block1_pareto": {
+    "g_ris": {
+      "p_random": 592960.2271585464,
+      "p_cf_k1": 1619570.5169830322,
+      "g_ris": 2.7313307753270095,
+      "convention": "P(closed-form K=1 ideal tracking)/P(random phase), 8-frame mean, legacy ROI, irs_mode=sat (+173.1% headline)"
+    },
+    "s0": 273.13307753270095,
+    "sigma0_s0_m": 40.96996162990514,
+    "sweep": [
+      {
+        "d_km": 5.0,
+        "sigma_m": 0.0016481415555819258,
+        "snr": 24858.27839917517,
+        "snr_db": 43.95471047570766,
+        "r_bps_hz": 14.601496798826378,
+        "two_r_minus_1": 24858.27839917517,
+        "sigma_x_u_m": 40.96996162990515
+      },
+      {
+        "d_km": 10.0,
+        "sigma_m": 0.006592566222327703,
+        "snr": 6214.569599793793,
+        "snr_db": 37.93411056242803,
+        "r_bps_hz": 12.601670891731212,
+        "two_r_minus_1": 6214.5695997937955,
+        "sigma_x_u_m": 40.96996162990517
+      },
+      {
+        "d_km": 47.7,
+        "sigma_m": 0.15,
+        "snr": 273.13307753270095,
+        "snr_db": 24.363742981625755,
+        "r_bps_hz": 8.098732607370103,
+        "two_r_minus_1": 273.1330775327011,
+        "sigma_x_u_m": 40.969961629905164
+      },
+      {
+        "d_km": 100.0,
+        "sigma_m": 0.65925662223277,
+        "snr": 62.14569599793793,
+        "snr_db": 17.93411056242803,
+        "r_bps_hz": 5.980612498353226,
+        "two_r_minus_1": 62.14569599793793,
+        "sigma_x_u_m": 40.969961629905136
+      },
+      {
+        "d_km": 300.0,
+        "sigma_m": 5.9333096000949315,
+        "snr": 6.905077333104213,
+        "snr_db": 8.391685468034783,
+        "r_bps_hz": 2.9827795761244715,
+        "two_r_minus_1": 6.905077333104214,
+        "sigma_x_u_m": 40.96996162990514
+      },
+      {
+        "d_km": 500.0,
+        "sigma_m": 16.481415555819254,
+        "snr": 2.4858278399175173,
+        "snr_db": 3.9547104757076568,
+        "r_bps_hz": 1.801501318565558,
+        "two_r_minus_1": 2.4858278399175173,
+        "sigma_x_u_m": 40.96996162990514
+      }
+    ],
+    "fit": {
+      "slope": -0.9999999999999998,
+      "intercept": 3.7128391550170936,
+      "r2": 1.0
+    },
+    "knee": {
+      "d_km": 100.0,
+      "r_bps_hz": 5.980612498353226,
+      "sigma_m": 0.65925662223277,
+      "norm_chord_distance": 0.016257676048776475,
+      "definition": "max distance to chord between front extremes in normalized (R, log10 sigma) space"
+    },
+    "useful_segment": {
+      "wall_budget_m": 5.3,
+      "d_max_km": 283.5376165520195,
+      "r_min_bps_hz": 3.126011637737632,
+      "roadmap_claim_r_min": 3.04,
+      "sigma_at_d0_m": 0.15,
+      "r_at_d0_bps_hz": 8.098732607370103,
+      "sweep_inside_km": [
+        5.0,
+        10.0,
+        47.7,
+        100.0
+      ],
+      "sweep_outside_km": [
+        300.0,
+        500.0
+      ]
+    },
+    "G6": {
+      "slope": -0.9999999999999998,
+      "intercept": 3.7128391550170936,
+      "r2": 1.0,
+      "slope_target": -1.0,
+      "slope_tol": 0.03,
+      "r2_target": 0.99,
+      "falsified": false,
+      "verdict": "PASS"
+    }
+  },
+  "block2_fusion": {
+    "frames": [
+      {
+        "frame": 0,
+        "t_sec": 0.0,
+        "elev_deg": 33.74710746638287,
+        "d_sat_target_km": 694.8222686942615,
+        "gdop": 2.091799849774958,
+        "theory_cross_m": 0.3137699774662437,
+        "mc_cross_rmse_m": 0.31017429885420017,
+        "mc_2d_rmse_m": 0.357936642351011,
+        "rel_diff_pct": -1.1459600568159423
+      },
+      {
+        "frame": 1,
+        "t_sec": 1.0,
+        "elev_deg": 33.75058117603072,
+        "d_sat_target_km": 694.7602083937669,
+        "gdop": 2.1342963453823884,
+        "theory_cross_m": 0.32014445180735823,
+        "mc_cross_rmse_m": 0.3203161124353391,
+        "mc_2d_rmse_m": 0.3667702485463947,
+        "rel_diff_pct": 0.05361974165467576
+      },
+      {
+        "frame": 2,
+        "t_sec": 2.0,
+        "elev_deg": 33.74920917227015,
+        "d_sat_target_km": 694.7716889810034,
+        "gdop": 2.1783183349161357,
+        "theory_cross_m": 0.32674775023742036,
+        "mc_cross_rmse_m": 0.320767533392082,
+        "mc_2d_rmse_m": 0.3661684062832857,
+        "rel_diff_pct": -1.8302243369672788
+      },
+      {
+        "frame": 3,
+        "t_sec": 3.0,
+        "elev_deg": 33.74299220213201,
+        "d_sat_target_km": 694.8567119563312,
+        "gdop": 2.22393404837396,
+        "theory_cross_m": 0.33359010725609395,
+        "mc_cross_rmse_m": 0.3351569922377037,
+        "mc_2d_rmse_m": 0.3803977194389542,
+        "rel_diff_pct": 0.4697036715201053
+      },
+      {
+        "frame": 4,
+        "t_sec": 4.0,
+        "elev_deg": 33.73193704083928,
+        "d_sat_target_km": 695.0152437369688,
+        "gdop": 2.271210594885876,
+        "theory_cross_m": 0.3406815892328814,
+        "mc_cross_rmse_m": 0.34250310795344674,
+        "mc_2d_rmse_m": 0.38671286421895185,
+        "rel_diff_pct": 0.5346689630827628
+      },
+      {
+        "frame": 5,
+        "t_sec": 5.0,
+        "elev_deg": 33.71605498285525,
+        "d_sat_target_km": 695.2472360477043,
+        "gdop": 2.320225345470931,
+        "theory_cross_m": 0.34803380182063964,
+        "mc_cross_rmse_m": 0.34588848292571595,
+        "mc_2d_rmse_m": 0.38977307327752003,
+        "rel_diff_pct": -0.6164110737810757
+      },
+      {
+        "frame": 6,
+        "t_sec": 6.0,
+        "elev_deg": 33.69536260410889,
+        "d_sat_target_km": 695.5526153939518,
+        "gdop": 2.371059073764403,
+        "theory_cross_m": 0.35565886106466044,
+        "mc_cross_rmse_m": 0.3502706066393692,
+        "mc_2d_rmse_m": 0.3936775575920612,
+        "rel_diff_pct": -1.5150063769426514
+      },
+      {
+        "frame": 7,
+        "t_sec": 7.0,
+        "elev_deg": 33.66988156153932,
+        "d_sat_target_km": 695.9312850597736,
+        "gdop": 2.4237982129478737,
+        "theory_cross_m": 0.36356973194218106,
+        "mc_cross_rmse_m": 0.35995536105516546,
+        "mc_2d_rmse_m": 0.4017335919411167,
+        "rel_diff_pct": -0.9941341562477501
+      }
+    ],
+    "fim": {
+      "sigma_rho_m": 0.15,
+      "G_scalar_pre_registered": 6.951590662213207,
+      "G_fim_vs_frame0": 6.917459352801451,
+      "G_fim_vs_mid": 8.154947544355885,
+      "G_fim_vs_mean": 8.016368068513339,
+      "G_fim_vs_last": 9.287509752766626,
+      "G_mc_vs_frame0": 6.861876613275132,
+      "G_mc_vs_mid": 8.366817953399117,
+      "G_mc_vs_mean": 8.034343662357973,
+      "band_central": [
+        7.0,
+        9.0
+      ],
+      "band_falsify": [
+        6.0,
+        10.0
+      ],
+      "sigma_T_fim_m": 0.11929935031557913,
+      "sigma_T_scalar_m": 0.11900611862338523,
+      "mc_fused_cross_rmse_m": 0.11840890281115711,
+      "mc_fused_2d_rmse_m": 0.1343533367176227,
+      "mc_vs_fim_rel_diff_pct": -0.7463976141249273,
+      "mc_fim_agreement_lt_5pct": true,
+      "falsified": false,
+      "verdict": "PASS*（未证伪，中心带边缘）",
+      "note": "预注册 σ_1（frame0）口径 G=6.95 略低于中心带下界 7——frame0 是过境 weakest 帧（g 最小）；同几何中帧口径 8.15 ∈ [7,9]；MC 与 FIM 差 -0.7%（<5%）"
+    },
+    "geometry": {
+      "n_frames": 8,
+      "p_ue_local_m": [
+        -48202.141675723695,
+        105.16142722028927,
+        -182.14493494199638
+      ]
+    }
+  },
+  "block3_hrrp": {
+    "crb": {
+      "K": 512,
+      "B_hz": 1000000000.0,
+      "snr_db": 20.0,
+      "sigma_n2": 0.01,
+      "J_closed": 3.3688249689051676e+23,
+      "J_discrete_sum": 3.368850670999962e+23,
+      "J_repo_grid": 3.3820101938323893e+23,
+      "sigma_tau_s": 1.7229027981931001e-12,
+      "sigma_d_m": 0.0005165132647653875,
+      "sigma_d_roundtrip_m": 0.00025825663238269374
+    },
+    "mc_delay": {
+      "n_mc": 2000,
+      "sigma_d_mc_m": 0.0005083118659391061,
+      "bias_mm": -0.00022112555099730764,
+      "ratio_mc_over_crb": 0.9841216104488495
+    },
+    "conservative_factor_vs_sigma_rho": 290.4088050248497,
+    "twostation_variant": {
+      "daz_deg": 142.0,
+      "gdop": 2.2376236532419442,
+      "gdop_actual_default_station": 2.271210594885876,
+      "rows": [
+        {
+          "label": "0.15 m（§6.4 假设）",
+          "sigma_rho_m": 0.15,
+          "theory_cross_m": 0.33564354798629165,
+          "mc_cross_rmse_m": 0.3314017072337256,
+          "mc_2d_rmse_m": 0.3767163528829487,
+          "rel_diff_pct": -1.263793324202167
+        },
+        {
+          "label": "0.52 mm（预注册变体）",
+          "sigma_rho_m": 0.00052,
+          "theory_cross_m": 0.0011635642996858109,
+          "mc_cross_rmse_m": 0.0011561624288527455,
+          "mc_2d_rmse_m": 0.00131050647896988,
+          "rel_diff_pct": -0.6361376706954691
+        },
+        {
+          "label": "CRB 底噪（本块实算）",
+          "sigma_rho_m": 0.0005165132647653875,
+          "theory_cross_m": 0.00115576229845225,
+          "mc_cross_rmse_m": 0.0011532109223670642,
+          "mc_2d_rmse_m": 0.0013087445118129951,
+          "rel_diff_pct": -0.22075266589007825
+        },
+        {
+          "label": "CRB 底噪（真实默认地面站几何）",
+          "sigma_rho_m": 0.0005165132647653875,
+          "theory_cross_m": 0.0011731103993342417,
+          "mc_cross_rmse_m": 0.001183879705036705,
+          "mc_2d_rmse_m": 0.0013342641268897604,
+          "rel_diff_pct": 0.9180129771737544
+        }
+      ]
+    },
+    "predicted_cross_rmse_mm": 1.2,
+    "falsify_threshold_mm": 5.0,
+    "mc_cross_rmse_mm": 1.1561624288527454,
+    "falsified": false,
+    "verdict": "PASS",
+    "note": "交叉 RMSE 1.156 mm ≈ 预测 1.2 mm：双站误差可完全归因于假设 σ_ρ，而 σ_ρ 高于信息底噪 290× ⇒ '非信息受限、模型/标定受限'成立"
+  }
+}
