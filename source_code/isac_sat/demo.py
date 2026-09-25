@@ -97,7 +97,24 @@ def main(args):
     X = channels.tensor_a * torch.tensor(_SIGNAL1[:channels.bs_ant],
                                          dtype=torch.complex64).view(channels.bs_ant, 1)
     roi_true_t = torch.tensor(roi_true.astype(np.float32)).reshape(-1)
-    roi_est = estimate_roi_from_pos(pos_pred)
+    if getattr(args, "fm_shape", None):
+        # FM 生成形状替代手工盒子（G-κ 门修复；需 FM checkpoint）
+        from verify_fm_shape_loop import get_roi_and_cond, pc_to_voxels, translate_voxels, load_fm
+        from fm_utils import sample_conditional_FM
+        _ds = SatROIDataset(1, channels, num_points=args.num_points if hasattr(args, "num_points") else 512,
+                            device=device, tau=args.tau, phase_mode=args.phase_mode)
+        _roi_true_ds, _cond = get_roi_and_cond(_ds, 0)
+        args.save_dir = args.fm_shape
+        args.num_points = 512
+        args.depth = 2
+        _vae, _ce, _vnet, _zm, _zs = load_fm(args, device, channels.frame_cond_dim())
+        with torch.no_grad():
+            _pc = sample_conditional_FM(_vae, _ce, _vnet, _cond.unsqueeze(0).to(device),
+                                        _zm, _zs, device=device, cfg_scale=2.0, nfe=1)
+        roi_est = translate_voxels(pc_to_voxels(_pc[0].cpu().numpy()), pos_pred)
+        print("[demo] ROI 先验: FM 生成形状（替代手工盒子）")
+    else:
+        roi_est = estimate_roi_from_pos(pos_pred)
     roi_est_t = torch.tensor(roi_est.astype(np.float32)).reshape(-1)
 
     powers = {"oracle": [], "sensed": [], "random": []}
@@ -194,6 +211,8 @@ if __name__ == "__main__":
     parser.add_argument("--rp_align", action="store_true")
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--out_json", type=str, default=None, help="结果写 JSON（统计套件用）")
+    parser.add_argument("--fm_shape", type=str, default=None,
+                        help="提供 FM checkpoint 目录则用生成形状替代手工盒子 ROI（G-κ 门修复）")
     args = parser.parse_args()
     args.device = "cpu"  # reference env: CPU; GPU 路径需 device-aware 数据集(calculate_value_sat)
     main(args)

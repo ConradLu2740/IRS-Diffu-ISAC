@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.13 (2026-09-25) — companion to the open-source repository
+**Version**: v1.14 (2026-09-25) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -14,6 +14,7 @@
 *v1.11 additions: a flow-matching generative baseline with an equal-compute comparison against the conditional diffusion model (Section 6.7), including ODE convergence-order verification, trajectory straightness, sampling-efficiency crossover NFE, strong-baseline controls (DDIM few-step, progressive distillation), a measured Lipschitz constant of the CFG velocity field, sample-diversity measurement at NFE=1, generalization across IRS modes / orbit (Starlink) / RIS size (N=64), and a certified optimality bracket for the RIS phase design (SDR relaxation + Lagrangian dual). Two previously reported claims are revised: the "numeric upper bound" for RIS tracking is a coordinate-ascent *lower* bound on the global optimum (certified design factor interval [0.732, 0.832]); and the closed-loop optimality decomposition is re-measured with 16 seeds (eta_total = 0.694 +/- 0.108, Bootstrap 95% CI [0.638, 0.745]).*
 *v1.12 additions: the extended verification suite (Section 6.8): DP-optimal RIS reconfiguration scheduling with an exhaustive-search certificate (uniform-K suboptimality gap 40.1%/42.1% at K=2/4); the closed-form sensing-communication Pareto frontier sigma_cross(R)=40.97/(2^R-1) with multi-frame fusion gain and an HRRP information floor of 0.5165 mm (290x more conservative than the assumed sigma_rho=0.15 m); a pilot-FIM analysis certifying genie-CSI harmlessness (eta_est(17)=0.9999994); an information audit (Fano ladder 0.19/1.71/2.07 bit, Van Trees confirmation of the angle wall, CFM conditional-loss identity) that uncovers a conditional-encoder collapse (CFG effectively inert); and an OTFS/AFDM waveform layer with the exact OFDM ICI identity (28.35% ICI at the real +-611 kHz LEO Doppler; OTFS BER=0 vs OFDM 7.7e-2 at equal SNR). Two pre-registered predictions were falsified and are reported as such (critical SNR -8 dB vs measured -31.2 dB; "OFDM SIR <= 5 dB" vs measured 11.7 dB in the all-pilot regime).*
 *v1.13 additions: the conditional-encoder collapse reported in v1.12 is root-caused and fixed (lr_cond 1e-3 -> 1e-4; condition sensitivity restored 4x10^4-fold, see Section 6.8). The pre-registered side-information claim (Delta(0) >= 0.05) is partially falsified: Delta(t) remains ~0 at 256 samples/100 epochs even though condition information now flows into the velocity field. Side benefit: with the fixed encoder the sat-mode FM NFE=1 CD improves 0.3166 -> 0.2922 and the headline strengthens (FM NFE=1 0.2922 vs best DDPM NFE=100 0.4055-0.4326 across two lr_cond settings). The FM-vs-DDPM equal-compute comparison is unaffected by the fix.*
+*v1.14 additions: the G-kappa gate finding (box prior is the closed-loop bottleneck) is repaired — the FM generative model becomes a real closed-loop component: an NFE=1 sampled shape (voxelized, translated to the MLP position estimate) replaces the hand-crafted box ROI (Section 6.9). Measured over 8 seeds with the design-on-estimate/evaluate-on-truth protocol: eta_sense 0.840 -> 0.932 (+10.9%), voxel l1 error 0.58x, projected eta_total ~0.736. demo.py gains an optional --fm_shape flag (default unchanged).*
 
 ---
 
@@ -448,6 +449,25 @@ optimistic by ~13x). Embedded-pilot range-Doppler peak SIR: OTFS 30.2 dB vs OFDM
 default 8-frame window has |f_d| >= 2.53 kHz against the ISAR frozen-geometry threshold c/(lambda B T_burst)
 = 32.3 Hz — a 78x violation, confirming that the published 0.933 ISAR accuracy is rotation-ISAR and that a
 real-geometry ISAR chain requires range-cell migration correction.
+
+### 6.9 Repairing the Gate Finding: FM Shape Replaces the Box Prior (v1.14)
+
+The P1 gate (Section 7.3 of docs/optimization_roadmap.md) showed the closed-loop value function is a
+step function of the sensed position at the ROI-voxel scale, and that the hand-crafted box prior
+(`estimate_roi_from_pos`) loses ~57% of the achievable phase-design power against the true template —
+the sensing-side bottleneck, not the optimizer. This section turns the FM generative model from a
+CD-reporting accessory into a real closed-loop component: sample an NFE=1 shape from the FM model
+(G15-fixed checkpoint), voxelize it, and translate it to the MLP position estimate; the RIS phase is
+then designed on that shape and evaluated on the true ROI (same protocol as
+`verify_optimality_decomposition.py`).
+
+Results (8 seeds, sat mode; `verify_fm_shape_loop.py`): eta_sense improves 0.840 -> **0.932**
+(+10.9%; better in 6/8 seeds), the voxel l1 error against the true template drops to **0.58x** of the
+box prior (92 vs 159 voxels mean), and the box baseline reproduces the decomposition measurement
+(0.840 vs 0.873). Projected total: eta_total ~ 0.932 x 0.79 ~ **0.736** (from 0.694). The remaining
+gap is the phase-design factor, already shown to be near its certified ceiling (Section 6.7).
+`demo.py --fm_shape <ckpt>` exposes the upgrade as an optional flag (default protocol unchanged;
+single-scene demo 73.3% -> 74.9%, within single-scene noise).
 
 ## 7. Limitations and Honest Discussion
 
