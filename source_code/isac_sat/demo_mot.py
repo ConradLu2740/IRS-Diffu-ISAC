@@ -56,7 +56,8 @@ def main(args):
 
     # 模型
     ckpt = torch.load(args.checkpoint, map_location=device)
-    model = DetectNet().to(device)
+    _ck = torch.load(args.checkpoint, map_location=device)
+    model = DetectNet(count_head=bool(_ck.get("count_head", False))).to(device)
     model.load_state_dict(ckpt["model"])
     model.eval()
     print(f"[mot] 检测模型加载: {ckpt['classes']}, K={ckpt['k']}")

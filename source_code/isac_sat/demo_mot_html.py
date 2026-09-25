@@ -33,7 +33,8 @@ def main(args):
     device = args.device
 
     ckpt = torch.load(args.checkpoint, map_location=device)
-    model = DetectNet().to(device)
+    _ck = torch.load(args.checkpoint, map_location=device)
+    model = DetectNet(count_head=bool(_ck.get("count_head", False))).to(device)
     model.load_state_dict(ckpt["model"])
     model.eval()
 
