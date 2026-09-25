@@ -9,11 +9,25 @@
 [![Release](https://img.shields.io/github/v/release/ConradLu2740/IRS-Diffu-ISAC)](https://github.com/ConradLu2740/IRS-Diffu-ISAC/releases)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ConradLu2740/IRS-Diffu-ISAC/blob/main/colab/isac_demo.ipynb)
 
-**RIS 辅助通感一体化（ISAC）· 从扩散模型 3D 重建到太空 ISAC（ISAC-NTN）工程闭环**
+**一个带证书的 RIS 辅助星地 ISAC 试验台 —— 每条结论都附带它的证明、它的界、或它对公众的证伪。**
 
-Intelligent Reflecting Surface (RIS) aided **Integrated Sensing and Communication (ISAC)** — 基于条件潜在扩散模型的 3D 点云重建，扩展至**天基 ISAC**：真实 LEO 卫星轨道（SGP4）、动态 RIS 跟踪、多目标 3D 追踪（MOT）、SDR 数据接口，以及**端到端感知-通信闭环演示**。
+真实 LEO 轨道（SGP4）· 动态 RIS 相位优化 · 扩散与 Flow Matching 生成式感知 · 感知-通信闭环 · 直面真实 ±611 kHz 多普勒的 OTFS/AFDM · 以及一套验证体系：每个头条数字要么**被证书认证**、要么**被双侧区间夹逼**、要么**被公开证伪**。
 
-> 🎯 **学校科研项目 × 工程化展示** —— 物理可验证、结果可复现、演示即所得。
+> 🎯 **从学校科研项目长成的可证伪试验台** —— 物理可验证、结果可复现、演示即所得，并且诚实记录哪些结论**不**成立（见下方**墙地图**一节）。
+
+---
+
+## 🎯 核心主张
+
+大多数 ISAC 论文只报告数字，不报告数字**成立的条件**。本仓库采取相反的契约：**先注册命题，再验证它——包括验证说"不"的时候。**
+
+| | |
+|---|---|
+| 🔬 **19 个验证脚本** | 轨道物理、RIS SDR 最优性括号、ODE 收敛阶、Lipschitz 常数、CRB 底噪、Pareto 前沿、DP 调度证书、信息阶梯——全部固定种子、JSON 落盘、PASS/FAIL 判定 |
+| 📉 **10+ 个被证伪的预测** | SDR 收益被高估一个数量级；Hessian 加权方向死亡（值函数是阶梯函数）；free-bits 死亡（无后验坍缩）；临界 SNR −8 dB → 实测 −31.2 dB；"OFDM SIR ≤ 5 dB" → 11.7 dB；等 NFE 下 FM 优势非单调——全部记录，无一隐藏 |
+| 🧱 **墙地图** | 四种独立方法（信息论、功率核算、全局优化、估计理论）给出同一指引：这个场景的下一步在**标定与几何**，不在 RIS 相位算法 |
+
+**一句话头条**：1 步 Flow Matching 采样器在全部 IRS 模式、全部指标上追平 100 步扩散（CD −22~−33%，网络评估次数少 50–100×）；整个闭环可证地达到**认证全局最优的 ≈69%**（Bootstrap 95% CI [0.638, 0.745]）。
 
 ---
 
@@ -26,7 +40,7 @@ Intelligent Reflecting Surface (RIS) aided **Integrated Sensing and Communicatio
 **你可以用它做什么**
 - **复现**核心结论（RIS 跟踪 **+173%**、闭环通信增益 **+374%**；v1.7 物理一致性审计后数字，见 `docs/physics_audit_table.md`），几分钟内跑通
 - **扩展**：换卫星 / 换频段 / 换目标模板 / 换成自己的模型
-- **对比**经典基线（2D-CFAR + MUSIC，`make baseline`）
+- **对比**经典基线（2D-CFAR + MUSIC，`make baseline`）或生成式强 baseline（DDIM 少步、渐进蒸馏，`make verify-baselines`）
 
 **最快路径**
 ```bash
@@ -35,7 +49,7 @@ make verify   # 1 分钟物理自检（ALL PASS）
 make demo     # 自动训练 + 感知-通信闭环
 ```
 
-命令地图：`make help` · 脚本逐一使用卡片：[`source_code/isac_sat/README.md`](source_code/isac_sat/README.md) · 参数配方：[`configs/README.md`](configs/README.md)
+命令地图：`make help` · 脚本逐一使用卡片：[`source_code/isac_sat/README.md`](source_code/isac_sat/README.md) · 参数配方：[`configs/README.md`](configs/README.md) · 优化路线图与预注册命题：[`docs/optimization_roadmap.md`](docs/optimization_roadmap.md)
 
 ---
 
@@ -129,6 +143,23 @@ make smoke-sim
 > ⚠️ **诚实标注**：星-地远场 + 简单对称模板下，**绝对姿态估计不可行**（物理上界）；单站多目标**分类**受信号混合限制（检测/定位可用）。
 
 > 🔢 **数值舍入说明**：README 数值为便于阅读的舍入值；精确可复现值与 v1.7 旧→新对照见 TECH_REPORT v1.7 与 `docs/physics_audit_table.md`。
+
+---
+
+## 🧱 墙地图 —— 这个场景推不动的地方
+
+多数论文在自己的最好结果处收尾。本仓库同时绘制它的墙——**四种独立方法（信息论、功率核算、全局优化、估计理论）收敛到同一指引**：在这个几何里，下一步的收益在**标定、部署与几何**，*不在* RIS 相位算法，也*不在*可观测方向上的估计器效率。
+
+| 墙 | 命题（含证书类型） | 对领域的含义 |
+|---|---|---|
+| **① 远场角度墙** | 80 m ROI 在 ~695 km 斜距下只张 0.0066°；分辨它需要 77 m 孔径（N≈15,394——N=8 时缺口 **1889×**）。*精确几何界*；Van Trees 特征值比 λ⊥/λ∥ ~ **6.6e-9** 从信息论侧确认 | 单站交叉距离物理不可用；破墙路径是双站三边定位（0.34 m，CRB 证明的最优部署 Δaz=90°）或近场 XL-RIS（已设计未实现） |
+| **② 功率门（RIS 不载感知回波）** | 星载模式下 RIS 反射的感知回波比通信信号弱 **~9×10²⁰ 倍**；感知观测在结构上不含 RIS 相位。*结构恒等式 + 功率核算* | **负定理**：本几何的相位维度不存在感知-通信权衡；联合相位设计是空集——唯一耦合点在决策层。不要在此几何里找联合 RIS 波形 |
+| **③ 信息底噪（290× 保守）** | HRRP 单散射体路径长 CRB 为 **0.5165 mm**（MC/CRB = 0.984）；已发表双站结果假设的 σ_ρ = 0.15 m 保守 **290×**。*CRB 定理 + MC 验证* | 0.34 m 双站 RMSE 是**模型/标定受限，非信息受限**；精力应放在误差预算分解（含 Ka 频段电离层 2–20 m > 5.3 m 破墙预算），而非更好的估计器 |
+| **④ 相位设计近优** | 坐标上升已达**认证全局界**的 **88.05%**（SDR + 拉格朗日对偶，32/32 帧合法）；认证设计因子 η_design\* ∈ **[0.732, 0.832]**；均匀 K 重构的精确间隙为 K=2/4 各 40.1%/42.1%。*对偶界证书 + 穷举证书* | 本场景 RIS 相位算法已近天花板；闭环剩余差距（η_total ≈ 0.69）主要由**感知/盒子先验侧**贡献，不在优化器 |
+
+**前置门另外发现的两堵墙**：闭环值函数在感知位置上是 ROI 体素尺度的**阶梯函数**（±2 m 即使功率 +59%/−38%）——估计器侧重加权理论不适用于部署管线（瓶颈是盒子先验）；已训练**条件编码器坍塌**（CFG 近无效）——"条件生成式感知"的声明在重训前被门住（命题 G15）。
+
+**为什么公布墙？** 因为四类独立证书互相印证，比任何单一正面结果都更强——它告诉社区未来三年*不该*往哪使劲。完整推导与可证伪协议：[`docs/optimization_roadmap.md`](docs/optimization_roadmap.md) · 技术报告：[`TECH_REPORT.md`](TECH_REPORT.md) v1.12 §6.7–6.8。
 
 ---
 
@@ -367,7 +398,7 @@ IRS-Diffu-ISAC/
 
 ```bibtex
 @misc{irsdiffuisac2026,
-  title  = {IRS-Diffu-ISAC: RIS-Aided ISAC via Diffusion Models for 3D Point Cloud Reconstruction},
+  title  = {IRS-Diffu-ISAC: A Certificate-Carrying Testbed for RIS-Aided Space ISAC},
   author = {Lu, Conrad},
   year   = {2026},
   howpublished = {\url{https://github.com/ConradLu2740/IRS-Diffu-ISAC}}

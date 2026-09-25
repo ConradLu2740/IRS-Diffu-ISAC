@@ -9,11 +9,25 @@
 [![Release](https://img.shields.io/github/v/release/ConradLu2740/IRS-Diffu-ISAC)](https://github.com/ConradLu2740/IRS-Diffu-ISAC/releases)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ConradLu2740/IRS-Diffu-ISAC/blob/main/colab/isac_demo.ipynb)
 
-**RIS-Aided Integrated Sensing and Communication (ISAC) — from Conditional Diffusion 3D Reconstruction to Space ISAC (ISAC-NTN) Engineering Loop**
+**A certificate-carrying testbed for RIS-aided space ISAC — every claim ships with its proof, its bound, or its falsification.**
 
-Intelligent Reflecting Surface (RIS) aided **Integrated Sensing and Communication (ISAC)**, powered by Conditional Latent Diffusion Models for 3D point cloud reconstruction, and extended to **space-based ISAC**: real LEO satellite orbits (SGP4), dynamic RIS tracking, multi-target 3D tracking (MOT), SDR data interface, and an **end-to-end sensing–communication closed-loop demo**.
+Real LEO orbits (SGP4) · dynamic RIS phase optimization · diffusion & flow-matching generative sensing · sensing–communication closed loop · OTFS/AFDM against the real ±611 kHz Doppler · and a verification suite where every headline number is either **certified**, **bracketed**, or **falsified in public**.
 
-> 🎯 **A school research project turned engineering showcase** — physics-grounded, reproducible, and demo-ready.
+> 🎯 **A school research project that grew into a falsifiable-testbed**: physics-grounded, reproducible, demo-ready — and honest about what is *not* true (see the **Wall Map** section below).
+
+---
+
+## 🎯 The Thesis
+
+Most ISAC papers report numbers without reporting the *conditions under which those numbers hold*. This repo takes the opposite contract: **pre-register the claim, then verify it — including when verification says no.**
+
+| | |
+|---|---|
+| 🔬 **19 verification scripts** | orbit physics, RIS SDR optimality bracket, ODE convergence order, Lipschitz constants, CRB floors, Pareto frontiers, DP scheduling certificates, information ladders — each with fixed seeds, JSON evidence, and PASS/FAIL verdicts |
+| 📉 **10+ falsified predictions** | SDR gain overestimated an order of magnitude; Hessian-weighted loss dead (value function is a step function); free-bits dead (no posterior collapse); critical SNR −8 dB → measured −31.2 dB; "OFDM SIR ≤ 5 dB" → 11.7 dB; FM advantage at equal NFE non-monotonic — all reported, none hidden |
+| 🧱 **The Wall Map** | four independent methods (information theory, power accounting, global optimization, estimation theory) converge on the same guidance for the field: *calibration and geometry, not phase algorithms* |
+
+**Headline, in one sentence**: a 1-step flow-matching sampler matches 100-step diffusion on every metric in every IRS mode (−22~−33% CD at 50–100× fewer network evaluations), inside a closed loop that provably reaches ≈69% of a *certified* global optimum (Bootstrap 95% CI [0.638, 0.745]).
 
 ---
 
@@ -26,7 +40,7 @@ closed-loop demo. All data & weights are **synthetically generated in-code** —
 **What you can do with it**
 - **Reproduce** headline results (RIS tracking **+173%**, closed-loop comm gain **+374%**; v1.7 physics-consistency audit values, see `docs/physics_audit_table.md`) in minutes
 - **Extend** it: swap satellite / frequency band / target templates / your own model
-- **Compare** with classical baselines (2D-CFAR + MUSIC, `make baseline`)
+- **Compare** with classical baselines (2D-CFAR + MUSIC, `make baseline`) or with the strong generative baselines (DDIM few-step, progressive distillation, `make verify-baselines`)
 
 **Fastest path**
 ```bash
@@ -35,7 +49,7 @@ make verify   # 1 min physics self-check (ALL PASS)
 make demo     # auto-train + sensing–comm closed-loop
 ```
 
-Command map: `make help` · script-by-script cards: [`source_code/isac_sat/README.md`](source_code/isac_sat/README.md) · parameter recipes: [`configs/README.md`](configs/README.md)
+Command map: `make help` · script-by-script cards: [`source_code/isac_sat/README.md`](source_code/isac_sat/README.md) · parameter recipes: [`configs/README.md`](configs/README.md) · optimization roadmap & pre-registered propositions: [`docs/optimization_roadmap.md`](docs/optimization_roadmap.md)
 
 ---
 
@@ -135,6 +149,23 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 > ⚠️ **Honest notes**: absolute attitude estimation is **not feasible** (physical upper bound) for far-field star–ground links with simple symmetric templates; single-station multi-target **classification** is limited by signal mixing (detection/localization works).
 
 > 🔢 **Rounded values**: README figures are rounded for readability; exact reproducible values and the v1.7 old→new audit diff are in TECH_REPORT v1.7 and `docs/physics_audit_table.md`.
+
+---
+
+## 🧱 The Wall Map — where this scenario *cannot* be pushed
+
+Most papers end at their best result. This repo also maps its walls — **four independent methods (information theory, power accounting, global optimization, estimation theory) converge on the same guidance**: in this geometry, the next gains are in **calibration, deployment, and geometry** — *not* in RIS-phase algorithms, and *not* in estimator efficiency on observable directions.
+
+| Wall | Statement (with certificate type) | Consequence for the field |
+|---|---|---|
+| **① Far-field angle wall** | The 80 m ROI subtends 0.0066° at ~695 km slant range; resolving it needs a 77 m aperture (N≈15,394 — **1889× shortfall** at N=8). *Exact geometric bound*; Van Trees eigenvalue ratio λ⊥/λ∥ ~ **6.6e-9** confirms it information-theoretically | Mono-static cross-range is physically unavailable; escapes are two-station trilateration (0.34 m, CRB-proven deployment Δaz=90°) or near-field XL-RIS (designed, unbuilt) |
+| **② Power gate (RIS carries no sensing echo)** | In the spaceborne mode the RIS-reflected echo is **~9×10²⁰× weaker** than the communication signal; the sensing observation is structurally independent of the RIS phase. *Structural identity + power accounting* | **Negative theorem**: no sensing–communication trade-off exists in the phase dimension here; joint *phase* design is vacuous — the only coupling point is the decision layer. Don't search for joint RIS waveforms in this geometry |
+| **③ Information floor (290× conservatism)** | The HRRP single-scatterer path-length CRB is **0.5165 mm** (MC/CRB = 0.984); the σ_ρ = 0.15 m assumed in published two-station results is **290× more conservative**. *CRB theorem + MC verification* | The 0.34 m two-station RMSE is **model/calibration-limited, not information-limited**; effort belongs in error-budget decomposition (incl. Ka-band ionosphere 2–20 m > the 5.3 m break-wall budget), not in better estimators |
+| **④ Phase-design near-optimality** | Coordinate ascent already reaches **88.05%** of a *certified* global bound (SDR + Lagrangian dual, 32/32 frames valid); certified design factor η_design\* ∈ **[0.732, 0.832]**; uniform-K reconfiguration gap is exactly 40.1%/42.1% at K=2/4. *Dual-bound certificate + exhaustive-search certificate* | RIS phase algorithms are near their ceiling in this scenario; the remaining closed-loop gap (η_total ≈ 0.69) is dominated by the **sensing/box-prior side**, not the optimizer |
+
+**Two more walls found by the gates**: the closed-loop value function is a **step function** of the sensed position at the ROI-voxel scale (±2 m moves power +59%/−38%) — so estimator-side reweighting theories don't apply to the deployed pipeline (bottleneck = box prior); and the trained **conditional encoders are collapsed** (CFG inert) — the "conditional generative sensing" claim is gated until retrained (proposition G15).
+
+**Why publish walls?** Because four independent certificate types agreeing is stronger evidence than any single positive result — and it tells the community where *not* to spend the next three years. Full derivations and falsifiable protocols: [`docs/optimization_roadmap.md`](docs/optimization_roadmap.md) · technical report: [`TECH_REPORT.md`](TECH_REPORT.md) v1.12 §6.7–6.8.
 
 ---
 
@@ -373,7 +404,7 @@ If you use this project in your research:
 
 ```bibtex
 @misc{irsdiffuisac2026,
-  title  = {IRS-Diffu-ISAC: RIS-Aided ISAC via Diffusion Models for 3D Point Cloud Reconstruction},
+  title  = {IRS-Diffu-ISAC: A Certificate-Carrying Testbed for RIS-Aided Space ISAC},
   author = {Lu, Conrad},
   year   = {2026},
   howpublished = {\url{https://github.com/ConradLu2740/IRS-Diffu-ISAC}}
