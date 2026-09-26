@@ -133,6 +133,7 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 | Sensing–comm closed-loop (single) | Classification 80%, comm gain **+374%** (73.3% of the ideal closed-form oracle) |
 | Sensing–comm closed-loop (multi) | Detection 0/2 (single scene), IRS pointing gain **+577%** (86% of the ideal closed-form oracle) |
 | Multi-target tracking (MOT) | 10 targets / 5 classes, detection recall **0.60**, trajectory class accuracy 0.73 |
+| DETR-ized detector (S1–S3) | DETR-style head + calibrated objectness: MOT recall **0.758** / RMSE **0.1860** vs original 0.699 / 0.2010 (+8.4% / −7.5%); objectness beats max-softmax (F1 0.841 vs 0.727 @ same recall) |
 | Classic baseline (2D-CFAR) | Detection **100%** (P_fa=1e-4), along-line-of-sight localization RMSE **8.1 m** — no training needed |
 | Classic baseline (MUSIC) | ULA-8 target direction MAE **0.017°** (synthetic snapshots); far-field angle resolution physically insufficient for intra-ROI localization |
 | ML vs classic (fair) | ML (absolute-range feature) LOS RMSE **2.3 m** vs CFAR 8.1 m; centroid-relative feature = class prior only (2D RMSE 22.6 m); feature bug fixed (`center='roi'`) |
@@ -142,9 +143,12 @@ Satellite overpass → sense the target → IRS auto-pointing → communication 
 | HRRP information floor (finding) | Single-scatterer path CRB **0.5165 mm** (MC/CRB=0.984); assumed σ_ρ=0.15 m is **290× conservative** → 0.34 m two-station RMSE is model-limited, not information-limited |
 | Pilot FIM / η_est | genie-CSI harmlessness certified: η_est(17)=**0.9999994**; 50%-loss critical SNR −31.2 dB; joint optimum K=1, n_p=17 |
 | Information audit | Fano ladder **0.19 / 1.71 / 2.07 bit** (narrowband→HRRP→ISAR); Van Trees λ⊥/λ∥~6.6e-9 (angle wall); conditional-encoder collapse fixed (lr_cond 1e-3→1e-4); **HRRP conditioning opens the channel: Δ(0)=0.302** (6× the pre-registered threshold, monotone in t, 21.8% variance explained); FM NFE=1 beats DDPM NFE=100 by −14% under HRRP conditioning |
+| **Flow Matching vs DDPM at equal compute** | FM NFE=1 beats DDPM NFE=100 on the same architecture/data: CD 0.2922 vs 0.4055–0.4326 (unconditional); **0.2269 vs 0.2637 (−14%)** under HRRP conditioning (C1); C2 dual-domain fusion falsified (0.2269 → 0.2752 — narrowband dilutes) |
 | **FM shape beats box prior** | FM NFE=1 generative shape replaces the hand-crafted box ROI in the closed loop: η_sense **0.840 → 0.932** (+10.9%), voxel ℓ1 error **0.58×**; η_total → ≈0.736; `make verify-fm-shape` / `demo.py --fm_shape <ckpt>` |
 | **1-step distilled FM student** | Progressive distillation of the C1 HRRP-conditional FM: student **−23.4% CD** vs its own teacher at identical 1-forward cost (0.3101 vs 0.4047; P1–P3 PASS; same-batch paired eval, full-scale retrain pending); `make train-fm-distill` |
 | OTFS/AFDM vs real Doppler | ICI identity **28.35%** @ ±611 kHz (MC 10⁶); OTFS BER **0** vs OFDM 7.7e-2 (equal SNR); ISAR frozen-geometry threshold 32.3 Hz vs actual ≥2.53 kHz (**78× violation**) |
+| XL-array DOA escapes the range wall (NF-2/3) | 1 m coherent aperture, far-field DOA CRB **387 mm** @ 1 km — **30×** better than the 11.84 m range-profile wall; robust to 5° phase-calibration noise (38% CRB efficiency); near-field curvature falsified as low-value — geometry line closes, NF-4 (low-altitude loop) registered |
+| Differentiable sensing pipeline | Soft-voxel relaxation makes phase design + evaluated power differentiable in target position: autograd = FD (4/4 seeds, G1 PASS); Danskin smooth limit flat (G2 FAIL, κ≈0) — kept as end-to-end infrastructure, estimator-side weighting falsified twice |
 | Angle-wall scan (finding) | Resolving the 80 m ROI needs a 77 m aperture (N≈15,394) — shortfall **1889×** at N=8; wall active in all practical configs |
 | Two-station trilateration (finding) | Cross-range RMSE **0.34 m** @ default geometry (γ=131°, σ_ρ=0.15 m, 3D slant-range model) — **~35×** better than the 11.8 m mono-static wall; break-wall budget σ_ρ < 5.3 m |
 
