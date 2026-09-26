@@ -92,7 +92,7 @@ $$
 \mathbf{x}_t = (1-t)\,\mathbf{x}_0 + t\,\mathbf{x}_1, \qquad t \in [0, 1],
 \tag{4}
 $$
-whose induced conditional velocity is the constant vector $\mathbf{x}_1 - \mathbf{x}_0$. The flow network $v_{\boldsymbol{\theta}}$ — a 1-D Diffusion Transformer with cross-attention (2 blocks, 256 hidden units, 8 heads) — is trained by the regression objective
+whose induced conditional velocity is the constant vector $\mathbf{x}_1 - \mathbf{x}_0$. The flow network $v_{\boldsymbol{\theta}}$ — a 1-D Diffusion Transformer with cross-attention (2 blocks, 256 hidden units, 8 heads) — is trained by the regression objective [17]
 $$
 \mathcal{L}_{\mathrm{FM}} = \mathbb{E}_{t, \mathbf{x}_0, \mathbf{x}_1, c}\Big[\big\| v_{\boldsymbol{\theta}}(\mathbf{x}_t, t, c) - (\mathbf{x}_1 - \mathbf{x}_0) \big\|_2^2\Big],
 \tag{5}
@@ -267,10 +267,11 @@ This paper presented FMShape, a conditional flow-matching framework that reconst
 | [7] | "SDHC: Joint semantic-data guided hierarchical classification for fine-grained HRRP target recognition," *IEEE TAES*, 2024 |
 | [8] | "Radar target characterization and deep learning in radar automatic target recognition: A review," *Remote Sensing*, 15:3742, 2023 |
 | [9] | Y. Lipman et al., "Flow matching for generative modeling," *ICLR*, 2023 |
-| [10] | rectified flow / stochastic interpolants（成稿选 1 篇） |
+| [10] | X. Liu, C. Gong, and Q. Liu, "Flow straight and fast: Learning to generate and transfer data with rectified flow," in *Proc. ICLR*, 2023 |
 | [11] | Y. Wang et al., "Deep learning-based extended target tracking in ISAC systems," arXiv:2504.00576, 2025 |
 | [12] | M. M. Rahman, S. Z. Gurbuz, M. G. Amin, "Physics-aware generative adversarial networks for radar-based human activity recognition," *IEEE TAES*, 59(3):2994–3008, 2023 |
 | [13] | Bao et al., "Improved few-shot SAR image generation by enhancing diversity," *IEEE JSTARS*, 17:3394–3408, 2024 |
 | [14] | D. Guo et al., "Variational temporal deep generative model for radar HRRP target recognition," *IEEE TSP*, 68:5795–5809, 2020 |
-| [15] | M. Albergo et al., "Stochastic interpolants," / A. Liu et al., "Flow straight and fast,"（成稿选 1 篇） |
-| [16] | ISAR 序列形成（照仓库 compute_isar_sequence 的实现描述成文，或引 Ozlem 等 ISAR 成像经典） |
+| [15] | M. S. Albergo, N. M. Boffi, and E. Vanden-Eijnden, "Stochastic interpolants: A unifying framework for flows and diffusions," arXiv:2303.08797, 2023（另见 *JMLR*, 26(209):1–80, 2025） |
+| [16] | C. Ozdemir, "Inverse Synthetic Aperture Radar Imaging with MATLAB Algorithms," 2nd ed., Hoboken, NJ: Wiley, 2021（ISAR 距离单元迁移与慢时谱形成的经典参考；本文序列生成为自研实现） |
+| [17] | A. Tong, N. Malkin, G. Huguet, Y. Zhang, J. Rector-Brooks, K. Fatras, G. Wolf, and Y. Bengio, "Conditional flow matching: Simulation-free dynamic optimal transport," arXiv:2302.00482, 2023 |
