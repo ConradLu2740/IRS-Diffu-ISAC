@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.48 (2026-09-26) — companion to the open-source repository
+**Version**: v1.49 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -48,6 +48,7 @@
 *v1.45 additions: the C3 pre-screen (Section 6.40, `verify_cond_shape_diversity.py --cond_feat isar`) tests at the data level whether the ISAR slow-time Doppler profile carries the cross-range information that the HRRP lacks — before spending training compute. Paired on the same 96 scenes (CD statistics bit-identical across condition features): the Doppler profile alone has Spearman ρ(condition distance, shape distance) = 0.212 vs HRRP's −0.015 — the rotation-induced range-migration physics is real, C3 is not vacuous — but naive HRRP+dop concatenation collapses ρ to 0.002: the 512-dimensional HRRP swamps the 32-dimensional Doppler profile in any L2-based signal, the same dilution failure as C2 (Δ(0) 0.302 → 0.238) now visible at the data level. The dop-only nearest-condition pairs are also 16% closer in shape (aligned CD 0.0222 vs 0.0265) — a modest narrowing. Registered design correction: any C3 training run must normalize/whiten condition feature blocks before concatenation, or the network side will reproduce C2's dilution. Pre-screen verdicts: I1 (dop ρ ≥ 0.1) PASS, I2 (concatenation narrows) FAIL, I3 (dop-only narrows) PASS.*
 *v1.46 additions: the registered C3 correction is tested and corrected itself (Section 6.41). The first proposed fix — per-block unit normalization — is a no-op: `data_sat.py` already unit-norms every block, and the numbers are bit-identical before and after. The actual dilution mechanism is unequal per-block pairwise spread: HRRP mean pairwise distance 0.9448 vs Doppler 0.1884 (5.0×), so the 512-d near-orthogonal HRRP dominates the L2 neighbor structure. The operative fix — dividing each block by its own mean pairwise distance (block standardization, 5.0× for the Doppler block) — recovers 97% of the Doppler profile's standalone discriminative signal (ρ 0.002 → 0.205 vs dop-only 0.212; closest-pair aligned CD 0.0221 ≈ dop-only 0.0222). The C3 training protocol is thereby fixed: spread-equalized block concatenation, not raw or unit-norm concatenation; without it, C3-as-concatenation is HRRP-only and reproduces the C2 dilution. Verdicts: S1 (ρ ≥ 0.5× dop) PASS, S2 (> 3× raw concatenation) PASS.*
 *v1.48 additions: the C3 full-scale training run executes the §6.41 protocol and lands mixed verdicts (Section 6.43). Two models trained fresh-data at 512/60 (budget below C1's 1024/100, recorded): raw HRRP+dop concatenation and spread-equalized concatenation. Results: FM NFE=1 CD 0.4011 (raw) / 0.4065 (eq); Δ(0) = 0.131 (raw) / 0.154 (eq) against C1's 0.302. C3a PASS — spread equalization helps on the network side too (+17.6% Δ(0), same direction as the data-level pre-screen, so the C2-style dilution is genuinely repairable on both sides); C3c PASS — no quality regression (+1.3% CD); C3b FAIL as registered — the ISAR channel does not beat C1's HRRP channel, but the comparison is budget-confounded (half the training budget), so the honest reading is "half-budget ISAR does not beat full-budget HRRP", not "ISAR is useless". A matched-budget HRRP-only control (512/60) is registered as C5 and running; its Δ(0) is the clean criterion for C3b. Substantive findings: the ISAR condition opens a real but modest information channel (Δ(0) ≥ 0.05 threshold, encoder not collapsed, null A/B difference 0.25 excluding undertraining explanations), and Δ(t) is non-monotone — structurally different from C1's monotone decrease. Two audit-script bugs fixed along the way (3-tuple unpack in the null A/B block; cond_dim taken from the actual batch width rather than `frame_cond_dim`, which also explains why C1's audit numbers existed only in stdout).*
+*v1.49 additions: the matched-budget control C5 (HRRP only @ 512/60, fresh data) adjudicates C3b cleanly (Section 6.44): Δ(0) = 0.144 for HRRP-only vs 0.154 for spread-equalized ISAR (**+6.9% at equal budget**) and 0.131 for raw concatenation (**−9.0%**). The C2-style dilution penalty is thereby quantified on the network side, and the equalization fix is what makes the ISAR channel net-positive. Two honest notes: the +6.9% is single-seed without confidence intervals — directionally consistent with the data-level pre-screen but requiring multi-seed confirmation before being called strong; and C1's 0.302 vs C5's 0.144 shows the conditional-channel width is highly budget-sensitive (doubling data/epochs doubled Δ(0)), so C1's value is not a ceiling for this condition. Final C3 verdict: the ISAR slow-time Doppler profile carries usable additional conditional information, net-positive only under spread-equalized concatenation (+6.9% matched-budget, single seed); the protocol assets (`--spread_equalize`, two audit-script fixes) are committed. Registered next: multi-seed replication of C3-eq vs C5, analysis of the non-monotone Δ(t) structure, and wiring ISAR conditioning into the closed-loop shape prior to measure the η_sense margin.*
 *v1.47 additions: registered experiment R1 completes the bias–variance frontier along the teacher-integration axis (Section 6.42). At fixed budget (512/60), distilling from K-step teacher maps for K ∈ {2, 4, 10} on the common eval batch: student CD 0.3839 / 0.3956 / 0.4368 and diversity (pairwise) 0.0488 / 0.0640 / 0.0687 — both monotone in K, exactly as T3/T4 predict. Two operational findings: (i) diminishing returns beyond K=4 — diversity gains only 7% from K=4→10 while CD pays another 10.4%, so K=4 is the practical sampler operating point; (ii) the regression loss grows with K (0.2535 → 0.3785 → 0.3822) because higher-order maps are more x0-dependent and harder for a 1-step student to fit — which also explains why the 1024/100 budget was only necessary at K=2 (§6.39). P1 fails at every K (the student's CD cost vs the mean is the structural T4 price); P2 passes at K=4/10 and fails only for the well-fit K=2 full-budget run, so the student's CD position is set by its fit to the K-step map. The frontier is now complete on both axes (budget, K).*
 
 ---
@@ -1354,6 +1355,27 @@ registered but is budget-confounded: C1's 0.302 came at 1024/100 versus C3's 512
 (512/60) is registered as C5 and running; its Δ(0) is the clean criterion for C3b. Two audit-script bugs were
 fixed along the way (3-tuple unpack in the null A/B block; cond_dim from the actual batch width rather than
 `frame_cond_dim`, which also explains why C1's audit numbers existed only in stdout).
+
+### 6.44 The C5 Control: ISAR Is Net-Positive at Matched Budget (+6.9%), the Dilution Penalty Quantified (−9.0%) (v1.49)
+
+The C5 control (HRRP only @ 512/60, fresh data, same protocol) adjudicates C3b cleanly:
+
+| Model (all 512/60) | Δ(0) | vs C5 |
+|---|---|---|
+| C5 HRRP only | **0.144** | baseline |
+| C3-raw (HRRP + dop, raw concatenation) | 0.131 | **−9.0%** |
+| C3-eq (HRRP + dop, spread-equalized) | **0.154** | **+6.9%** |
+
+The matched-budget comparison shows the spread-equalized ISAR condition beating HRRP-only by +6.9% — modest but
+directionally clear — while raw concatenation loses 9.0% against HRRP-only, quantifying the C2-style dilution
+penalty on the network side. Two honest notes: (i) the +6.9% is single-seed without confidence intervals —
+directionally consistent with the data-level pre-screen (ρ 0.205 vs −0.015) but requiring multi-seed
+confirmation before being called strong; (ii) C1's 0.302 (1024/100) vs C5's 0.144 (512/60) shows the
+conditional-channel width is highly budget-sensitive — doubling data and epochs roughly doubled Δ(0) — so C1's
+value is not a ceiling for this condition. Final C3 verdict: the ISAR slow-time Doppler profile carries usable
+additional conditional information, net-positive only under spread-equalized concatenation (+6.9% at matched
+budget, single seed). Registered next: multi-seed replication of C3-eq vs C5, analysis of the non-monotone
+Δ(t) structure, and wiring ISAR conditioning into the closed-loop shape prior to measure the η_sense margin.
 
 ## 7. Limitations and Honest Discussion
 
