@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.49 (2026-09-26) — companion to the open-source repository
+**Version**: v1.50 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -15,7 +15,7 @@
 *v1.12 additions: the extended verification suite (Section 6.8): DP-optimal RIS reconfiguration scheduling with an exhaustive-search certificate (uniform-K suboptimality gap 40.1%/42.1% at K=2/4); the closed-form sensing-communication Pareto frontier sigma_cross(R)=40.97/(2^R-1) with multi-frame fusion gain and an HRRP information floor of 0.5165 mm (290x more conservative than the assumed sigma_rho=0.15 m); a pilot-FIM analysis certifying genie-CSI harmlessness (eta_est(17)=0.9999994); an information audit (Fano ladder 0.19/1.71/2.07 bit, Van Trees confirmation of the angle wall, CFM conditional-loss identity) that uncovers a conditional-encoder collapse (CFG effectively inert); and an OTFS/AFDM waveform layer with the exact OFDM ICI identity (28.35% ICI at the real +-611 kHz LEO Doppler; OTFS BER=0 vs OFDM 7.7e-2 at equal SNR). Two pre-registered predictions were falsified and are reported as such (critical SNR -8 dB vs measured -31.2 dB; "OFDM SIR <= 5 dB" vs measured 11.7 dB in the all-pilot regime).*
 *v1.13 additions: the conditional-encoder collapse reported in v1.12 is root-caused and fixed (lr_cond 1e-3 -> 1e-4; condition sensitivity restored 4x10^4-fold, see Section 6.8). The pre-registered side-information claim (Delta(0) >= 0.05) is partially falsified: Delta(t) remains ~0 at 256 samples/100 epochs even though condition information now flows into the velocity field. Side benefit: with the fixed encoder the sat-mode FM NFE=1 CD improves 0.3166 -> 0.2922 and the headline strengthens (FM NFE=1 0.2922 vs best DDPM NFE=100 0.4055-0.4326 across two lr_cond settings). The FM-vs-DDPM equal-compute comparison is unaffected by the fix.*
 *v1.14 additions: the G-kappa gate finding (box prior is the closed-loop bottleneck) is repaired — the FM generative model becomes a real closed-loop component: an NFE=1 sampled shape (voxelized, translated to the MLP position estimate) replaces the hand-crafted box ROI (Section 6.9). Measured over 8 seeds with the design-on-estimate/evaluate-on-truth protocol: eta_sense 0.840 -> 0.932 (+10.9%), voxel l1 error 0.58x, projected eta_total ~0.736. demo.py gains an optional --fm_shape flag (default unchanged).*
-*v1.15 additions: two variational-inference consistency fixes are applied and A/B-certified (Section 6.10): the transport objective now uses posterior samples z~q instead of the posterior mean (ELBO consistency: the generative prior should match the aggregate posterior), and latent normalization is per-dimension whitening instead of a scalar. Held-out aggregate-posterior Gaussian KL drops 29.4%. The A/B is not quality-neutral and corrects the headline: the previous "FM NFE=1 beats DDPM NFE=100 by 22-33%" was partly an artifact of inconsistent training penalizing DDPM more; under consistent training FM NFE=1 is -9% (within the +/-20% run-to-run variance of DDPM) and FM NFE>=10 beats DDPM NFE=100 by 26-36%. Run-to-run variance across four same-protocol DDPM runs (0.36-0.56) is reported, and a multi-seed paired A/B is registered as proposition M1.*
+*v1.15 additions: two variational-inference consistency fixes are applied and A/B-certified (Section 6.10): the transport objective now uses posterior samples z~q instead of the posterior mean (aggregate-posterior consistency — a Barber-Agakov-style mutual-information bound term rather than a literal ELBO, because the decoded reconstruction is a Chamfer distance, not a negative log-likelihood; the quantity actually certified is the aggregate-posterior Gaussian KL), and latent normalization is per-dimension whitening instead of a scalar. Held-out aggregate-posterior Gaussian KL drops 29.4%. The A/B is not quality-neutral and corrects the headline: the previous "FM NFE=1 beats DDPM NFE=100 by 22-33%" was partly an artifact of inconsistent training penalizing DDPM more; under consistent training FM NFE=1 is -9% (within the +/-20% run-to-run variance of DDPM) and FM NFE>=10 beats DDPM NFE=100 by 26-36%. Run-to-run variance across four same-protocol DDPM runs (0.36-0.56) is reported, and a multi-seed paired A/B is registered as proposition M1.*
 *v1.16 additions: the multi-seed paired A/B (Section 6.11, proposition M1) falsifies the statistical basis of any quality-superiority claim between the two generative paradigms at this training scale: across 3 seeds the FM(NFE=1)-DDPM(NFE=100) difference is sign-inconsistent (+4.5% / -20.5% / -4.4%) with a Bootstrap 95% CI crossing zero, and DDPM itself has 18% cross-seed CV. The headline is therefore restated as matched-quality sampling-efficiency parity (50-100x fewer network evaluations), and the remaining 15-20x gap to the VAE ceiling is attributed to the VAE/training scale rather than the generative objective.*
 *v1.17 additions: the VAE training-scale experiment (Section 6.12). Diagnosis from the M1 checkpoints showed the VAE was still improving +24-29% in its last 10 epochs at epoch 50 (undertrained, not capacity-limited). Scaling (200 epochs / 1024 samples vs 50 / 256, two paired seeds) halves the VAE ceiling (0.0146/0.0155 -> 0.0076/0.0081, -47.7%) and reduces cross-seed CV to 3.7%, but generative quality does not follow (FM NFE=10 and DDPM get slightly worse): the bottleneck shifts to the generative models own training budget, with the gap to the (halved) ceiling now 20-30x. Side observation: under the scaled VAE, FM NFE=1 beats DDPM NFE=100 on both seeds (-55% / -43%), suggesting the earlier VAE bottleneck partly masked the few-step advantage; registered as proposition M2 (3-seed confirmation) with M3 (generative training 100 -> 400 epochs).*
 *v1.18 additions: the generative training-budget experiment (Section 6.13, proposition M3). With the scaled VAE fixed, 4x generative training (100 -> 400 epochs) does not improve quality and significantly hurts one seed (FM NFE=1 0.1457 -> 0.2471) — an overfitting signature. A conceptual correction follows: comparing generative CD against the VAE oracle CD compares a distributional bound with a per-sample reconstruction bound; the "15-30x gap to the ceiling" framing is retracted. The bottleneck investigation arc closes as: VAE undertraining (fixed, ceiling -48%) -> generative training budget (falsified) -> the real candidates are the conditional-structure collapse (G15) and data diversity. M2 (FM NFE=1 < DDPM NFE=100 under the scaled VAE) holds in 4/4 paired observations across two independent runs, still at n=2 seeds.*
@@ -50,12 +50,13 @@
 *v1.48 additions: the C3 full-scale training run executes the §6.41 protocol and lands mixed verdicts (Section 6.43). Two models trained fresh-data at 512/60 (budget below C1's 1024/100, recorded): raw HRRP+dop concatenation and spread-equalized concatenation. Results: FM NFE=1 CD 0.4011 (raw) / 0.4065 (eq); Δ(0) = 0.131 (raw) / 0.154 (eq) against C1's 0.302. C3a PASS — spread equalization helps on the network side too (+17.6% Δ(0), same direction as the data-level pre-screen, so the C2-style dilution is genuinely repairable on both sides); C3c PASS — no quality regression (+1.3% CD); C3b FAIL as registered — the ISAR channel does not beat C1's HRRP channel, but the comparison is budget-confounded (half the training budget), so the honest reading is "half-budget ISAR does not beat full-budget HRRP", not "ISAR is useless". A matched-budget HRRP-only control (512/60) is registered as C5 and running; its Δ(0) is the clean criterion for C3b. Substantive findings: the ISAR condition opens a real but modest information channel (Δ(0) ≥ 0.05 threshold, encoder not collapsed, null A/B difference 0.25 excluding undertraining explanations), and Δ(t) is non-monotone — structurally different from C1's monotone decrease. Two audit-script bugs fixed along the way (3-tuple unpack in the null A/B block; cond_dim taken from the actual batch width rather than `frame_cond_dim`, which also explains why C1's audit numbers existed only in stdout).*
 *v1.49 additions: the matched-budget control C5 (HRRP only @ 512/60, fresh data) adjudicates C3b cleanly (Section 6.44): Δ(0) = 0.144 for HRRP-only vs 0.154 for spread-equalized ISAR (**+6.9% at equal budget**) and 0.131 for raw concatenation (**−9.0%**). The C2-style dilution penalty is thereby quantified on the network side, and the equalization fix is what makes the ISAR channel net-positive. Two honest notes: the +6.9% is single-seed without confidence intervals — directionally consistent with the data-level pre-screen but requiring multi-seed confirmation before being called strong; and C1's 0.302 vs C5's 0.144 shows the conditional-channel width is highly budget-sensitive (doubling data/epochs doubled Δ(0)), so C1's value is not a ceiling for this condition. Final C3 verdict: the ISAR slow-time Doppler profile carries usable additional conditional information, net-positive only under spread-equalized concatenation (+6.9% matched-budget, single seed); the protocol assets (`--spread_equalize`, two audit-script fixes) are committed. Registered next: multi-seed replication of C3-eq vs C5, analysis of the non-monotone Δ(t) structure, and wiring ISAR conditioning into the closed-loop shape prior to measure the η_sense margin.*
 *v1.47 additions: registered experiment R1 completes the bias–variance frontier along the teacher-integration axis (Section 6.42). At fixed budget (512/60), distilling from K-step teacher maps for K ∈ {2, 4, 10} on the common eval batch: student CD 0.3839 / 0.3956 / 0.4368 and diversity (pairwise) 0.0488 / 0.0640 / 0.0687 — both monotone in K, exactly as T3/T4 predict. Two operational findings: (i) diminishing returns beyond K=4 — diversity gains only 7% from K=4→10 while CD pays another 10.4%, so K=4 is the practical sampler operating point; (ii) the regression loss grows with K (0.2535 → 0.3785 → 0.3822) because higher-order maps are more x0-dependent and harder for a 1-step student to fit — which also explains why the 1024/100 budget was only necessary at K=2 (§6.39). P1 fails at every K (the student's CD cost vs the mean is the structural T4 price); P2 passes at K=4/10 and fails only for the well-fit K=2 full-budget run, so the student's CD position is set by its fit to the K-step map. The frontier is now complete on both axes (budget, K).*
+*v1.50 additions: a terminology and headline-number alignment pass responding to an external academic review (W1/W4/W6). Four corrections, all documentation-level (no re-runs): (1) the coordinate-ascent +256.1% reachable value is re-labeled everywhere as a **feasible point, i.e. a lower bound on the global optimum** — the residual "upper bound" mislabels in the abstract, Sections 2.3, 6.1 rows 3–4 are removed; the genuine certified upper bounds (SDR/Gershgorin/Lagrangian dual, design-factor interval [0.732, 0.832]) are untouched; (2) the transport-model "ELBO" wording is qualified — with a Chamfer-type reconstruction term the objective is a Barber–Agakov-style mutual-information bound, not an ELBO (the genuine VAE ELBO with reconstruction log-likelihood + KL is unchanged); (3) the ±611 kHz overpass Doppler is now quoted as a **derived** quantity with its closed form (f_d = v_r/λ at 30 GHz, λ = 1 cm, SGP4 peak LOS radial velocity |v_r| ≈ 6.10 km/s on the BS→ROI→UE link; the mono-static two-way form f_d = 2v_r/λ would give ±1.22 MHz at the same radial velocity, i.e. ±611 kHz two-way ⟺ |v_r| ≈ 3.06 km/s) in Section 2.1, Table 6.1 row 2, and Sections 6.5/6.8; (4) the generative-sensing headline is restated as **sampling-efficiency parity in quality** (FM reaches DDPM-100-step quality with 1–10 ODE steps, 50–100× fewer network evaluations) rather than quality superiority, citing the 3-seed paired audit of proposition M1 (Section 6.11); the single-seed −14%/−22~−33% CD gaps are retained as single-seed observations with that qualifier. The RIS +173% / closed-loop +374% / angle-wall / power-gate results are unchanged.*
 
 ---
 
 ## Abstract
 
-This report describes an open-source, physics-grounded engineering system for RIS-aided Integrated Sensing and Communication (ISAC) extended to space ISAC (ISAC-NTN). It combines real LEO orbit propagation (SGP4), dynamic RIS phase tracking, learning-based sensing, 3D multi-object tracking, and a sensing–communication closed loop, reproducible with one-command scripts (fixed seeds). Results: orbit physics matches real ISS values; RIS frame-by-frame tracking improves power by +173% (K=1, full-model closed-form alignment; a coordinate-ascent upper bound reaches +256%), while reconfiguration-limited tracking (K=8) loses most of the gain (+16% closed-form; −8% at the upper bound); a sensing-aided closed loop achieves +374% communication gain (73.3% of the ideal closed-form oracle — the legacy 97.6% compared two equally suboptimal designs); wideband HRRP classification reaches 0.80 (5-class, unchanged by this audit); 3D multi-object tracking (10 targets) achieves 0.60 recall. A comparison with classical baselines (2D-CFAR, MUSIC) uncovers two findings: (i) a feature-construction defect — centroid-relative delays discard absolute target position, collapsing ML localization to a class prior (20.4 m vs 12.2 m 2D RMSE with absolute-range features); (ii) a far-field angle wall — at ~695 km, the 80 m ROI subtends 0.0066°, far below an 8-element ULA resolution (~14°), so mono-static cross-range localization is physically unavailable. All numbers are reproducible (torch 2.8.0 reference, fixed seeds). Section 1.2 positions this system against the 2025–2026 ISAC literature, where the combination of diffusion-based point-cloud reconstruction with space ISAC (ISAC-NTN) remains an open niche as of August 2026. v1.4 additionally verifies (Section 6.3) that the RIS reconfiguration-rate trade-off survives per-frame independent Rician fading at K-factors down to 0 dB, and documents a metric-dependence finding: relative boost magnitudes depend on the ROI scatterer object and on the random-phase baseline, so cross-setting comparisons must fix both. v1.5 further demonstrates (Section 6.4) that the angle wall has an escape route already present in the scenario: two-station trilateration with the existing ground UE achieves 0.34 m cross-range RMSE (vs 11.8 m mono-static ML) at default geometry under a 3D slant-range model (corrected in v1.7), with a rank-deficiency warning for degenerate UE placements. v1.6 adds cross-stack channel validation (Section 6.5): against a 3GPP TR 38.901 CDL-D profile (K ≈ 9 dB) generated with Sionna 2.x, the in-house channel layers' flat-fading and per-frame-independent approximations are quantified — the 1 GHz sensing bandwidth sits at the |ρ| = 0.89 LOS floor (frequency-flat processing is adequate), NLOS scatter decorrelates in tens of µs (10⁴× shorter than the 1 s frame interval, justifying per-frame independence), and the K-sweep trade-off is confirmed at the standard profile's K-factor.
+This report describes an open-source, physics-grounded engineering system for RIS-aided Integrated Sensing and Communication (ISAC) extended to space ISAC (ISAC-NTN). It combines real LEO orbit propagation (SGP4), dynamic RIS phase tracking, learning-based sensing, 3D multi-object tracking, and a sensing–communication closed loop, reproducible with one-command scripts (fixed seeds). Results: orbit physics matches real ISS values; RIS frame-by-frame tracking improves power by +173% (K=1, full-model closed-form alignment; the coordinate-ascent reachable value +256% is a feasible point, hence a *lower* bound on the global optimum — the certified design-factor interval is [0.732, 0.832]), while reconfiguration-limited tracking (K=8) loses most of the gain (+16% closed-form; −8% at the coordinate-ascent value); a sensing-aided closed loop achieves +374% communication gain (73.3% of the ideal closed-form oracle — the legacy 97.6% compared two equally suboptimal designs); wideband HRRP classification reaches 0.80 (5-class, unchanged by this audit); 3D multi-object tracking (10 targets) achieves 0.60 recall. A comparison with classical baselines (2D-CFAR, MUSIC) uncovers two findings: (i) a feature-construction defect — centroid-relative delays discard absolute target position, collapsing ML localization to a class prior (20.4 m vs 12.2 m 2D RMSE with absolute-range features); (ii) a far-field angle wall — at ~695 km, the 80 m ROI subtends 0.0066°, far below an 8-element ULA resolution (~14°), so mono-static cross-range localization is physically unavailable. All numbers are reproducible (torch 2.8.0 reference, fixed seeds). Section 1.2 positions this system against the 2025–2026 ISAC literature, where the combination of diffusion-based point-cloud reconstruction with space ISAC (ISAC-NTN) remains an open niche as of August 2026. v1.4 additionally verifies (Section 6.3) that the RIS reconfiguration-rate trade-off survives per-frame independent Rician fading at K-factors down to 0 dB, and documents a metric-dependence finding: relative boost magnitudes depend on the ROI scatterer object and on the random-phase baseline, so cross-setting comparisons must fix both. v1.5 further demonstrates (Section 6.4) that the angle wall has an escape route already present in the scenario: two-station trilateration with the existing ground UE achieves 0.34 m cross-range RMSE (vs 11.8 m mono-static ML) at default geometry under a 3D slant-range model (corrected in v1.7), with a rank-deficiency warning for degenerate UE placements. v1.6 adds cross-stack channel validation (Section 6.5): against a 3GPP TR 38.901 CDL-D profile (K ≈ 9 dB) generated with Sionna 2.x, the in-house channel layers' flat-fading and per-frame-independent approximations are quantified — the 1 GHz sensing bandwidth sits at the |ρ| = 0.89 LOS floor (frequency-flat processing is adequate), NLOS scatter decorrelates in tens of µs (10⁴× shorter than the 1 s frame interval, justifying per-frame independence), and the K-sweep trade-off is confirmed at the standard profile's K-factor.
 
 **Keywords**: ISAC, RIS, non-terrestrial networks, LEO satellite, diffusion models, CFAR, MUSIC
 
@@ -98,7 +99,7 @@ Section 2: system/signal models. Section 3: dynamic RIS tracking and the closed 
 
 A LEO satellite acts as the base station (BS), performs mono-static sensing of a ground region of interest (ROI), and serves a ground user equipment (UE) station. An RIS panel can be **spaceborne** (~10 m) or **ground** (~1 m, near UE); modes `none`/`sat`/`ground` are compared. Real TLE ephemerides (ISS NORAD 25544, Starlink) are propagated with SGP4 [9]; ECI→ECEF conversion includes GMST and Earth-rotation velocity corrections. The overpass window is searched over 48 h; frames are sampled at 1 s near window center where elevation > 20°.
 
-Defaults: 30 GHz carrier (λ = 1 cm); ISS altitude ~420 km; ROI 80 m × 80 m at (30°N, 120°E); UE at (30°N, 119.5°E); BS–ROI slant ≈ 695 km; Doppler −611…+611 kHz; SNR 20 dB.
+Defaults: 30 GHz carrier (λ = 1 cm); ISS altitude ~420 km; ROI 80 m × 80 m at (30°N, 120°E); UE at (30°N, 119.5°E); BS–ROI slant ≈ 695 km; Doppler −611…+611 kHz (derived, not measured: the SGP4 peak LOS radial velocity is |v_r| ≈ 6.10 km/s over the default ISS pass, and f_d = v_r/λ at λ = 1 cm on the BS→ROI→UE sensing link gives ±610 kHz, i.e. the ±611 kHz quoted here is that peak rounded — the mono-static two-way form f_d = 2v_r/λ would give ±1.22 MHz at the same radial velocity, equivalently ±611 kHz two-way ⟺ |v_r| ≈ 3.06 km/s); SNR 20 dB.
 
 **Physics verification** (`verify_sat.py`): ISS altitude 418.3 km, velocity 7.66 km/s, period 92.9 min, Doppler S-curve, channel equations — consistent with published values.
 
@@ -119,8 +120,8 @@ As shown in Section 5, using the centroid-relative convention for localization s
 
 The RIS has N unit-modulus phase elements. Phase-aligned configuration maximizes coherent combination of RIS-assisted and direct paths at the UE. Because the satellite moves at ~7.5 km/s, the optimal phase pattern changes over the channel coherence time. We compare:
 
-- **Frame-by-frame tracking** (K=1): recompute phases every frame — power **+173.1%** vs random (seed-fixed, reproducible; full-model closed-form alignment: direct path + both RIS paths + X-weighted; a coordinate-ascent upper bound reaches +256.1%);
-- **Segmented tracking** (K=2/4/8): reconfiguration limited to every K-th frame — K=2: +126.3%, K=4: +80.1%, K=8: **+15.9%** (closed-form; at the numerical upper bound K=8 is **−8.1%**). The stale-phase penalty is phase-design dependent — the legacy 1-path design (Section 6.1 row 15) gave −41.5% at K=8. This quantitatively illustrates the reconfiguration-rate vs coherence-time trade-off. Section 6.3 verifies this qualitative trade-off is robust under per-frame independent Rician fading (K = 10/5/0 dB, 5 seeds each).
+- **Frame-by-frame tracking** (K=1): recompute phases every frame — power **+173.1%** vs random (seed-fixed, reproducible; full-model closed-form alignment: direct path + both RIS paths + X-weighted; the coordinate-ascent reachable value +256.1% is a feasible point, hence a *lower* bound on the global optimum, certified to within the design-factor interval [0.732, 0.832]);
+- **Segmented tracking** (K=2/4/8): reconfiguration limited to every K-th frame — K=2: +126.3%, K=4: +80.1%, K=8: **+15.9%** (closed-form; at the coordinate-ascent value K=8 is **−8.1%**). The stale-phase penalty is phase-design dependent — the legacy 1-path design (Section 6.1 row 15) gave −41.5% at K=8. This quantitatively illustrates the reconfiguration-rate vs coherence-time trade-off. Section 6.3 verifies this qualitative trade-off is robust under per-frame independent Rician fading (K = 10/5/0 dB, 5 seeds each).
 
 ### 2.4 Target Models
 
@@ -226,9 +227,9 @@ The system-level findings above are collected here as a single reference; each i
 | # | Experiment | Result |
 |---|---|---|
 | 1 | Orbit physics (ISS) | Altitude 418.3 km / 7.66 km/s / 92.9 min — matches real values |
-| 2 | Overpass Doppler (30 GHz) | −611…+611 kHz S-curve (real LEO order) |
-| 3 | RIS frame-by-frame tracking (K=1) | Power **+173.1%** vs random (closed-form full-model; numeric upper bound +256.1%) |
-| 4 | RIS segmented tracking | K=2: +126.3%, K=4: +80.1%, K=8: **+15.9%** (closed-form; −8.1% at the numeric upper bound; legacy 1-path gave −41.5%) |
+| 2 | Overpass Doppler (30 GHz) | −611…+611 kHz S-curve — **derived, not measured**: SGP4 peak LOS radial velocity \|v_r\| ≈ 6.10 km/s over the default ISS pass; f_d = v_r/λ at λ = 1 cm (30 GHz) gives ±610 kHz on the BS→ROI→UE link (`setup_sat.py`), i.e. the ±611 kHz quoted here is that peak rounded; mono-static two-way cross-check f_d = 2v_r/λ ⇒ ±1.22 MHz at the same \|v_r\|, equivalently ±611 kHz two-way ⟺ \|v_r\| ≈ 3.06 km/s |
+| 3 | RIS frame-by-frame tracking (K=1) | Power **+173.1%** vs random (closed-form full-model; coordinate-ascent reachable value +256.1% — a feasible point, i.e. a *lower* bound on the global optimum, certified interval [0.732, 0.832]) |
+| 4 | RIS segmented tracking | K=2: +126.3%, K=4: +80.1%, K=8: **+15.9%** (closed-form; −8.1% at the coordinate-ascent value; legacy 1-path gave −41.5%) |
 | 5 | Sensing–comm closed loop (single) | Class 80%, comm gain **+374.0%** (73.3% of the closed-form oracle +546.6%) |
 | 6 | Sensing–comm closed loop (multi) | Detection 0/2 (single scene), RIS gain **+576.8%** (86% of oracle +686.8%) |
 | 7 | Classification (5-class, wideband HRRP) | **0.80** (early 6-class: 0.383→0.867→ISAR 0.933) |
@@ -316,7 +317,7 @@ Section 5.3 established that mono-static **angle-only** cross-range localization
 
 ### 6.5 Cross-Stack Channel Validation Against 3GPP TR 38.901 via Sionna 2.x (v1.6)
 
-All in-house results rest on two channel approximations: (i) **flat fading** (the scenario's per-link channel is a single complex gain per distance; the L1 Rician layer adds co-delay scatter only), and (ii) **per-frame independence** of the injected fading (Section 6.3). To quantify both, we cross-validate against the 3GPP TR 38.901 **CDL-D** standard profile generated with Sionna 2.0.1 (PyTorch backend), at the scenario's carrier (30 GHz) and with the UT speed set to the default pass's median LOS radial velocity (|v_rel| = 25–415 m/s, median 195 m/s → f_d ≈ ±42 kHz within the 8-frame window; the S-curve peak over the full pass reaches the ±611 kHz of Table 6.1, row 2).
+All in-house results rest on two channel approximations: (i) **flat fading** (the scenario's per-link channel is a single complex gain per distance; the L1 Rician layer adds co-delay scatter only), and (ii) **per-frame independence** of the injected fading (Section 6.3). To quantify both, we cross-validate against the 3GPP TR 38.901 **CDL-D** standard profile generated with Sionna 2.0.1 (PyTorch backend), at the scenario's carrier (30 GHz) and with the UT speed set to the default pass's median LOS radial velocity (|v_rel| = 25–415 m/s, median 195 m/s → f_d ≈ ±42 kHz within the 8-frame window; the S-curve peak over the full pass reaches the ±611 kHz of Table 6.1, row 2 — derived from SGP4 as f_d = v_r/λ at λ = 1 cm with |v_r| ≈ 6.10 km/s; the two-way mono-static form f_d = 2v_r/λ would give ±1.22 MHz at the same radial velocity).
 
 *Honest boundary:* Sionna ships TR 38.901 terrestrial profiles only — TR 38.811 NTN profiles are not built in. CDL-D (explicit LOS + scatter clusters) is used as the standard-channel proxy: its LOS structure matches a satellite link, but its delay spread (100 ns default) and angle dispersion are terrestrial values. The Sionna Doppler model is isotropic Jakes scatter, not full orbit geometry; the scenario already models the deterministic LOS Doppler phase explicitly (frame-level f_d phase rotation, Section 2).
 
@@ -350,14 +351,23 @@ convention (drop 0.1, scale 2.0); the only difference is the training objective 
 OT-CFM velocity regression) and the sampler (ancestral T=100 vs ODE integration with configurable NFE). Per mode,
 the VAE is trained once and both generative models are trained on the identical normalized latents.
 
-**Quality at unequal NFE (the headline).** FM with NFE=1 beats the DDPM with NFE=100 on every metric in every
-IRS mode (CD/F-Score@0.1/F-Score@0.2/Voxel IoU; train_data 256, gen_epochs 100, seed 42):
+**Quality at unequal NFE (the v1.11 headline — superseded in scope by the multi-seed audit of Section 6.11).**
+On this single-seed run (train_data 256, gen_epochs 100, seed 42), FM with NFE=1 records a lower CD than the
+DDPM with NFE=100 in every IRS mode (CD/F-Score@0.1/F-Score@0.2/Voxel IoU):
 
 | IRS mode | DDPM NFE=100 CD | FM NFE=1 CD | FM NFE=1 FS@0.1 | FM NFE=1 IoU |
 |---|---|---|---|---|
 | sat | 0.4055 | **0.3166** (−21.9%) | 0.138 | 0.034 |
 | none | 0.6037 | **0.4223** (−30.0%) | 0.136 | 0.038 |
 | ground | 0.3069 | **0.2054** (−33.1%) | 0.268 | 0.086 |
+
+*Supersession note (v1.50).* These are single-seed observations. The 3-seed paired audit of proposition M1
+(Section 6.11) shows the FM(NFE=1) − DDPM(NFE=100) CD difference is sign-inconsistent (+4.5% / −20.5% /
+−4.4%) with a Bootstrap 95% CI crossing zero, and that DDPM itself carries 18% cross-seed CV — so **no
+quality-superiority claim between the two paradigms is supportable at this training scale**, and the
+−21.9%…−33.1% gaps above must not be read as a general FM advantage. The claim that does survive is
+**matched-quality sampling-efficiency parity**: FM reaches DDPM-100-step quality with 1–10 ODE steps, i.e.
+50–100× fewer network evaluations at inference.
 
 **Certificates for the sampling claim** (`verify_fm_bounds.py`, paired common-random-numbers design, 32-sample
 batch, reference = midpoint NFE=2000):
@@ -388,7 +398,9 @@ GT-vs-posterior-mean CD = 0.137 (ratio 2.72) — no mode collapse; the posterior
 
 Honest reading: the FM advantage is concentrated at NFE=1 (the real-time operating point); at matched NFE the
 FM-vs-DDIM gap is small and non-monotonic (DDIM wins at NFE=10), and a distilled 1-step student beats both.
-The defensible claim is therefore "a 1-step sampler of DDPM-100 quality", not "FM dominates at every NFE".
+The defensible claim is therefore "a 1-step sampler of DDPM-100 quality", not "FM dominates at every NFE" —
+and, per the multi-seed audit of Section 6.11 (proposition M1), not a general quality-superiority claim
+either: the surviving statement is sampling-efficiency parity in quality.
 
 **Generalization** (same protocol, full retrain per configuration; FM NFE=1 vs DDPM NFE=100):
 
@@ -400,7 +412,12 @@ The defensible claim is therefore "a 1-step sampler of DDPM-100 quality", not "F
 | sat, **Starlink TLE** | 0.3717 | 0.3224 | −13.3% |
 | sat, ISS, **RIS N=64** | 0.4972 | 0.3232 | −35.0% |
 
-The direction of the advantage holds in all five configurations (magnitude 13–35%).
+The direction of the advantage holds in all five configurations (magnitude 13–35%). Scope note (v1.50): these
+are again single-seed, per-configuration retrains; the 3-seed paired audit of proposition M1 (Section 6.11)
+shows the FM-vs-DDPM CD difference is not sign-consistent across seeds with a Bootstrap 95% CI crossing zero,
+so the reproducible statement is the crossover certificate above (FM reaches DDPM-100 quality within NFE ≤ 2,
+50–100× fewer network evaluations) — sampling-efficiency parity in quality — not a general quality
+superiority of FM over DDPM.
 
 **Certified optimality bracket for the RIS phase design** (`verify_ris_sdr_certificate.py`, 32 frames, 4 seeds,
 N=16). The unit-modulus QCQP max_{|v_i|=1} ‖d+Mv‖² is relaxed via the augmented PSD Gram matrix
@@ -424,7 +441,10 @@ function of the sensed position at the ROI-voxel scale (±2 m offsets already mo
 Danskin/Hessian-weighted-loss direction is not well-posed for the deployed pipeline — the bottleneck is the box
 prior, not estimator weighting; (ii) the VAE posterior shows no collapse (active dimensions 100%, per-dim KL
 13.0 nat, Barber-Agakov MI lower bound 4804 bits) — the free-bits direction is rejected, while the large
-aggregate-prior mismatch makes the ELBO-consistency fix (training on z ~ q rather than mu) the relevant one;
+aggregate-prior mismatch makes the aggregate-posterior consistency fix (training on z ~ q rather than mu)
+the relevant one; that term is a Barber-Agakov-style mutual-information bound, not a literal ELBO, since
+the transport model's reconstruction is a Chamfer distance rather than a negative log-likelihood
+(Section 6.10);
 (iii) the sensing observation is structurally independent of the RIS phase (the range profile takes no phase
 input), confirming the negative theorem that no sensing-communication trade-off exists in the phase dimension
 in the spaceborne mode.
@@ -477,7 +497,10 @@ retraining the condition encoder is registered as pre-registered proposition G15
 **OTFS/AFDM against the real LEO Doppler** (`verify_waveform_doppler.py`, new `isac_sim/waveforms/`).
 The OFDM inter-carrier leakage identity C_mk(nu) = e^{j pi (m-k+nu)} sinc(m-k+nu) is verified by Monte Carlo
 (10^6 symbols): ICI power fraction 1 - sinc^2(0.313) = 0.28350 at the real +-611 kHz overpass Doppler
-(nu = 0.313), an ICI noise floor of ~4.0 dB SINR. QPSK with CSI-known MMSE equalization at nu = 0.313:
+(nu = 0.313; derived, not measured — SGP4 peak LOS radial velocity |v_r| ≈ 6.10 km/s over the default ISS
+pass, f_d = v_r/λ at λ = 1 cm (30 GHz) on the BS→ROI→UE link = ±610 kHz, the mono-static two-way form
+f_d = 2v_r/λ giving ±1.22 MHz at the same radial velocity), an ICI noise floor of ~4.0 dB SINR. QPSK with
+CSI-known MMSE equalization at nu = 0.313:
 OTFS BER = 0 (95% CI upper bound 3.8e-6), AFDM 1.27e-5, OFDM 7.69e-2 (the registered 5e-3 prediction was
 optimistic by ~13x). Embedded-pilot range-Doppler peak SIR: OTFS 30.2 dB vs OFDM 11.7 dB (the registered
 "OFDM <= 5 dB" is falsified in the all-pilot regime where both are equally clean). Model certificate: the
@@ -509,14 +532,21 @@ single-scene demo 73.3% -> 74.9%, within single-scene noise).
 Two inconsistencies in the generative stack are fixed (now the defaults; legacy behavior remains
 reproducible via `--posterior_sample 0 --whiten scalar`):
 
-1. **ELBO consistency**: the DDPM/FM transport objective was trained on the posterior *mean* mu(x). The
-   generative prior should match the *aggregate posterior* integral q(z|x)p(x|c)dz, so the target is now
-   a reparameterized posterior sample z ~ q (one-line change in `train_1D_DDPM` / `train_1D_FM`).
+1. **Aggregate-posterior consistency (Barber-Agakov-style MI bound, not a literal ELBO)**: the DDPM/FM
+   transport objective was trained on the posterior *mean* mu(x). The generative prior should match the
+   *aggregate posterior* integral q(z|x)p(x|c)dz, so the target is now a reparameterized posterior sample
+   z ~ q (one-line change in `train_1D_DDPM` / `train_1D_FM`). Terminology note: the decoded
+   reconstruction in this stack is a Chamfer-type distance, not a negative log-likelihood, so the bound
+   being tightened is the mutual-information (aggregate-posterior) term of a Barber-Agakov-style bound;
+   the genuine VAE ELBO (reconstruction log-likelihood + KL, Section 6.7 pre-registered gates) is
+   unaffected and is reported as such.
 2. **Per-dimension whitening**: latent normalization used a scalar (z - mu)/sigma, leaving an anisotropic
    aggregate posterior and breaking the per-dimension Gaussian identities that all CFM/DDPM theory
    assumes. `estimate_latent_stats(per_dim=True)` now whitens per dimension.
 
-**Certificate (held-out split, `verify_elbo_consistency.py`)**: aggregate-posterior Gaussian KL
+**Certificate (held-out split, `verify_elbo_consistency.py` — file name retained, the certified quantity is
+the aggregate-posterior Gaussian KL, i.e. the Barber-Agakov-style MI term rather than an ELBO with a
+log-likelihood reconstruction)**: aggregate-posterior Gaussian KL
 0.5*sum(mu_i^2 + sigma_i^2 - 1 - ln sigma_i^2) on held-out latents: scalar 80.7 nat -> per-dim 57.0 nat
 (**-29.4%**; per-dim variance std 0.62 -> 0.97). Registered W1 (>= 30%) is a near-miss, honestly reported.
 
@@ -672,6 +702,15 @@ predicted monotone shape). The diagnostic chain closes: narrowband condition inf
 "conditional generative sensing" narrative now has a measured substrate. Remaining gap: 78% of
 the latent variance is still unexplained by the condition (fine pose/position information);
 registered as C2 (Delta(0) >= 0.40 via condition augmentation or dual-domain fusion).
+
+*Scope note on the last table row (v1.50):* the −14% CD gap under HRRP conditioning is a single-seed
+observation, and per the multi-seed paired audit of proposition M1 (Section 6.11) a
+quality-superiority claim between the generative paradigms is not statistically resolvable at this
+training scale (3-seed differences +4.5% / −20.5% / −4.4%, Bootstrap 95% CI crossing zero). The
+defensible generative-sensing statement is sampling-efficiency parity in quality — FM reaches
+DDPM-100-step quality with 1–10 ODE steps, 50–100× fewer network evaluations — and the C1 result
+should be read as evidence about the *conditional information channel*, not as an FM-over-DDPM
+quality win.
 
 ### 6.16 MOT Tracker: The Kalman Upgrade Is a Clean Negative (v1.21)
 
