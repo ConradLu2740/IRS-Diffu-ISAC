@@ -169,6 +169,9 @@ train-fm-distill: ## C1 HRRP 条件 FM 渐进蒸馏：1 步学生（fresh-data �
 verify-fm-distill-diversity: ## D1：蒸馏学生 vs teacher 样本多样性（模式坍塌检测，~6 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_fm_distill_diversity.py
 
+verify-cond-diversity: ## N1/N2/N3：条件-形状多样性审计（数据本身有无同条件不同形状，~6 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_cond_shape_diversity.py
+
 finding-angle-wall: ## 角度墙配置扫描热力图 + 双站反例出图（CPU 秒级）
 	$(PY) isac_sim/findings/plot_angle_wall_scan.py
 
