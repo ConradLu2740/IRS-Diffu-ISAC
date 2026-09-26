@@ -145,7 +145,7 @@ make smoke-sim
 | 信息审计 | Fano 阶梯 **0.19 / 1.71 / 2.07 bit**（窄带→HRRP→ISAR）；Van Trees λ⊥/λ∥~6.6e-9（角度墙）；条件编码器坍塌已修复（lr_cond 1e-3→1e-4）；**HRRP 条件打开通道：Δ(0)=0.302**（预注册阈值 6 倍，随 t 单调，21.8% 潜方差被解释）；FM NFE=1 比 DDPM NFE=100 优 −14% |
 | **Flow Matching vs DDPM 等算力** | 同架构/同数据下 FM NFE=1 胜过 DDPM NFE=100：CD 0.2922 vs 0.4055–0.4326（无条件）；HRRP 条件下 **0.2269 vs 0.2637（−14%）**（C1）；C2 双域融合被证伪（0.2269 → 0.2752——窄带稀释） |
 | **FM 形状优于盒子先验** | FM NFE=1 生成形状替代手工盒子 ROI 闭环：η_sense **0.840 → 0.932**（+10.9%），体素 ℓ1 误差 **0.58×**；η_total → ≈0.736；`make verify-fm-shape` / `demo.py --fm_shape <ckpt>` |
-| 1 步蒸馏 FM 学生 | C1 HRRP 条件 FM 渐进蒸馏：CD 优势**批次特定**（一批上 −23.4%，独立种子批上 +65.6%）；稳健结论在**多样性**——teacher NFE=1 的坍塌是**内在的**（CFG w=0/1/2 全部比率 0.02：条件均值估计器；引导 w=2 是纯质量赚头 CD 0.306→0.266），学生恢复 **9×** 样本多样性（比率随 w 上升，与常规 CFG 相反）但 CD 更差：不同的质量-多样性工作点，不是免费升级；`make train-fm-distill` / `make verify-fm-distill-diversity` |
+| 1 步蒸馏 FM 学生 | C1 HRRP 条件 FM 渐进蒸馏——matched budget 最终裁定：CD 比 teacher NFE=1 引导均值**差 118%**（0.5056 vs 0.2318；第 26 轮的 −23.4% 是小预算欠拟合假象）；蒸馏买到的是**多样性**：pairwise 0.0053→0.1127（比率 0.02→0.48），随训练预算单调上升——1 步**采样器**（数据增广/不确定性估计），CD 驱动的闭环形状先验仍用均值（定理：NFE=1 CFM 输出=条件均值）；`make train-fm-distill-full` / `make verify-fm-distill-diversity` |
 | OTFS/AFDM vs 真实多普勒 | ICI 恒等式 **28.35%** @ ±611 kHz（MC 10⁶）；OTFS BER **0** vs OFDM 7.7e-2（同 SNR）；ISAR 冻结几何阈值 32.3 Hz vs 实际 ≥2.53 kHz（**78× 违背**） |
 | 条件-形状数据审计（N1–N3） | 训练分布上近同条件仍对应差异 0.66 raw / 0.027 aligned 的点云——teacher 坍塌散布的 **125× / 5×**：过坍塌是建模失败而非贝叶斯正确（学生宽 9× 仍差真实条件宽度 13.6×）；条件的成对形状分辨力为**零**（ρ=−0.015：距离剖面多对一）；`make verify-cond-diversity` |
 | XL 阵 DOA 突破距离墙（NF-2/3） | 1 m 相干孔径远场 DOA CRB **387 mm** @ 1 km——比 11.84 m 距离剖面墙好 **30×**；对 5° 相位标定噪声稳健（CRB 效率 38%）；近场曲率被证伪为低价值——几何线闭环，登记 NF-4（低空闭环） |

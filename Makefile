@@ -166,6 +166,9 @@ compare-gen: ## 扩散 vs Flow Matching 等算力对比（共享 VAE，输出 NF
 train-fm-distill: ## C1 HRRP 条件 FM 渐进蒸馏：1 步学生（fresh-data 协议，~分钟级）
 	cd $(ISAC) && ../../$(VENV)/bin/python train_fm_distill.py --epochs 60 --train_data 512
 
+train-fm-distill-full: ## 全规模蒸馏重训（1024/100，与 teacher 同预算，~20 分钟）
+	cd $(ISAC) && ../../$(VENV)/bin/python train_fm_distill.py --epochs 100 --train_data 1024 --save_dir ./sat_model_distill_full
+
 verify-fm-distill-diversity: ## D1：蒸馏学生 vs teacher 样本多样性（模式坍塌检测，~6 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_fm_distill_diversity.py
 
