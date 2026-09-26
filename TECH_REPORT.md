@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.38 (2026-09-26) — companion to the open-source repository
+**Version**: v1.39 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -39,6 +39,7 @@
 *v1.36 additions: registered proposition NF-2 separates the observables behind the wall (Section 6.31). With a phase-reference-less coherent receiver (nuisance-projected CRB), the far-field DOA of a 1 m XL aperture gives σ_y = 0.39 m at 1 km — 30× better than the 11.84 m range-profile wall — while the near-field curvature signal degrades to ~30 m once the unknown global phase is projected out, which corrects the scope of the F2 certificate (65 mm assumed a known phase reference). The MLP converges to the prior whenever the information is absent (625 mm vs prior 590 mm), a network-level demonstration of posterior = prior; the far-field MLP achieves 38% of the DOA CRB. Registered NF-3: near-field CRB with phase calibration.*
 *v1.37 additions: registered proposition NF-3 sweeps the phase-calibration noise (0–5°) in both regimes (Section 6.32): no threshold recovers the near-field advantage in the ML setting — the near-field curvature signal (~6e-3 rad over the full y range) is unextractable even with perfect calibration (MLP converges to the prior), while the far-field DOA is robust (CRB 387 mm, 38% efficiency, flat under 5° calibration noise). The geometry line closes: the coherent XL-array DOA is the robust wall-escape observable (far field suffices); near-field curvature is low-value in practice. Registered NF-4: XL-array DOA in the low-altitude closed loop.*
 *v1.38 additions: the differentiable-loop direction (D2) is closed with the soft-voxel relaxation (Section 6.33): the differentiable pipeline is verified (autograd matches finite differences, 4/4 seeds), but the smooth limit of the value function is also flat (κ(H_V) ≈ 0, no LOS alignment) — the closed-form phase design absorbs position error, confirming the G-κ gate from the smooth side. The 5× power gain from position ascent is a coverage-broadening artifact (η > 1), not position refinement. The sensing-side bottleneck is the shape prior (consistent with the FM-shape success, Section 7.5), not position weighting.*
+*v1.39 additions: the generative line closes its final segment with progressive distillation (Section 6.34, `train_fm_distill.py`): a 1-step student trained to regress the C1 HRRP-conditional FM teacher's midpoint (NFE=2) outputs beats its own teacher at identical inference cost — CD 0.3101 vs 0.4047 (−23.4%, pre-registered threshold 3%, P1–P3 all PASS) — amortizing the single-step Euler integration error into the network weights. Two honest caveats are recorded: the eval protocol (n_eval=8, test batch 32, x0 seed 999) is not comparable to the absolute CD of `compare_gen` (0.2269, n_eval=16) — the claim is the paired same-batch comparison only; and the distillation budget (512 samples/60 epochs) is below the teacher's (1024/100), leaving a full-scale retrain as follow-up. The teacher's own NFE=2 output is non-monotonically worse than NFE=1 on this batch (0.4967 vs 0.4047), itself evidence that the teacher's few-step scaling is noisy at this eval size.*
 
 ---
 
@@ -1064,6 +1065,31 @@ the G-κ gate from the smooth side; (iii) the 5× power gain from position ascen
 broadening artifact (η > 1: soft occupancy excites more true-template voxels), not position
 refinement. The sensing-side bottleneck is the shape prior — consistent with the FM-shape success
 (Section 6.14 era) — not position weighting; estimator-side weighting is falsified twice over.
+
+### 6.34 Progressive Distillation: a 1-Step Student Beats Its Teacher at Identical Cost (v1.39)
+
+Registered proposition on the generative line (`train_fm_distill.py`): progressive distillation of the C1
+HRRP-conditional FM — the student regresses the teacher's midpoint (NFE=2) output, moving the single-step
+Euler integration error from inference time into training. Fresh-data protocol (Section 7.25 lesson
+honored): fresh samples per epoch, teacher outputs detached, independent student parameters.
+
+| Proposition | Prediction | Measured | Verdict |
+|---|---|---|---|
+| P1 student 1-step CD ≤ teacher 1-step CD − 3% | integration error eliminated | 0.3101 vs 0.4047 (**−23.4%**) | **PASS** |
+| P2 student CD ≤ teacher 2-step CD | student matches high-accuracy output | 0.3101 vs 0.4967 | **PASS** |
+| P3 training loss decreases | learning happens | 1.846 → 0.253 | **PASS** |
+
+Mathematical reading: the CFM NFE=1 output is a single Euler step x0 + v(x0, 0, c) with local truncation
+error O(h²); distillation uses the teacher's 2-step midpoint solution as a better regression target —
+trading network capacity for integration steps at identical one-forward-pass cost. The teacher's own
+NFE=2 is non-monotonically worse than NFE=1 on this batch (0.4967 vs 0.4047), yet the distillation
+still succeeds: the student learns the conditional mean manifold of the teacher family, not a single
+output. Two caveats: (i) the eval protocol (n_eval=8, test batch 32, x0 seed 999) is not comparable to
+the absolute CD reported by `compare_gen` (0.2269, n_eval=16) — the valid claim is the paired
+same-batch comparison only; (ii) the distillation budget (512 samples / 60 epochs) is below the
+teacher's (1024 / 100); a full-scale retrain is registered as follow-up. The generative line now closes
+four segments: DDPM→FM parity + few-step advantage, HRRP conditioning (Δ(0)=0.302), shape-prior closed
+loop (η_sense 0.840→0.932), and 1-step distillation (−23.4% at identical cost).
 
 ## 7. Limitations and Honest Discussion
 

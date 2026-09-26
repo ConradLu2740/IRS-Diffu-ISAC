@@ -163,6 +163,9 @@ train-fm: ## Flow Matching 训练（扩散同架构/同数据，3 种 IRS 模式
 compare-gen: ## 扩散 vs Flow Matching 等算力对比（共享 VAE，输出 NFE 曲线 + JSON）
 	cd $(ISAC) && ../../$(VENV)/bin/python compare_gen.py
 
+train-fm-distill: ## C1 HRRP 条件 FM 渐进蒸馏：1 步学生（fresh-data 协议，~分钟级）
+	cd $(ISAC) && ../../$(VENV)/bin/python train_fm_distill.py --epochs 60 --train_data 512
+
 finding-angle-wall: ## 角度墙配置扫描热力图 + 双站反例出图（CPU 秒级）
 	$(PY) isac_sim/findings/plot_angle_wall_scan.py
 
