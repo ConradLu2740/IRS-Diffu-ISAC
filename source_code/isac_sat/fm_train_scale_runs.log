@@ -1,0 +1,788 @@
+=== 2026-09-26 17:14:52 START seed=42 budget=512:60 ===
+C:\Users\13906\Downloads\workspace\isac\IRS-Diffu-ISAC\source_code\isac_sat\data_sat.py:538: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  v = torch.exp(1j * torch.tensor(phase, dtype=torch.float32)).to(torch.complex64).to(dev)  # [N]
+C:\Users\13906\Downloads\workspace\isac\IRS-Diffu-ISAC\source_code\isac_sat\data_sat.py:538: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  v = torch.exp(1j * torch.tensor(phase, dtype=torch.float32)).to(torch.complex64).to(dev)  # [N]
+Device: cuda, seeds=[42], budgets=['512:60']
+预注册/进度已写入: ./sat_model_cmp/fm_train_scale.json
+
+==========================================================================
+[seed 42 | budget 512/60] FM 训练预算单元格开始
+==========================================================================
+[seed 42 | b512_60] cond_dim=512, train=512, test=32
+[seed 42 | b512_60] Stage 1 (frozen): PointVAE + latent_stats 复用自 ./sat_model_scale_42\sat
+[1D-CFM] epoch 1/60 train_total=3.212798 test_total=2.314186
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 1, Loss: 2.314186)
+[1D-CFM] epoch 2/60 train_total=2.813768 test_total=2.172167
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 2, Loss: 2.172167)
+[1D-CFM] epoch 3/60 train_total=2.568080 test_total=1.987292
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 3, Loss: 1.987292)
+[1D-CFM] epoch 4/60 train_total=2.354334 test_total=1.822398
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 4, Loss: 1.822398)
+[1D-CFM] epoch 5/60 train_total=2.320581 test_total=2.055332
+[1D-CFM] epoch 6/60 train_total=2.384106 test_total=2.358359
+[1D-CFM] epoch 7/60 train_total=2.392757 test_total=1.653230
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 7, Loss: 1.653230)
+[1D-CFM] epoch 8/60 train_total=2.336872 test_total=1.852567
+[1D-CFM] epoch 9/60 train_total=2.228298 test_total=1.808441
+[1D-CFM] epoch 10/60 train_total=2.298066 test_total=1.952003
+[1D-CFM] epoch 11/60 train_total=2.294721 test_total=2.094576
+[1D-CFM] epoch 12/60 train_total=2.190092 test_total=1.688368
+[1D-CFM] epoch 13/60 train_total=2.305229 test_total=1.700376
+[1D-CFM] epoch 14/60 train_total=2.279609 test_total=1.823238
+[1D-CFM] epoch 15/60 train_total=2.313311 test_total=1.741097
+[1D-CFM] epoch 16/60 train_total=2.210058 test_total=1.921374
+[1D-CFM] epoch 17/60 train_total=2.292681 test_total=1.845375
+[1D-CFM] epoch 18/60 train_total=2.267969 test_total=1.841512
+[1D-CFM] epoch 19/60 train_total=2.234113 test_total=1.931702
+[1D-CFM] epoch 20/60 train_total=2.134033 test_total=1.829089
+[1D-CFM] epoch 21/60 train_total=2.208567 test_total=1.743444
+[1D-CFM] epoch 22/60 train_total=2.103699 test_total=1.738642
+[1D-CFM] epoch 23/60 train_total=2.178174 test_total=1.692077
+[1D-CFM] epoch 24/60 train_total=2.030075 test_total=1.696833
+[1D-CFM] epoch 25/60 train_total=2.108495 test_total=1.593701
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 25, Loss: 1.593701)
+[1D-CFM] epoch 26/60 train_total=2.058577 test_total=1.875796
+[1D-CFM] epoch 27/60 train_total=2.107550 test_total=1.549468
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 27, Loss: 1.549468)
+[1D-CFM] epoch 28/60 train_total=2.035742 test_total=1.924601
+[1D-CFM] epoch 29/60 train_total=2.035971 test_total=1.673883
+[1D-CFM] epoch 30/60 train_total=1.990338 test_total=1.643454
+[1D-CFM] epoch 31/60 train_total=1.965174 test_total=1.571663
+[1D-CFM] epoch 32/60 train_total=2.012315 test_total=1.627063
+[1D-CFM] epoch 33/60 train_total=2.007850 test_total=1.756816
+[1D-CFM] epoch 34/60 train_total=1.948877 test_total=1.645821
+[1D-CFM] epoch 35/60 train_total=1.889939 test_total=1.600880
+[1D-CFM] epoch 36/60 train_total=1.925632 test_total=1.624302
+[1D-CFM] epoch 37/60 train_total=1.861291 test_total=1.357817
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 37, Loss: 1.357817)
+[1D-CFM] epoch 38/60 train_total=1.859047 test_total=1.404042
+[1D-CFM] epoch 39/60 train_total=1.814790 test_total=1.356321
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 39, Loss: 1.356321)
+[1D-CFM] epoch 40/60 train_total=1.835311 test_total=1.357854
+[1D-CFM] epoch 41/60 train_total=1.760469 test_total=1.413386
+[1D-CFM] epoch 42/60 train_total=1.770089 test_total=1.475008
+[1D-CFM] epoch 43/60 train_total=1.727437 test_total=1.471525
+[1D-CFM] epoch 44/60 train_total=1.801884 test_total=1.268900
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 44, Loss: 1.268900)
+[1D-CFM] epoch 45/60 train_total=1.717966 test_total=1.304185
+[1D-CFM] epoch 46/60 train_total=1.687030 test_total=1.288715
+[1D-CFM] epoch 47/60 train_total=1.717078 test_total=1.307983
+[1D-CFM] epoch 48/60 train_total=1.631973 test_total=1.372740
+[1D-CFM] epoch 49/60 train_total=1.657162 test_total=1.268762
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 49, Loss: 1.268762)
+[1D-CFM] epoch 50/60 train_total=1.598688 test_total=1.160373
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 50, Loss: 1.160373)
+>>> 已保存 FM 模型参数 (Epoch 50)
+[1D-CFM] epoch 51/60 train_total=1.644037 test_total=1.301634
+[1D-CFM] epoch 52/60 train_total=1.562686 test_total=1.215045
+[1D-CFM] epoch 53/60 train_total=1.591584 test_total=1.281057
+[1D-CFM] epoch 54/60 train_total=1.591479 test_total=1.181800
+[1D-CFM] epoch 55/60 train_total=1.517603 test_total=1.089338
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 55, Loss: 1.089338)
+[1D-CFM] epoch 56/60 train_total=1.482629 test_total=1.264049
+[1D-CFM] epoch 57/60 train_total=1.581352 test_total=1.124175
+[1D-CFM] epoch 58/60 train_total=1.534948 test_total=1.106159
+[1D-CFM] epoch 59/60 train_total=1.491294 test_total=1.147425
+[1D-CFM] epoch 60/60 train_total=1.516506 test_total=1.097163
+>>> 已保存 FM 最终模型参数 (condenc_fm_latest.pth, vnet_fm_latest.pth)
+>>> 已保存 FM 训练历史 (fm_history.npy)
+>>> 已保存 FM loss 曲线图 (fm_loss_curve.png)
+[seed 42 | b512_60] FM NFE=1: CD=0.217527 FS@0.1=0.1987 FS@0.2=0.4022 IoU=0.0366
+[seed 42 | b512_60] VAE oracle: CD=0.008452 FS@0.1=0.9101 IoU=0.2778
+结果已更新: ./sat_model_cmp/fm_train_scale.json
+
+==============================================================================
+FM 训练预算扫描汇总（NFE=1, CFG w=2, HRRP, fresh-data；CD/FS/IoU 为 8 样本公共测试批）
+==============================================================================
+  seed     budget       CD   FS@0.1   FS@0.2      IoU  oracleCD     gap     min         status
+    42     512/60   0.2175   0.1987   0.4022   0.0366    0.0085     26x     8.3             ok
+    42   1024/100        -        -        -        -         -       -       -        pending
+    42   2048/200        -        -        -        -         -       -       -        pending
+    43     512/60        -        -        -        -         -       -       -        pending
+    43   1024/100        -        -        -        -         -       -       -        pending
+    43   2048/200        -        -        -        -         -       -       -        pending
+------------------------------------------------------------------------------
+  裁决: {
+  "P_scale_fm1_cd_monotone_nonincreasing": false,
+  "P_scale_gap_ratio_monotone_nonincreasing": false,
+  "per_seed": {
+    "seed42": {
+      "cells_completed": "1/1",
+      "fm1_cd": [
+        0.2175266593694687
+      ],
+      "gap_ratio": [
+        25.736671236223152
+      ],
+      "fm1_cd_monotone_nonincreasing": null,
+      "gap_ratio_monotone_nonincreasing": null
+    }
+  },
+  "all_cells_completed": true
+}
+
+结果已保存: ./sat_model_cmp/fm_train_scale.json
+=== 2026-09-26 17:23:17 END seed=42 budget=512:60 exit=0 elapsed=505s ===
+=== 2026-09-26 17:23:17 START seed=42 budget=1024:100 ===
+C:\Users\13906\Downloads\workspace\isac\IRS-Diffu-ISAC\source_code\isac_sat\data_sat.py:538: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  v = torch.exp(1j * torch.tensor(phase, dtype=torch.float32)).to(torch.complex64).to(dev)  # [N]
+C:\Users\13906\Downloads\workspace\isac\IRS-Diffu-ISAC\source_code\isac_sat\data_sat.py:538: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  v = torch.exp(1j * torch.tensor(phase, dtype=torch.float32)).to(torch.complex64).to(dev)  # [N]
+Device: cuda, seeds=[42], budgets=['1024:100']
+预注册/进度已写入: ./sat_model_cmp/fm_train_scale.json
+
+==========================================================================
+[seed 42 | budget 1024/100] FM 训练预算单元格开始
+==========================================================================
+[seed 42 | b1024_100] cond_dim=512, train=1024, test=32
+[seed 42 | b1024_100] Stage 1 (frozen): PointVAE + latent_stats 复用自 ./sat_model_scale_42\sat
+[1D-CFM] epoch 1/100 train_total=3.017027 test_total=2.214946
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 1, Loss: 2.214946)
+[1D-CFM] epoch 2/100 train_total=2.502160 test_total=1.920596
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 2, Loss: 1.920596)
+[1D-CFM] epoch 3/100 train_total=2.384128 test_total=1.932441
+[1D-CFM] epoch 4/100 train_total=2.367912 test_total=1.925767
+[1D-CFM] epoch 5/100 train_total=2.248596 test_total=2.068015
+[1D-CFM] epoch 6/100 train_total=2.307476 test_total=1.882305
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 6, Loss: 1.882305)
+[1D-CFM] epoch 7/100 train_total=2.259023 test_total=1.781960
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 7, Loss: 1.781960)
+[1D-CFM] epoch 8/100 train_total=2.232076 test_total=2.019823
+[1D-CFM] epoch 9/100 train_total=2.248261 test_total=1.973509
+[1D-CFM] epoch 10/100 train_total=2.201382 test_total=1.706071
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 10, Loss: 1.706071)
+[1D-CFM] epoch 11/100 train_total=2.094785 test_total=1.747825
+[1D-CFM] epoch 12/100 train_total=2.164346 test_total=1.667775
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 12, Loss: 1.667775)
+[1D-CFM] epoch 13/100 train_total=2.049502 test_total=1.777806
+[1D-CFM] epoch 14/100 train_total=1.998408 test_total=1.804747
+[1D-CFM] epoch 15/100 train_total=2.001229 test_total=1.597477
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 15, Loss: 1.597477)
+[1D-CFM] epoch 16/100 train_total=1.988026 test_total=1.611831
+[1D-CFM] epoch 17/100 train_total=1.991811 test_total=1.602854
+[1D-CFM] epoch 18/100 train_total=1.892035 test_total=1.564472
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 18, Loss: 1.564472)
+[1D-CFM] epoch 19/100 train_total=1.843578 test_total=1.341152
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 19, Loss: 1.341152)
+[1D-CFM] epoch 20/100 train_total=1.799532 test_total=1.612693
+[1D-CFM] epoch 21/100 train_total=1.785898 test_total=1.298190
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 21, Loss: 1.298190)
+[1D-CFM] epoch 22/100 train_total=1.747463 test_total=1.416175
+[1D-CFM] epoch 23/100 train_total=1.750415 test_total=1.323670
+[1D-CFM] epoch 24/100 train_total=1.666254 test_total=1.128867
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 24, Loss: 1.128867)
+[1D-CFM] epoch 25/100 train_total=1.638143 test_total=1.145266
+[1D-CFM] epoch 26/100 train_total=1.607708 test_total=1.273714
+[1D-CFM] epoch 27/100 train_total=1.578926 test_total=1.089740
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 27, Loss: 1.089740)
+[1D-CFM] epoch 28/100 train_total=1.545087 test_total=1.129315
+[1D-CFM] epoch 29/100 train_total=1.495187 test_total=1.110056
+[1D-CFM] epoch 30/100 train_total=1.498278 test_total=1.045651
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 30, Loss: 1.045651)
+[1D-CFM] epoch 31/100 train_total=1.471567 test_total=1.091944
+[1D-CFM] epoch 32/100 train_total=1.443031 test_total=1.095635
+[1D-CFM] epoch 33/100 train_total=1.415001 test_total=1.134324
+[1D-CFM] epoch 34/100 train_total=1.438838 test_total=1.144033
+[1D-CFM] epoch 35/100 train_total=1.388505 test_total=1.119396
+[1D-CFM] epoch 36/100 train_total=1.369926 test_total=1.088235
+[1D-CFM] epoch 37/100 train_total=1.350015 test_total=1.086393
+[1D-CFM] epoch 38/100 train_total=1.366372 test_total=1.143002
+[1D-CFM] epoch 39/100 train_total=1.313991 test_total=0.898352
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 39, Loss: 0.898352)
+[1D-CFM] epoch 40/100 train_total=1.309509 test_total=0.809944
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 40, Loss: 0.809944)
+[1D-CFM] epoch 41/100 train_total=1.336841 test_total=0.979721
+[1D-CFM] epoch 42/100 train_total=1.309279 test_total=1.044649
+[1D-CFM] epoch 43/100 train_total=1.274484 test_total=0.906938
+[1D-CFM] epoch 44/100 train_total=1.300279 test_total=0.886133
+[1D-CFM] epoch 45/100 train_total=1.278126 test_total=1.034378
+[1D-CFM] epoch 46/100 train_total=1.275489 test_total=1.036470
+[1D-CFM] epoch 47/100 train_total=1.278852 test_total=0.783774
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 47, Loss: 0.783774)
+[1D-CFM] epoch 48/100 train_total=1.281255 test_total=0.946292
+[1D-CFM] epoch 49/100 train_total=1.277922 test_total=0.920093
+[1D-CFM] epoch 50/100 train_total=1.289378 test_total=0.918066
+>>> 已保存 FM 模型参数 (Epoch 50)
+[1D-CFM] epoch 51/100 train_total=1.250296 test_total=0.860087
+[1D-CFM] epoch 52/100 train_total=1.259164 test_total=0.867244
+[1D-CFM] epoch 53/100 train_total=1.246874 test_total=1.000663
+[1D-CFM] epoch 54/100 train_total=1.214614 test_total=0.784777
+[1D-CFM] epoch 55/100 train_total=1.223920 test_total=0.917801
+[1D-CFM] epoch 56/100 train_total=1.188106 test_total=0.902296
+[1D-CFM] epoch 57/100 train_total=1.199570 test_total=0.770254
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 57, Loss: 0.770254)
+[1D-CFM] epoch 58/100 train_total=1.222835 test_total=0.754296
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 58, Loss: 0.754296)
+[1D-CFM] epoch 59/100 train_total=1.197979 test_total=0.790949
+[1D-CFM] epoch 60/100 train_total=1.228446 test_total=0.869839
+[1D-CFM] epoch 61/100 train_total=1.208391 test_total=0.854141
+[1D-CFM] epoch 62/100 train_total=1.203945 test_total=0.830942
+[1D-CFM] epoch 63/100 train_total=1.197704 test_total=0.773769
+[1D-CFM] epoch 64/100 train_total=1.200557 test_total=0.798795
+[1D-CFM] epoch 65/100 train_total=1.205341 test_total=0.831661
+[1D-CFM] epoch 66/100 train_total=1.240285 test_total=0.862210
+[1D-CFM] epoch 67/100 train_total=1.164021 test_total=0.848696
+[1D-CFM] epoch 68/100 train_total=1.169147 test_total=0.893104
+[1D-CFM] epoch 69/100 train_total=1.186890 test_total=0.846344
+[1D-CFM] epoch 70/100 train_total=1.174961 test_total=0.801990
+[1D-CFM] epoch 71/100 train_total=1.184475 test_total=0.791864
+[1D-CFM] epoch 72/100 train_total=1.158055 test_total=0.799604
+[1D-CFM] epoch 73/100 train_total=1.153758 test_total=0.813179
+[1D-CFM] epoch 74/100 train_total=1.136863 test_total=0.788592
+[1D-CFM] epoch 75/100 train_total=1.186511 test_total=0.936269
+[1D-CFM] epoch 76/100 train_total=1.160646 test_total=0.719090
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 76, Loss: 0.719090)
+[1D-CFM] epoch 77/100 train_total=1.150377 test_total=0.728266
+[1D-CFM] epoch 78/100 train_total=1.186964 test_total=0.696736
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 78, Loss: 0.696736)
+[1D-CFM] epoch 79/100 train_total=1.129872 test_total=0.772511
+[1D-CFM] epoch 80/100 train_total=1.150645 test_total=0.814514
+[1D-CFM] epoch 81/100 train_total=1.140627 test_total=0.785461
+[1D-CFM] epoch 82/100 train_total=1.124133 test_total=0.727962
+[1D-CFM] epoch 83/100 train_total=1.109570 test_total=0.738005
+[1D-CFM] epoch 84/100 train_total=1.148756 test_total=0.750693
+[1D-CFM] epoch 85/100 train_total=1.146957 test_total=0.662763
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 85, Loss: 0.662763)
+[1D-CFM] epoch 86/100 train_total=1.114145 test_total=0.904147
+[1D-CFM] epoch 87/100 train_total=1.108334 test_total=0.803773
+[1D-CFM] epoch 88/100 train_total=1.125020 test_total=0.749714
+[1D-CFM] epoch 89/100 train_total=1.149938 test_total=0.772455
+[1D-CFM] epoch 90/100 train_total=1.121402 test_total=0.775374
+[1D-CFM] epoch 91/100 train_total=1.132500 test_total=0.825025
+[1D-CFM] epoch 92/100 train_total=1.096402 test_total=0.793966
+[1D-CFM] epoch 93/100 train_total=1.116001 test_total=0.760203
+[1D-CFM] epoch 94/100 train_total=1.117971 test_total=0.757060
+[1D-CFM] epoch 95/100 train_total=1.112994 test_total=0.699231
+[1D-CFM] epoch 96/100 train_total=1.102772 test_total=0.782105
+[1D-CFM] epoch 97/100 train_total=1.138550 test_total=0.695499
+[1D-CFM] epoch 98/100 train_total=1.121801 test_total=0.672825
+[1D-CFM] epoch 99/100 train_total=1.112307 test_total=0.710099
+[1D-CFM] epoch 100/100 train_total=1.103607 test_total=0.711027
+>>> 已保存 FM 模型参数 (Epoch 100)
+>>> 已保存 FM 最终模型参数 (condenc_fm_latest.pth, vnet_fm_latest.pth)
+>>> 已保存 FM 训练历史 (fm_history.npy)
+>>> 已保存 FM loss 曲线图 (fm_loss_curve.png)
+[seed 42 | b1024_100] FM NFE=1: CD=0.158438 FS@0.1=0.2566 FS@0.2=0.4558 IoU=0.0819
+[seed 42 | b1024_100] VAE oracle: CD=0.008904 FS@0.1=0.9031 IoU=0.3962
+结果已更新: ./sat_model_cmp/fm_train_scale.json
+
+==============================================================================
+FM 训练预算扫描汇总（NFE=1, CFG w=2, HRRP, fresh-data；CD/FS/IoU 为 8 样本公共测试批）
+==============================================================================
+  seed     budget       CD   FS@0.1   FS@0.2      IoU  oracleCD     gap     min         status
+    42     512/60   0.2175   0.1987   0.4022   0.0366    0.0085     26x     8.3             ok
+    42   1024/100   0.1584   0.2566   0.4558   0.0819    0.0089     18x    23.0             ok
+    42   2048/200        -        -        -        -         -       -       -        pending
+    43     512/60        -        -        -        -         -       -       -        pending
+    43   1024/100        -        -        -        -         -       -       -        pending
+    43   2048/200        -        -        -        -         -       -       -        pending
+------------------------------------------------------------------------------
+  裁决: {
+  "P_scale_fm1_cd_monotone_nonincreasing": false,
+  "P_scale_gap_ratio_monotone_nonincreasing": false,
+  "per_seed": {
+    "seed42": {
+      "cells_completed": "1/1",
+      "fm1_cd": [
+        0.15843763947486877
+      ],
+      "gap_ratio": [
+        17.794817026929493
+      ],
+      "fm1_cd_monotone_nonincreasing": null,
+      "gap_ratio_monotone_nonincreasing": null
+    }
+  },
+  "all_cells_completed": true
+}
+
+结果已保存: ./sat_model_cmp/fm_train_scale.json
+=== 2026-09-26 17:46:23 END seed=42 budget=1024:100 exit=0 elapsed=1386s ===
+=== 2026-09-26 17:46:23 START seed=42 budget=2048:200 ===
+C:\Users\13906\Downloads\workspace\isac\IRS-Diffu-ISAC\source_code\isac_sat\data_sat.py:538: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  v = torch.exp(1j * torch.tensor(phase, dtype=torch.float32)).to(torch.complex64).to(dev)  # [N]
+C:\Users\13906\Downloads\workspace\isac\IRS-Diffu-ISAC\source_code\isac_sat\data_sat.py:538: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  v = torch.exp(1j * torch.tensor(phase, dtype=torch.float32)).to(torch.complex64).to(dev)  # [N]
+=== 2026-09-26 18:26:47 END seed=42 budget=2048:200 exit=1 elapsed=2424s ===
+=== 2026-09-26 18:26:47 START seed=43 budget=512:60 ===
+C:\Users\13906\Downloads\workspace\isac\IRS-Diffu-ISAC\source_code\isac_sat\data_sat.py:538: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  v = torch.exp(1j * torch.tensor(phase, dtype=torch.float32)).to(torch.complex64).to(dev)  # [N]
+C:\Users\13906\Downloads\workspace\isac\IRS-Diffu-ISAC\source_code\isac_sat\data_sat.py:538: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  v = torch.exp(1j * torch.tensor(phase, dtype=torch.float32)).to(torch.complex64).to(dev)  # [N]
+Device: cuda, seeds=[43], budgets=['512:60']
+预注册/进度已写入: ./sat_model_cmp/fm_train_scale.json
+
+==========================================================================
+[seed 43 | budget 512/60] FM 训练预算单元格开始
+==========================================================================
+[seed 43 | b512_60] cond_dim=512, train=512, test=32
+[seed 43 | b512_60] Stage 1 (frozen): PointVAE + latent_stats 复用自 ./sat_model_scale_43\sat
+[1D-CFM] epoch 1/60 train_total=2.589634 test_total=2.201993
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 1, Loss: 2.201993)
+[1D-CFM] epoch 2/60 train_total=2.334678 test_total=1.773860
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 2, Loss: 1.773860)
+[1D-CFM] epoch 3/60 train_total=2.183239 test_total=2.018422
+[1D-CFM] epoch 4/60 train_total=2.028499 test_total=1.748082
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 4, Loss: 1.748082)
+[1D-CFM] epoch 5/60 train_total=1.926681 test_total=1.712396
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 5, Loss: 1.712396)
+[1D-CFM] epoch 6/60 train_total=2.022636 test_total=1.651604
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 6, Loss: 1.651604)
+[1D-CFM] epoch 7/60 train_total=1.975741 test_total=1.548051
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 7, Loss: 1.548051)
+[1D-CFM] epoch 8/60 train_total=1.905471 test_total=1.623122
+[1D-CFM] epoch 9/60 train_total=1.897805 test_total=1.628357
+[1D-CFM] epoch 10/60 train_total=1.922546 test_total=1.530946
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 10, Loss: 1.530946)
+[1D-CFM] epoch 11/60 train_total=1.894956 test_total=1.650640
+[1D-CFM] epoch 12/60 train_total=1.914752 test_total=1.798345
+[1D-CFM] epoch 13/60 train_total=1.955606 test_total=1.670020
+[1D-CFM] epoch 14/60 train_total=1.876808 test_total=1.561393
+[1D-CFM] epoch 15/60 train_total=1.874138 test_total=1.629109
+[1D-CFM] epoch 16/60 train_total=1.942945 test_total=1.582067
+[1D-CFM] epoch 17/60 train_total=1.913511 test_total=1.444678
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 17, Loss: 1.444678)
+[1D-CFM] epoch 18/60 train_total=1.957656 test_total=1.895863
+[1D-CFM] epoch 19/60 train_total=1.918657 test_total=1.672135
+[1D-CFM] epoch 20/60 train_total=1.868570 test_total=1.582680
+[1D-CFM] epoch 21/60 train_total=1.869624 test_total=1.655891
+[1D-CFM] epoch 22/60 train_total=1.854574 test_total=1.533539
+[1D-CFM] epoch 23/60 train_total=1.887912 test_total=1.591142
+[1D-CFM] epoch 24/60 train_total=1.860833 test_total=1.478600
+[1D-CFM] epoch 25/60 train_total=1.831457 test_total=1.599690
+[1D-CFM] epoch 26/60 train_total=1.860238 test_total=1.502239
+[1D-CFM] epoch 27/60 train_total=1.809875 test_total=1.491065
+[1D-CFM] epoch 28/60 train_total=1.797580 test_total=1.409716
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 28, Loss: 1.409716)
+[1D-CFM] epoch 29/60 train_total=1.838808 test_total=1.561243
+[1D-CFM] epoch 30/60 train_total=1.832321 test_total=1.406952
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 30, Loss: 1.406952)
+[1D-CFM] epoch 31/60 train_total=1.765407 test_total=1.604025
+[1D-CFM] epoch 32/60 train_total=1.758751 test_total=1.444958
+[1D-CFM] epoch 33/60 train_total=1.763821 test_total=1.468022
+[1D-CFM] epoch 34/60 train_total=1.715807 test_total=1.412064
+[1D-CFM] epoch 35/60 train_total=1.727769 test_total=1.256977
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 35, Loss: 1.256977)
+[1D-CFM] epoch 36/60 train_total=1.701077 test_total=1.471875
+[1D-CFM] epoch 37/60 train_total=1.684239 test_total=1.448927
+[1D-CFM] epoch 38/60 train_total=1.622702 test_total=1.310660
+[1D-CFM] epoch 39/60 train_total=1.657746 test_total=1.296427
+[1D-CFM] epoch 40/60 train_total=1.692653 test_total=1.507414
+[1D-CFM] epoch 41/60 train_total=1.650867 test_total=1.362443
+[1D-CFM] epoch 42/60 train_total=1.628169 test_total=1.344031
+[1D-CFM] epoch 43/60 train_total=1.598820 test_total=1.406604
+[1D-CFM] epoch 44/60 train_total=1.557231 test_total=1.240183
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 44, Loss: 1.240183)
+[1D-CFM] epoch 45/60 train_total=1.515260 test_total=1.239215
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 45, Loss: 1.239215)
+[1D-CFM] epoch 46/60 train_total=1.543991 test_total=1.133235
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 46, Loss: 1.133235)
+[1D-CFM] epoch 47/60 train_total=1.536292 test_total=1.123784
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 47, Loss: 1.123784)
+[1D-CFM] epoch 48/60 train_total=1.468203 test_total=1.115811
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 48, Loss: 1.115811)
+[1D-CFM] epoch 49/60 train_total=1.448828 test_total=1.083282
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 49, Loss: 1.083282)
+[1D-CFM] epoch 50/60 train_total=1.481204 test_total=1.105853
+>>> 已保存 FM 模型参数 (Epoch 50)
+[1D-CFM] epoch 51/60 train_total=1.475179 test_total=1.041543
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 51, Loss: 1.041543)
+[1D-CFM] epoch 52/60 train_total=1.409805 test_total=1.097650
+[1D-CFM] epoch 53/60 train_total=1.405636 test_total=1.056439
+[1D-CFM] epoch 54/60 train_total=1.411448 test_total=1.068816
+[1D-CFM] epoch 55/60 train_total=1.366956 test_total=1.123947
+[1D-CFM] epoch 56/60 train_total=1.359712 test_total=1.047839
+[1D-CFM] epoch 57/60 train_total=1.360099 test_total=0.952197
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 57, Loss: 0.952197)
+[1D-CFM] epoch 58/60 train_total=1.382696 test_total=1.082446
+[1D-CFM] epoch 59/60 train_total=1.344697 test_total=0.922048
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 59, Loss: 0.922048)
+[1D-CFM] epoch 60/60 train_total=1.305689 test_total=0.915826
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 60, Loss: 0.915826)
+>>> 已保存 FM 最终模型参数 (condenc_fm_latest.pth, vnet_fm_latest.pth)
+>>> 已保存 FM 训练历史 (fm_history.npy)
+>>> 已保存 FM loss 曲线图 (fm_loss_curve.png)
+[seed 43 | b512_60] FM NFE=1: CD=0.329171 FS@0.1=0.1177 FS@0.2=0.2500 IoU=0.0424
+[seed 43 | b512_60] VAE oracle: CD=0.009750 FS@0.1=0.8868 IoU=0.3231
+结果已更新: ./sat_model_cmp/fm_train_scale.json
+
+==============================================================================
+FM 训练预算扫描汇总（NFE=1, CFG w=2, HRRP, fresh-data；CD/FS/IoU 为 8 样本公共测试批）
+==============================================================================
+  seed     budget       CD   FS@0.1   FS@0.2      IoU  oracleCD     gap     min         status
+    42     512/60   0.2175   0.1987   0.4022   0.0366    0.0085     26x     8.3             ok
+    42   1024/100   0.1584   0.2566   0.4558   0.0819    0.0089     18x    23.0             ok
+    42   2048/200        -        -        -        -         -       -       -        pending
+    43     512/60   0.3292   0.1177   0.2500   0.0424    0.0097     34x     7.1             ok
+    43   1024/100        -        -        -        -         -       -       -        pending
+    43   2048/200        -        -        -        -         -       -       -        pending
+------------------------------------------------------------------------------
+  裁决: {
+  "P_scale_fm1_cd_monotone_nonincreasing": false,
+  "P_scale_gap_ratio_monotone_nonincreasing": false,
+  "per_seed": {
+    "seed42": {
+      "cells_completed": "2/3",
+      "fm1_cd": [
+        0.2175266593694687,
+        0.15843763947486877
+      ],
+      "gap_ratio": [
+        25.736671236223152,
+        17.794817026929493
+      ],
+      "fm1_cd_monotone_nonincreasing": true,
+      "gap_ratio_monotone_nonincreasing": true
+    },
+    "seed43": {
+      "cells_completed": "1/3",
+      "fm1_cd": [
+        0.3291710913181305
+      ],
+      "gap_ratio": [
+        33.76131746835182
+      ],
+      "fm1_cd_monotone_nonincreasing": null,
+      "gap_ratio_monotone_nonincreasing": null
+    }
+  },
+  "all_cells_completed": false,
+  "note": "verdict false because at least one cell is not completed (timing guard or crash); see rows[].status"
+}
+
+结果已保存: ./sat_model_cmp/fm_train_scale.json
+=== 2026-09-26 18:33:57 END seed=43 budget=512:60 exit=0 elapsed=430s ===
+=== 2026-09-26 18:33:58 START seed=43 budget=1024:100 ===
+C:\Users\13906\Downloads\workspace\isac\IRS-Diffu-ISAC\source_code\isac_sat\data_sat.py:538: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  v = torch.exp(1j * torch.tensor(phase, dtype=torch.float32)).to(torch.complex64).to(dev)  # [N]
+C:\Users\13906\Downloads\workspace\isac\IRS-Diffu-ISAC\source_code\isac_sat\data_sat.py:538: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  v = torch.exp(1j * torch.tensor(phase, dtype=torch.float32)).to(torch.complex64).to(dev)  # [N]
+Device: cuda, seeds=[43], budgets=['1024:100']
+预注册/进度已写入: ./sat_model_cmp/fm_train_scale.json
+
+==========================================================================
+[seed 43 | budget 1024/100] FM 训练预算单元格开始
+==========================================================================
+[seed 43 | b1024_100] cond_dim=512, train=1024, test=32
+[seed 43 | b1024_100] Stage 1 (frozen): PointVAE + latent_stats 复用自 ./sat_model_scale_43\sat
+[1D-CFM] epoch 1/100 train_total=2.482222 test_total=1.999995
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 1, Loss: 1.999995)
+[1D-CFM] epoch 2/100 train_total=2.091437 test_total=1.704532
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 2, Loss: 1.704532)
+[1D-CFM] epoch 3/100 train_total=1.968205 test_total=1.779833
+[1D-CFM] epoch 4/100 train_total=1.958037 test_total=1.689910
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 4, Loss: 1.689910)
+[1D-CFM] epoch 5/100 train_total=1.931552 test_total=1.534871
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 5, Loss: 1.534871)
+[1D-CFM] epoch 6/100 train_total=1.887388 test_total=1.683135
+[1D-CFM] epoch 7/100 train_total=1.940411 test_total=1.506333
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 7, Loss: 1.506333)
+[1D-CFM] epoch 8/100 train_total=1.919575 test_total=1.591555
+[1D-CFM] epoch 9/100 train_total=1.918744 test_total=1.692349
+[1D-CFM] epoch 10/100 train_total=1.901870 test_total=1.483673
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 10, Loss: 1.483673)
+[1D-CFM] epoch 11/100 train_total=1.888570 test_total=1.705489
+[1D-CFM] epoch 12/100 train_total=1.825011 test_total=1.714112
+[1D-CFM] epoch 13/100 train_total=1.826176 test_total=1.518503
+[1D-CFM] epoch 14/100 train_total=1.801549 test_total=1.411283
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 14, Loss: 1.411283)
+[1D-CFM] epoch 15/100 train_total=1.772863 test_total=1.289911
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 15, Loss: 1.289911)
+[1D-CFM] epoch 16/100 train_total=1.771762 test_total=1.337127
+[1D-CFM] epoch 17/100 train_total=1.669766 test_total=1.403278
+[1D-CFM] epoch 18/100 train_total=1.655694 test_total=1.263070
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 18, Loss: 1.263070)
+[1D-CFM] epoch 19/100 train_total=1.618294 test_total=1.334719
+[1D-CFM] epoch 20/100 train_total=1.601658 test_total=1.128010
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 20, Loss: 1.128010)
+[1D-CFM] epoch 21/100 train_total=1.584214 test_total=1.121195
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 21, Loss: 1.121195)
+[1D-CFM] epoch 22/100 train_total=1.547395 test_total=1.111962
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 22, Loss: 1.111962)
+[1D-CFM] epoch 23/100 train_total=1.491324 test_total=1.178175
+[1D-CFM] epoch 24/100 train_total=1.467898 test_total=1.103560
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 24, Loss: 1.103560)
+[1D-CFM] epoch 25/100 train_total=1.426235 test_total=0.950186
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 25, Loss: 0.950186)
+[1D-CFM] epoch 26/100 train_total=1.416545 test_total=1.073084
+[1D-CFM] epoch 27/100 train_total=1.380701 test_total=1.034096
+[1D-CFM] epoch 28/100 train_total=1.351533 test_total=0.997620
+[1D-CFM] epoch 29/100 train_total=1.319105 test_total=0.972979
+[1D-CFM] epoch 30/100 train_total=1.329484 test_total=0.978096
+[1D-CFM] epoch 31/100 train_total=1.264779 test_total=0.997157
+[1D-CFM] epoch 32/100 train_total=1.286301 test_total=1.027250
+[1D-CFM] epoch 33/100 train_total=1.263312 test_total=1.029801
+[1D-CFM] epoch 34/100 train_total=1.242889 test_total=0.948689
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 34, Loss: 0.948689)
+[1D-CFM] epoch 35/100 train_total=1.206562 test_total=0.869366
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 35, Loss: 0.869366)
+[1D-CFM] epoch 36/100 train_total=1.208538 test_total=0.866723
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 36, Loss: 0.866723)
+[1D-CFM] epoch 37/100 train_total=1.208628 test_total=0.813641
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 37, Loss: 0.813641)
+[1D-CFM] epoch 38/100 train_total=1.197865 test_total=0.845687
+[1D-CFM] epoch 39/100 train_total=1.209796 test_total=0.843592
+[1D-CFM] epoch 40/100 train_total=1.184900 test_total=0.845958
+[1D-CFM] epoch 41/100 train_total=1.162797 test_total=0.874352
+[1D-CFM] epoch 42/100 train_total=1.164552 test_total=0.831258
+[1D-CFM] epoch 43/100 train_total=1.155572 test_total=0.784000
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 43, Loss: 0.784000)
+[1D-CFM] epoch 44/100 train_total=1.158651 test_total=0.816657
+[1D-CFM] epoch 45/100 train_total=1.161677 test_total=0.811839
+[1D-CFM] epoch 46/100 train_total=1.149438 test_total=0.780617
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 46, Loss: 0.780617)
+[1D-CFM] epoch 47/100 train_total=1.134587 test_total=0.756530
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 47, Loss: 0.756530)
+[1D-CFM] epoch 48/100 train_total=1.135816 test_total=0.750112
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 48, Loss: 0.750112)
+[1D-CFM] epoch 49/100 train_total=1.132837 test_total=0.849447
+[1D-CFM] epoch 50/100 train_total=1.143459 test_total=0.776239
+>>> 已保存 FM 模型参数 (Epoch 50)
+[1D-CFM] epoch 51/100 train_total=1.098871 test_total=0.767790
+[1D-CFM] epoch 52/100 train_total=1.076585 test_total=0.806670
+[1D-CFM] epoch 53/100 train_total=1.106075 test_total=0.718128
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 53, Loss: 0.718128)
+[1D-CFM] epoch 54/100 train_total=1.098276 test_total=0.695711
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 54, Loss: 0.695711)
+[1D-CFM] epoch 55/100 train_total=1.116960 test_total=0.739257
+[1D-CFM] epoch 56/100 train_total=1.089210 test_total=0.691003
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 56, Loss: 0.691003)
+[1D-CFM] epoch 57/100 train_total=1.072015 test_total=0.761387
+[1D-CFM] epoch 58/100 train_total=1.086643 test_total=0.722786
+[1D-CFM] epoch 59/100 train_total=1.095179 test_total=0.708700
+[1D-CFM] epoch 60/100 train_total=1.086132 test_total=0.730121
+[1D-CFM] epoch 61/100 train_total=1.085899 test_total=0.787677
+[1D-CFM] epoch 62/100 train_total=1.052231 test_total=0.683014
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 62, Loss: 0.683014)
+[1D-CFM] epoch 63/100 train_total=1.056152 test_total=0.774260
+[1D-CFM] epoch 64/100 train_total=1.084822 test_total=0.752827
+[1D-CFM] epoch 65/100 train_total=1.066293 test_total=0.729859
+[1D-CFM] epoch 66/100 train_total=1.067697 test_total=0.722691
+[1D-CFM] epoch 67/100 train_total=1.077626 test_total=0.754625
+[1D-CFM] epoch 68/100 train_total=1.058798 test_total=0.684136
+[1D-CFM] epoch 69/100 train_total=1.067778 test_total=0.743171
+[1D-CFM] epoch 70/100 train_total=1.062622 test_total=0.658372
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 70, Loss: 0.658372)
+[1D-CFM] epoch 71/100 train_total=1.044514 test_total=0.758994
+[1D-CFM] epoch 72/100 train_total=1.063307 test_total=0.679510
+[1D-CFM] epoch 73/100 train_total=1.041754 test_total=0.673325
+[1D-CFM] epoch 74/100 train_total=1.059215 test_total=0.753208
+[1D-CFM] epoch 75/100 train_total=1.029152 test_total=0.751587
+[1D-CFM] epoch 76/100 train_total=1.022052 test_total=0.795682
+[1D-CFM] epoch 77/100 train_total=1.044357 test_total=0.704315
+[1D-CFM] epoch 78/100 train_total=1.034836 test_total=0.723436
+[1D-CFM] epoch 79/100 train_total=1.031629 test_total=0.718011
+[1D-CFM] epoch 80/100 train_total=1.022313 test_total=0.662268
+[1D-CFM] epoch 81/100 train_total=1.041719 test_total=0.698186
+[1D-CFM] epoch 82/100 train_total=1.023388 test_total=0.630156
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 82, Loss: 0.630156)
+[1D-CFM] epoch 83/100 train_total=1.016536 test_total=0.683309
+[1D-CFM] epoch 84/100 train_total=1.029477 test_total=0.672483
+[1D-CFM] epoch 85/100 train_total=0.997872 test_total=0.653754
+[1D-CFM] epoch 86/100 train_total=1.007720 test_total=0.682153
+[1D-CFM] epoch 87/100 train_total=1.015479 test_total=0.698126
+[1D-CFM] epoch 88/100 train_total=1.008690 test_total=0.709237
+[1D-CFM] epoch 89/100 train_total=1.024326 test_total=0.699138
+[1D-CFM] epoch 90/100 train_total=1.031576 test_total=0.667552
+[1D-CFM] epoch 91/100 train_total=1.018883 test_total=0.647182
+[1D-CFM] epoch 92/100 train_total=1.016240 test_total=0.663150
+[1D-CFM] epoch 93/100 train_total=0.998002 test_total=0.773189
+[1D-CFM] epoch 94/100 train_total=1.018376 test_total=0.616593
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 94, Loss: 0.616593)
+[1D-CFM] epoch 95/100 train_total=0.995529 test_total=0.673052
+[1D-CFM] epoch 96/100 train_total=0.986442 test_total=0.593476
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 96, Loss: 0.593476)
+[1D-CFM] epoch 97/100 train_total=1.000743 test_total=0.600667
+[1D-CFM] epoch 98/100 train_total=1.019264 test_total=0.709358
+[1D-CFM] epoch 99/100 train_total=1.031635 test_total=0.608102
+[1D-CFM] epoch 100/100 train_total=1.021407 test_total=0.690223
+>>> 已保存 FM 模型参数 (Epoch 100)
+>>> 已保存 FM 最终模型参数 (condenc_fm_latest.pth, vnet_fm_latest.pth)
+>>> 已保存 FM 训练历史 (fm_history.npy)
+>>> 已保存 FM loss 曲线图 (fm_loss_curve.png)
+[seed 43 | b1024_100] FM NFE=1: CD=0.428094 FS@0.1=0.1202 FS@0.2=0.2450 IoU=0.0460
+[seed 43 | b1024_100] VAE oracle: CD=0.008340 FS@0.1=0.9114 IoU=0.3146
+结果已更新: ./sat_model_cmp/fm_train_scale.json
+
+==============================================================================
+FM 训练预算扫描汇总（NFE=1, CFG w=2, HRRP, fresh-data；CD/FS/IoU 为 8 样本公共测试批）
+==============================================================================
+  seed     budget       CD   FS@0.1   FS@0.2      IoU  oracleCD     gap     min         status
+    42     512/60   0.2175   0.1987   0.4022   0.0366    0.0085     26x     8.3             ok
+    42   1024/100   0.1584   0.2566   0.4558   0.0819    0.0089     18x    23.0             ok
+    42   2048/200        -        -        -        -         -       -       -        pending
+    43     512/60   0.3292   0.1177   0.2500   0.0424    0.0097     34x     7.1             ok
+    43   1024/100   0.4281   0.1202   0.2450   0.0460    0.0083     51x    23.1             ok
+    43   2048/200        -        -        -        -         -       -       -        pending
+------------------------------------------------------------------------------
+  裁决: {
+  "P_scale_fm1_cd_monotone_nonincreasing": false,
+  "P_scale_gap_ratio_monotone_nonincreasing": false,
+  "per_seed": {
+    "seed42": {
+      "cells_completed": "2/3",
+      "fm1_cd": [
+        0.2175266593694687,
+        0.15843763947486877
+      ],
+      "gap_ratio": [
+        25.736671236223152,
+        17.794817026929493
+      ],
+      "fm1_cd_monotone_nonincreasing": true,
+      "gap_ratio_monotone_nonincreasing": true
+    },
+    "seed43": {
+      "cells_completed": "2/3",
+      "fm1_cd": [
+        0.3291710913181305,
+        0.4280937910079956
+      ],
+      "gap_ratio": [
+        33.76131746835182,
+        51.327461399904394
+      ],
+      "fm1_cd_monotone_nonincreasing": false,
+      "gap_ratio_monotone_nonincreasing": false
+    }
+  },
+  "all_cells_completed": false,
+  "note": "verdict false because at least one cell is not completed (timing guard or crash); see rows[].status"
+}
+
+结果已保存: ./sat_model_cmp/fm_train_scale.json
+=== 2026-09-26 18:57:06 END seed=43 budget=1024:100 exit=0 elapsed=1388s ===
+=== 2026-09-26 18:57:06 START seed=43 budget=2048:200 ===
+C:\Users\13906\Downloads\workspace\isac\IRS-Diffu-ISAC\source_code\isac_sat\data_sat.py:538: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  v = torch.exp(1j * torch.tensor(phase, dtype=torch.float32)).to(torch.complex64).to(dev)  # [N]
+C:\Users\13906\Downloads\workspace\isac\IRS-Diffu-ISAC\source_code\isac_sat\data_sat.py:538: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  v = torch.exp(1j * torch.tensor(phase, dtype=torch.float32)).to(torch.complex64).to(dev)  # [N]
+Device: cuda, seeds=[43], budgets=['2048:200']
+预注册/进度已写入: ./sat_model_cmp/fm_train_scale.json
+
+==========================================================================
+[seed 43 | budget 2048/200] FM 训练预算单元格开始
+==========================================================================
+[seed 43 | b2048_200] cond_dim=512, train=2048, test=32
+[seed 43 | b2048_200] Stage 1 (frozen): PointVAE + latent_stats 复用自 ./sat_model_scale_43\sat
+[1D-CFM] epoch 1/200 train_total=2.294612 test_total=1.569484
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 1, Loss: 1.569484)
+[1D-CFM] epoch 2/200 train_total=1.976407 test_total=1.621492
+[1D-CFM] epoch 3/200 train_total=1.925322 test_total=1.700282
+[1D-CFM] epoch 4/200 train_total=1.902352 test_total=1.722118
+[1D-CFM] epoch 5/200 train_total=1.897565 test_total=1.369673
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 5, Loss: 1.369673)
+[1D-CFM] epoch 6/200 train_total=1.840969 test_total=1.483745
+[1D-CFM] epoch 7/200 train_total=1.820533 test_total=1.483526
+[1D-CFM] epoch 8/200 train_total=1.781794 test_total=1.332288
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 8, Loss: 1.332288)
+[1D-CFM] epoch 9/200 train_total=1.685572 test_total=1.297323
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 9, Loss: 1.297323)
+[1D-CFM] epoch 10/200 train_total=1.604015 test_total=1.293852
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 10, Loss: 1.293852)
+[1D-CFM] epoch 11/200 train_total=1.558429 test_total=1.250001
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 11, Loss: 1.250001)
+[1D-CFM] epoch 12/200 train_total=1.477206 test_total=1.031250
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 12, Loss: 1.031250)
+[1D-CFM] epoch 13/200 train_total=1.413440 test_total=1.132487
+[1D-CFM] epoch 14/200 train_total=1.356873 test_total=0.908363
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 14, Loss: 0.908363)
+[1D-CFM] epoch 15/200 train_total=1.314724 test_total=0.929014
+[1D-CFM] epoch 16/200 train_total=1.273417 test_total=0.844516
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 16, Loss: 0.844516)
+[1D-CFM] epoch 17/200 train_total=1.236757 test_total=0.973423
+[1D-CFM] epoch 18/200 train_total=1.198204 test_total=0.974051
+[1D-CFM] epoch 19/200 train_total=1.190572 test_total=0.875007
+[1D-CFM] epoch 20/200 train_total=1.197452 test_total=0.859473
+[1D-CFM] epoch 21/200 train_total=1.163345 test_total=0.866703
+[1D-CFM] epoch 22/200 train_total=1.143646 test_total=0.878185
+[1D-CFM] epoch 23/200 train_total=1.153489 test_total=0.788936
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 23, Loss: 0.788936)
+[1D-CFM] epoch 24/200 train_total=1.114312 test_total=0.773925
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 24, Loss: 0.773925)
+[1D-CFM] epoch 25/200 train_total=1.106886 test_total=0.729986
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 25, Loss: 0.729986)
+[1D-CFM] epoch 26/200 train_total=1.102770 test_total=0.702182
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 26, Loss: 0.702182)
+[1D-CFM] epoch 27/200 train_total=1.097971 test_total=0.770099
+[1D-CFM] epoch 28/200 train_total=1.093424 test_total=0.733709
+[1D-CFM] epoch 29/200 train_total=1.065006 test_total=0.760375
+[1D-CFM] epoch 30/200 train_total=1.066787 test_total=0.685033
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 30, Loss: 0.685033)
+[1D-CFM] epoch 31/200 train_total=1.089715 test_total=0.713693
+[1D-CFM] epoch 32/200 train_total=1.057194 test_total=0.735066
+[1D-CFM] epoch 33/200 train_total=1.066909 test_total=0.688199
+[1D-CFM] epoch 34/200 train_total=1.054197 test_total=0.807075
+[1D-CFM] epoch 35/200 train_total=1.053232 test_total=0.733068
+[1D-CFM] epoch 36/200 train_total=1.048440 test_total=0.658523
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 36, Loss: 0.658523)
+[1D-CFM] epoch 37/200 train_total=1.052307 test_total=0.699919
+[1D-CFM] epoch 38/200 train_total=1.040437 test_total=0.675602
+[1D-CFM] epoch 39/200 train_total=1.032757 test_total=0.634845
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 39, Loss: 0.634845)
+[1D-CFM] epoch 40/200 train_total=1.030511 test_total=0.667471
+[1D-CFM] epoch 41/200 train_total=1.015683 test_total=0.722925
+[1D-CFM] epoch 42/200 train_total=1.011743 test_total=0.585570
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 42, Loss: 0.585570)
+[1D-CFM] epoch 43/200 train_total=1.019923 test_total=0.639931
+[1D-CFM] epoch 44/200 train_total=1.003626 test_total=0.600232
+[1D-CFM] epoch 45/200 train_total=1.017080 test_total=0.693984
+[1D-CFM] epoch 46/200 train_total=1.018434 test_total=0.625354
+[1D-CFM] epoch 47/200 train_total=0.997589 test_total=0.727764
+[1D-CFM] epoch 48/200 train_total=1.001189 test_total=0.672790
+[1D-CFM] epoch 49/200 train_total=0.994103 test_total=0.690173
+[1D-CFM] epoch 50/200 train_total=1.007220 test_total=0.734416
+>>> 已保存 FM 模型参数 (Epoch 50)
+[1D-CFM] epoch 51/200 train_total=1.008890 test_total=0.715887
+[1D-CFM] epoch 52/200 train_total=1.001988 test_total=0.619627
+[1D-CFM] epoch 53/200 train_total=1.000318 test_total=0.599379
+[1D-CFM] epoch 54/200 train_total=0.980497 test_total=0.636772
+[1D-CFM] epoch 55/200 train_total=0.988206 test_total=0.648305
+[1D-CFM] epoch 56/200 train_total=0.985610 test_total=0.690842
+[1D-CFM] epoch 57/200 train_total=0.979858 test_total=0.657982
+[1D-CFM] epoch 58/200 train_total=0.998061 test_total=0.716158
+[1D-CFM] epoch 59/200 train_total=0.987103 test_total=0.576222
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 59, Loss: 0.576222)
+[1D-CFM] epoch 60/200 train_total=0.994714 test_total=0.658002
+[1D-CFM] epoch 61/200 train_total=0.980647 test_total=0.650751
+[1D-CFM] epoch 62/200 train_total=1.001920 test_total=0.688399
+[1D-CFM] epoch 63/200 train_total=0.989758 test_total=0.640641
+[1D-CFM] epoch 64/200 train_total=0.984457 test_total=0.654326
+[1D-CFM] epoch 65/200 train_total=0.979636 test_total=0.711890
+[1D-CFM] epoch 66/200 train_total=0.980872 test_total=0.665054
+[1D-CFM] epoch 67/200 train_total=0.963431 test_total=0.661835
+[1D-CFM] epoch 68/200 train_total=0.983966 test_total=0.570089
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 68, Loss: 0.570089)
+[1D-CFM] epoch 69/200 train_total=0.983921 test_total=0.692536
+[1D-CFM] epoch 70/200 train_total=0.967689 test_total=0.616951
+[1D-CFM] epoch 71/200 train_total=0.963207 test_total=0.604716
+[1D-CFM] epoch 72/200 train_total=0.970380 test_total=0.638115
+[1D-CFM] epoch 73/200 train_total=0.951666 test_total=0.601543
+[1D-CFM] epoch 74/200 train_total=0.956915 test_total=0.610937
+[1D-CFM] epoch 75/200 train_total=0.960527 test_total=0.642781
+[1D-CFM] epoch 76/200 train_total=0.969299 test_total=0.663142
+[1D-CFM] epoch 77/200 train_total=0.946039 test_total=0.555008
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 77, Loss: 0.555008)
+[1D-CFM] epoch 78/200 train_total=0.956290 test_total=0.684297
+[1D-CFM] epoch 79/200 train_total=0.959903 test_total=0.584031
+[1D-CFM] epoch 80/200 train_total=0.964485 test_total=0.534819
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 80, Loss: 0.534819)
+[1D-CFM] epoch 81/200 train_total=0.948682 test_total=0.618639
+[1D-CFM] epoch 82/200 train_total=0.952012 test_total=0.736279
+[1D-CFM] epoch 83/200 train_total=0.958639 test_total=0.568264
+[1D-CFM] epoch 84/200 train_total=0.957856 test_total=0.658802
+[1D-CFM] epoch 85/200 train_total=0.959476 test_total=0.670704
+[1D-CFM] epoch 86/200 train_total=0.951739 test_total=0.536673
+[1D-CFM] epoch 87/200 train_total=0.952601 test_total=0.657651
+[1D-CFM] epoch 88/200 train_total=0.955059 test_total=0.619288
+[1D-CFM] epoch 89/200 train_total=0.954431 test_total=0.571011
+[1D-CFM] epoch 90/200 train_total=0.956133 test_total=0.593424
+[1D-CFM] epoch 91/200 train_total=0.950772 test_total=0.580404
+[1D-CFM] epoch 92/200 train_total=0.950920 test_total=0.506568
+>>> [Best] 已更新 FM 最佳模型参数 (Epoch 92, Loss: 0.506568)
+[1D-CFM] epoch 93/200 train_total=0.952026 test_total=0.561322
+[1D-CFM] epoch 94/200 train_total=0.950870 test_total=0.569599
+[1D-CFM] epoch 95/200 train_total=0.954655 test_total=0.546715
+[1D-CFM] epoch 96/200 train_total=0.950872 test_total=0.608987=== 2026-09-26 19:37:41 END seed=43 budget=2048:200 exit=1 elapsed=2435s ===
+=== ALL DONE 2026-09-26 19:37:41 ===

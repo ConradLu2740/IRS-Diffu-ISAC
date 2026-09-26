@@ -1,0 +1,214 @@
+{
+  "rows": [
+    {
+      "seed": 42,
+      "budget": "512/60",
+      "train_data": 512,
+      "gen_epochs": 60,
+      "tag": "b512_60",
+      "status": "ok",
+      "runtime_sec": 499.3,
+      "runtime_min": 8.32,
+      "fm_nfe1": {
+        "cd": 0.2175266593694687,
+        "fs_0.1": 0.19866778195086238,
+        "fs_0.2": 0.40217537800381425,
+        "iou": 0.036602858807681965
+      },
+      "vae_oracle": {
+        "cd": 0.008452012203633785,
+        "fs_0.1": 0.9101336923675221,
+        "fs_0.2": 0.9959328955342631,
+        "iou": 0.2778252558334994
+      },
+      "gap_ratio": 25.736671236223152,
+      "save_dir": "./sat_model_m3b_42/b512_60"
+    },
+    {
+      "seed": 42,
+      "budget": "1024/100",
+      "train_data": 1024,
+      "gen_epochs": 100,
+      "tag": "b1024_100",
+      "status": "ok",
+      "runtime_sec": 1380.3,
+      "runtime_min": 23.01,
+      "fm_nfe1": {
+        "cd": 0.15843763947486877,
+        "fs_0.1": 0.25660929132562504,
+        "fs_0.2": 0.45576286001782434,
+        "iou": 0.08186839352842909
+      },
+      "vae_oracle": {
+        "cd": 0.008903583511710167,
+        "fs_0.1": 0.903082413052817,
+        "fs_0.2": 0.9933347132446118,
+        "iou": 0.396207236654205
+      },
+      "gap_ratio": 17.794817026929493,
+      "save_dir": "./sat_model_m3b_42/b1024_100"
+    },
+    {
+      "seed": 42,
+      "budget": "2048/200",
+      "train_data": 2048,
+      "gen_epochs": 200,
+      "tag": "b2048_200",
+      "status": "not completed",
+      "note": "stopped at the 40-minute timing guard (run log fm_train_scale_runs.log: END seed=42 budget=2048:200 exit=1 elapsed=2424s); last periodic checkpoint vnet_fm_epoch_50.pth => ~epoch 56/200 reached, extrapolated full-cell runtime ~140 min (far from close), so per the guard the cell was stopped and is recorded as not completed",
+      "runtime_sec": 2424,
+      "runtime_min": 40.4
+    },
+    {
+      "seed": 43,
+      "budget": "512/60",
+      "train_data": 512,
+      "gen_epochs": 60,
+      "tag": "b512_60",
+      "status": "ok",
+      "runtime_sec": 425.0,
+      "runtime_min": 7.08,
+      "fm_nfe1": {
+        "cd": 0.3291710913181305,
+        "fs_0.1": 0.11772610210446327,
+        "fs_0.2": 0.25004131954788716,
+        "iou": 0.042370133610453664
+      },
+      "vae_oracle": {
+        "cd": 0.009749948047101498,
+        "fs_0.1": 0.8868153368332803,
+        "fs_0.2": 0.9917587496846344,
+        "iou": 0.32312063411551495
+      },
+      "gap_ratio": 33.76131746835182,
+      "save_dir": "./sat_model_m3b_43/b512_60"
+    },
+    {
+      "seed": 43,
+      "budget": "1024/100",
+      "train_data": 1024,
+      "gen_epochs": 100,
+      "tag": "b1024_100",
+      "status": "ok",
+      "runtime_sec": 1383.0,
+      "runtime_min": 23.05,
+      "fm_nfe1": {
+        "cd": 0.4280937910079956,
+        "fs_0.1": 0.12015876043449115,
+        "fs_0.2": 0.24502998277284965,
+        "iou": 0.04595499110332901
+      },
+      "vae_oracle": {
+        "cd": 0.00834044348448515,
+        "fs_0.1": 0.9113790164495144,
+        "fs_0.2": 0.9913670353997237,
+        "iou": 0.31460107849365165
+      },
+      "gap_ratio": 51.327461399904394,
+      "save_dir": "./sat_model_m3b_43/b1024_100"
+    },
+    {
+      "seed": 43,
+      "budget": "2048/200",
+      "train_data": 2048,
+      "gen_epochs": 200,
+      "tag": "b2048_200",
+      "status": "not completed",
+      "note": "stopped at the 40-minute timing guard (run log fm_train_scale_runs.log: END seed=43 budget=2048:200 exit=1 elapsed=2435s); last checkpoint vnet_fm_epoch_100.pth and last flushed log line epoch 96/200 => ~epoch 96-110/200 reached, extrapolated full-cell runtime ~140 min (far from close), so per the guard the cell was stopped and is recorded as not completed",
+      "runtime_sec": 2435,
+      "runtime_min": 40.58
+    }
+  ],
+  "experiment": "fm_train_scale",
+  "title": "FM training-budget sweep: does the end-to-end quality gap to the VAE oracle close with FM training scale?",
+  "proposition": "P_scale: FMShape NFE=1 CD is monotonically non-increasing in the FM training budget (samples, epochs) = (512,60) -> (1024,100) -> (2048,200), AND the oracle-gap ratio (FM NFE=1 CD / VAE oracle CD) is monotonically non-increasing. Verdict PASS requires both trends to hold on every seed (42, 43).",
+  "proposition_registered_before_run": true,
+  "design_notes": [
+    "Only the FM (generative) training budget varies; DiT capacity (2 blocks/256 hidden/8 heads), condition encoder, CFG w=2, NFE=1 Euler sampling, HRRP condition, phase_mode=random and the fresh-data protocol are identical across cells.",
+    "Stage 1 is frozen: the PointVAE (200ep/1024) and its latent whitening stats are reused from sat_model_scale_<seed>/sat via the same --vae_ckpt protocol as compare_gen.py / M3, so the VAE oracle is a fixed per-seed reference and the ratio denominator does not drift with budget.",
+    "Evaluation mirrors compare_gen.py / eval_sat.py: first batch (8 samples) of the fresh test loader (test_data=32), CD / F-Score@0.1 / F-Score@0.2 / voxel IoU on the same batch; the VAE oracle is the VAE reconstruction (posterior mean) of the same batch.",
+    "FM models are evaluated at the final in-memory weights (same as compare_gen.py), not the best-test-loss checkpoint."
+  ],
+  "config": {
+    "seeds": [
+      42,
+      43
+    ],
+    "budgets": [
+      "512/60",
+      "1024/100",
+      "2048/200"
+    ],
+    "irs_mode": "sat",
+    "cond_feat": "hrrp",
+    "phase_mode": "random",
+    "fresh_data": true,
+    "materialized": false,
+    "train_data_per_budget": [
+      512,
+      1024,
+      2048
+    ],
+    "fm_epochs_per_budget": [
+      60,
+      100,
+      200
+    ],
+    "test_data": 32,
+    "batch_size": 8,
+    "n_eval": 8,
+    "num_points": 512,
+    "tau": 8,
+    "dit_depth": 2,
+    "dit_hidden": 256,
+    "dit_heads": 8,
+    "condenc_hidden": 128,
+    "condenc_out_emb": 256,
+    "lr_cond": 0.0001,
+    "posterior_sample": true,
+    "vae_fixed": "sat_model_scale_<seed>/sat (200ep/1024, --vae_ckpt protocol)",
+    "sampling": {
+      "nfe": 1,
+      "cfg_scale": 2.0,
+      "solver": "euler"
+    },
+    "roi_res": 16,
+    "sat": "iss",
+    "torch": "2.11.0+cu128",
+    "device": "NVIDIA GeForce RTX 5060 Laptop GPU"
+  },
+  "verdicts": {
+    "P_scale_fm1_cd_monotone_nonincreasing": false,
+    "P_scale_gap_ratio_monotone_nonincreasing": false,
+    "per_seed": {
+      "seed42": {
+        "cells_completed": "2/3",
+        "fm1_cd": [
+          0.2175266593694687,
+          0.15843763947486877
+        ],
+        "gap_ratio": [
+          25.736671236223152,
+          17.794817026929493
+        ],
+        "fm1_cd_monotone_nonincreasing": true,
+        "gap_ratio_monotone_nonincreasing": true
+      },
+      "seed43": {
+        "cells_completed": "2/3",
+        "fm1_cd": [
+          0.3291710913181305,
+          0.4280937910079956
+        ],
+        "gap_ratio": [
+          33.76131746835182,
+          51.327461399904394
+        ],
+        "fm1_cd_monotone_nonincreasing": false,
+        "gap_ratio_monotone_nonincreasing": false
+      }
+    },
+    "all_cells_completed": false,
+    "note": "incomplete: cells not completed (timing guard): 42:b2048_200, 43:b2048_200 | falsified on completed cells (non-monotone in budget): seeds 43"
+  }
+}
