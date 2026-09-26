@@ -146,7 +146,9 @@
 | 论断 | 数值 | 来源 | 分类 | 受影响? | 现状 |
 |---|---|---|---|---|---|
 | VAE oracle 0.0093 / 0.891 vs FM 0.2269 / 0.174 | `sat_model_c1/compare_gen.json`（`vae_oracle` 与 `fm["1"]` 同 run 同批） | (a) | 否 | 安全 |
-| M3 sweep 段：G-a −44.3%/−4.8%；G-b 35.0×→44.7×、30.7×→32.8×；oracle floor 0.0086/0.0079 | `verify_gen_scale.py` → `isac_demo/gen_scale.json`（聚合 `sat_model_scale_<seed>` 与 `sat_model_m3_<seed>` 两份**独立产生**的 `compare_gen.json` 后做差） | **(c)** | **是** | **已被配对重评取代**：`verify_m3_paired.py` → `sat_model_cmp/m3_paired.json`（commit `66998fc`）给出 NFE=1 两种子一致改善（+11.8%/+18.8%，6/8 与 7/8 云，gap 7.8×→6.8× / 7.1×→5.8×）、NFE=10 种子不一致（−30.4% / +39.1%，3/8 与 7/8）——原"两种子均恶化"的证伪是软的。论文该段数字尚未按配对口径更新（论文不在本次修改范围）→ **待办** |
+| **容量归因（承重）**：残差 gap ≈ 30× 与潜容量/训练规模一致，而非生成目标 | 同 run 内 `vae_oracle` vs `fm["1"]` 比值（上一行） | **(a)** | 否 | 安全——同 run 同批比值，是"容量主因"叙事的**主承重证据** |
+| **容量归因（承重）**：扩大 VAE 把 oracle floor 压到 0.0086/0.0079（低于主配置 0.0093） | `sat_model_scale_{42,43}/compare_gen.json` 的 `vae_oracle` vs `sat_model_c1` 的 0.0093 | **(c)** | **是（批噪声）** | 跨 run 比 oracle：案例 2 已证同权重不同批 oracle 可差 13%（0.0076 vs 0.0086）。主张方向（更大 VAE → 更低 ceiling）由 M1 类证据支持，但**点估计跨 run 不可直接比**。引用须附批噪声保留意见；若需铁证，按 (d) 在同一公共批上重评三个 VAE 的 oracle |
+| M3 sweep 段：G-a −44.3%/−4.8%；G-b 35.0×→44.7×、30.7×→32.8× | `verify_gen_scale.py` → `isac_demo/gen_scale.json`（聚合 `sat_model_scale_<seed>` 与 `sat_model_m3_<seed>` 两份**独立产生**的 `compare_gen.json` 后做差） | **(c)** | **是** | **已被配对重评取代**：`verify_m3_paired.py` → `sat_model_cmp/m3_paired.json`（commit `66998fc`）给出 NFE=1 两种子一致改善（+11.8%/+18.8%，6/8 与 7/8 云，gap 7.8×→6.8× / 7.1×→5.8×）、NFE=10 种子不一致（−30.4% / +39.1%，3/8 与 7/8）——原"两种子均恶化"的证伪是软的。论文该段数字尚未按配对口径更新 → **待办** |
 | 泛化 13–35% | TECH_REPORT 泛化表五行（cmp sat/none/ground + Starlink + N=64），逐行为各 run 行内配对 Δ | (a) 逐行；跨 run 范围为定性陈述 | 否（定性） | 安全（方向性主张；每行 Δ 行内配对） |
 | ionosphere 段 | 无数值（物理陈述） | — | n/a | 否 | 安全 |
 
@@ -194,6 +196,8 @@
 
 **「无法验证 1」（收敛阶 −0.87）已核销。** 论文中的 −0.87 来自 `verify_fm_bounds.py` 在 `n_eval=32` 但 `batch_size=16`（有效 16 云）协议下的运行。规范协议（`--seed 42 --n_eval 32 --batch_size 32 --x0_seed 7`，有效 32 云）复跑两次逐位一致（确定性确认），斜率为 **−0.889**，crossover NFE=1（DDPM NFE=100 CD 0.4362 vs FM Euler NFE=1 CD 0.4234），直线性比 0.0057。收敛阶估计随评估批大小变动：n=8 → −0.94，n=16 → −0.87，n=32 → −0.89——量级结论（≈ Euler 的 −1）稳健，点估计不稳健。处置：论文改用规范协议的 −0.89 并在 VI-B 标注批大小范围；`verify_fm_bounds.py` 的 protocol 块已补记 `batch_size / nfe_list / n_effective / test_data / mode`（此前缺失导致旧 JSON 无法归因）；新 JSON 已提交。
 
-**「无法验证 4」（headline CI 口径）已核销。** `headline_multiseed.json` 的 `ci95_*` 为 3 种子差值的 min/max 包络（bootstrap 重采样 3 点等价于包络），统计强度有限但方向保守。处置：论文 VI-B 措辞已改为 "a bootstrap 95% confidence interval over the three seeds"，明示样本量。
+**「无法验证 4」（headline CI 口径）已核销。** `headline_multiseed.json` 的 `ci95_*` 为 3 种子差值的 min/max 包络（bootstrap 重采样 3 点等价于包络），统计强度有限但方向保守。处置：论文 VI-B 不再使用 "bootstrap 95% CI" 措辞（3 点重采样 ≡ 包络，借统计程序之名不妥），改为 "the three per-seed differences (+4.5%, −20.5%, and −4.4%) straddle zero"——明示 n=3、直接给范围，比 CI 措辞更短更强。JSON 字段名 `ci95_*` 保留（历史产物），解读口径以本条为准。
+
+**Table IV n=32：被加强，不是被证伪。** n=8 试测时十步采样器的离散度不可见（coverage 0.500/0.750、1-NNA 0.875），曾可能被读成"多步无优势"；评估规模升到 n=32 后十步采样器 coverage 0.812/0.906、1-NNA 0.906，一步图 1-NNA=1.000 / 内距 0.028——Remark 1 的分布学验证**加强**。口径登记：此条属于「先修协议再解读数字」的正例，falsification 登记记 **strengthened**（评估粒度不足曾掩盖效应），不记 retracted/falsified。
 
 **复发防护新增一条**：凡 protocol 记录块必须包含全部影响批构造与拟合的参数（batch_size、nfe_list、有效样本数），否则证据 JSON 不可归因——`verify_fm_bounds.py` 的旧 protocol 块即因此无法追溯 −0.852 的来路。

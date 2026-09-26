@@ -39,3 +39,11 @@ FMShape 是空-天 ISAC 中由实测 HRRP 条件生成目标区域三维点云�
 ## 6. 一句话总评
 
 方法论严谨、负结果与证书齐备；主要待补是多种子统计收口与实测数据验证（后者为 TAES 常见拒稿点，cover letter 已备缓解说辞）。
+
+## 7. Cover letter 草稿（AI disclosure + 仿真定位，2026-09-26）
+
+> In preparing the manuscript and the accompanying open-source platform, generative AI tools were used for code, experiment scaffolding, drafting, and language editing; all such content has been reviewed and verified by the authors, who take full responsibility for the accuracy of the work.
+>
+> All reported results are simulation-based on a physics-grounded, fully reproducible open-source platform (real SGP4 ephemerides; channel-fidelity cross-checks against a standard 3GPP CDL profile are carried in the released code rather than in the manuscript). The manuscript claims no measured data, and over-the-air validation is identified as follow-up work.
+
+注：(i) AI 措辞按 IEEE 现行口径写（披露 + 作者对准确性负全责），不写"协议均由作者设计执行"——仓库 commit 历史显示脚手架由 AI 深度参与，披露必须与事实一致；投稿前按 TAES 当期政策核对披露位置（cover letter vs 文末致谢）。(ii) Sionna/CDL 对照只指到 released code（论文正文无此内容）。(iii) 2048/200 sweep 整合后如归因措辞有变，第二段无需改动。
