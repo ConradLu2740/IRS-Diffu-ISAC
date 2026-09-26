@@ -578,8 +578,8 @@ class SatROIDataset(Dataset):
                  center=None, multi=False, hrrp_legacy=False, cond_feat="narrowband"):
         """center: 显式指定距离像投影中心（'roi' 保留位置 / 'centroid' 形状特征）。
         None 时由 rp_align 决定：align=False → 'roi'（定位），align=True → 'centroid'。
-        cond_feat: 'narrowband'（默认，逐帧窄带 cond）或 'hrrp'（宽带距离像广播到
-        每帧作为条件——C1：条件信息充分性实验的条件输入）。"""
+        cond_feat: 'narrowband'（默认，逐帧窄带 cond）/ 'hrrp'（宽带距离像广播，
+        C1）/ 'both'（窄带 + HRRP 拼接，C2：双域条件融合）。"""
         self.n = n_samples
         self.ch = channels
         self.device = device
@@ -592,7 +592,7 @@ class SatROIDataset(Dataset):
         self.target_source = target_source
         self.with_label = with_label
         self.cond_feat = cond_feat
-        self.wideband = wideband or isar or (cond_feat == "hrrp")   # HRRP 条件隐含宽带
+        self.wideband = wideband or isar or cond_feat in ("hrrp", "both")  # 宽带条件隐含宽带
         self.wideband_snr_db = wideband_snr_db
         self.isar = isar
         self.rp_align = rp_align
@@ -707,6 +707,9 @@ class SatROIDataset(Dataset):
                     center=self.rp_center, sat_ecef=self._sat_ecef)).float()  # [K]
             if self.cond_feat == "hrrp":
                 cond = feat.unsqueeze(0).expand(self.tau, -1).contiguous().float()
+            elif self.cond_feat == "both":
+                cond = torch.cat([cond, feat.unsqueeze(0).expand(self.tau, -1)],
+                                 dim=-1).contiguous().float()   # [Tau, narrow+512]
             if self.with_label:
                 if self.multi:
                     return point_cloud.float(), cond, feat, targets

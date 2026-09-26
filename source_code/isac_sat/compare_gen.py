@@ -258,7 +258,7 @@ if __name__ == "__main__":
                         help="潜空间归一化：perdim=逐维白化（默认，恢复逐维高斯恒等式）；scalar=旧标量")
     parser.add_argument("--vae_ckpt", type=str, default=None,
                         help="提供 VAE checkpoint 目录则复用（跳过 VAE 训练，隔离生成侧变量）")
-    parser.add_argument("--cond_feat", choices=["narrowband", "hrrp"], default="narrowband",
+    parser.add_argument("--cond_feat", choices=["narrowband", "hrrp", "both"], default="narrowband",
                         help="条件输入：narrowband（默认）或 hrrp（C1：宽带距离像广播）")
     parser.add_argument("--T", type=int, default=100)
     parser.add_argument("--depth", type=int, default=2)

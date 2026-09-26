@@ -819,7 +819,7 @@ if __name__ == "__main__":
     p.add_argument("--detect_ckpt", type=str,
                    default=os.path.join(HERE, "isac_demo", "detect_best.pth"))
     # Block 2
-    p.add_argument("--cond_feat", choices=["narrowband", "hrrp"], default="narrowband",
+    p.add_argument("--cond_feat", choices=["narrowband", "hrrp", "both"], default="narrowband",
                    help="FM 模型的条件口径（C1: hrrp）")
     p.add_argument("--fim_seeds", type=int, default=4)
     p.add_argument("--fim_seed0", type=int, default=1000)
