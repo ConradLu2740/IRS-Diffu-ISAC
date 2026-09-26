@@ -43,7 +43,8 @@ def collect_slot_logits(args, seeds):
     """held-out：每 slot 的 (logits, 正确性标签, 原始 max-prob)。"""
     device = args.device
     ckpt = torch.load(args.checkpoint, map_location=device)
-    model = DetectNet(count_head=bool(ckpt.get("count_head", False))).to(device)
+    model = DetectNet(count_head=bool(ckpt.get("count_head", False)),
+                              obj_head=bool(ckpt.get("obj_head", False))).to(device)
     model.load_state_dict(ckpt["model"]); model.eval()
 
     logits_all, labels_all, confs_all = [], [], []
@@ -56,7 +57,7 @@ def collect_slot_logits(args, seeds):
                 roi, scene.mid["target_pos"], scene.mid["ground_pos"],
                 scene.scenario.wavelength_m, snr_db=args.snr_db, seed=t, align=False)
             with torch.no_grad():
-                clss, poss, _cnt = model(torch.from_numpy(rp).float().unsqueeze(0).to(device))
+                clss, poss, _cnt, _objs = model(torch.from_numpy(rp).float().unsqueeze(0).to(device))
             gt = np.array([g[1] for g in scene.targets_at(t)])
             det_pos = np.array([p.squeeze(0).cpu().numpy() for p in poss])
             K = len(clss)
@@ -148,7 +149,8 @@ def main(args):
         """用 conf_fn(p_cal_or_raw) 过滤的检测序列收集器。"""
         device = args.device
         ckpt = torch.load(args.checkpoint, map_location=device)
-        model = DetectNet(count_head=bool(ckpt.get("count_head", False))).to(device)
+        model = DetectNet(count_head=bool(ckpt.get("count_head", False)),
+                              obj_head=bool(ckpt.get("obj_head", False))).to(device)
         model.load_state_dict(ckpt["model"]); model.eval()
         seqs = []
         for sd in a.seeds:
@@ -161,7 +163,7 @@ def main(args):
                     roi, scene.mid["target_pos"], scene.mid["ground_pos"],
                     scene.scenario.wavelength_m, snr_db=args.snr_db, seed=t, align=False)
                 with torch.no_grad():
-                    clss, poss, _cnt = model(torch.from_numpy(rp).float().unsqueeze(0).to(device))
+                    clss, poss, _cnt, _objs = model(torch.from_numpy(rp).float().unsqueeze(0).to(device))
                 dets = []
                 for k in range(len(clss)):
                     lg = clss[k].squeeze(0)
@@ -179,7 +181,8 @@ def main(args):
     def make_collect_T1():
         device = args.device
         ckpt = torch.load(args.checkpoint, map_location=device)
-        model = DetectNet(count_head=bool(ckpt.get("count_head", False))).to(device)
+        model = DetectNet(count_head=bool(ckpt.get("count_head", False)),
+                              obj_head=bool(ckpt.get("obj_head", False))).to(device)
         model.load_state_dict(ckpt["model"]); model.eval()
         seqs = []
         for sd in a.seeds:
@@ -192,7 +195,7 @@ def main(args):
                     roi, scene.mid["target_pos"], scene.mid["ground_pos"],
                     scene.scenario.wavelength_m, snr_db=args.snr_db, seed=t, align=False)
                 with torch.no_grad():
-                    clss, poss, _cnt = model(torch.from_numpy(rp).float().unsqueeze(0).to(device))
+                    clss, poss, _cnt, _objs = model(torch.from_numpy(rp).float().unsqueeze(0).to(device))
                 dets = []
                 for k in range(len(clss)):
                     lg = clss[k].squeeze(0)

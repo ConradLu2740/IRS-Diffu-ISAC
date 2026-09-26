@@ -38,7 +38,7 @@ os.makedirs(OUT_DIR, exist_ok=True)
 def run_detector(model, rp, device):
     """单帧距离像 → K 组检测（pos, cls_probs）。返回按置信度排序的检测。"""
     with torch.no_grad():
-        clss, poss, cnt = model(torch.from_numpy(rp).float().unsqueeze(0).to(device))
+        clss, poss, cnt, objs = model(torch.from_numpy(rp).float().unsqueeze(0).to(device))
     probs = [torch.softmax(c, dim=1).squeeze(0).cpu().numpy() for c in clss]
     poss = [p.squeeze(0).cpu().numpy() for p in poss]
     # 置信度 = 类别概率最大值
@@ -57,7 +57,8 @@ def main(args):
     # 模型
     ckpt = torch.load(args.checkpoint, map_location=device)
     _ck = torch.load(args.checkpoint, map_location=device)
-    model = DetectNet(count_head=bool(_ck.get("count_head", False))).to(device)
+    model = DetectNet(count_head=bool(_ck.get("count_head", False)),
+                      obj_head=bool(_ck.get("obj_head", False))).to(device)
     model.load_state_dict(ckpt["model"])
     model.eval()
     print(f"[mot] 检测模型加载: {ckpt['classes']}, K={ckpt['k']}")

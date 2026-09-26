@@ -67,7 +67,7 @@ def scene_dets(args, seeds, name, stack, thr=0.3, n_avg=1):
             x = np.stack(buf, axis=0) if len(buf) == stack else \
                 np.stack([buf[0]] * (stack - len(buf)) + buf, axis=0)
             with torch.no_grad():
-                clss, poss, _cnt = model(torch.from_numpy(x).float().unsqueeze(0).to(args.device))
+                clss, poss, _cnt, _objs = model(torch.from_numpy(x).float().unsqueeze(0).to(args.device))
             dets = []
             for k in range(len(clss)):
                 lg = clss[k].squeeze(0)
