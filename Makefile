@@ -124,6 +124,9 @@ verify-fm-train-scale: ## FM 训练预算扫描 P_scale（需先训 sat_model_m3
 verify-fm-train-scale-paired: ## 同批次逐云配对重评（读 sat_model_m3b_<seed> 权重，~5 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_fm_train_scale_paired.py --seeds 42 43
 
+verify-m3-paired: ## M3（100→400ep）同批次逐云配对重评（读 sat_model_scale/m3_<seed>，~5 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_m3_paired.py --seeds 42 43
+
 verify-cond-probe: ## 条件信息充分性门禁（cond/HRRP → 潜变量探针 R²，~10 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_cond_probe.py --n_total 384
 

@@ -1,0 +1,234 @@
+{
+  "experiment": "m3_paired",
+  "title": "M3 (generative training 100ep -> 400ep, VAE fixed): paired per-cloud re-evaluation on a common batch",
+  "motivation": "verify_gen_scale.py aggregates two independently produced compare_gen.json files (sat_model_scale_<seed> vs sat_model_m3_<seed>); each drew its own post-training test batch from the global RNG, so the original Ga/Gb falsification is batch-confounded. This file is the paired comparison on one fixed common batch per seed with shared x0, same protocol as verify_fm_train_scale_paired.py.",
+  "proposition_registered_before_run": true,
+  "proposition": "Paired reading of M3 on a common batch: 400ep improves over 100ep iff median(Δ) <= -0.02 and >= 6/8 clouds improve, at each of NFE 1 and 10; otherwise 'no consistent effect at n=8'. The original Ga criterion (mean CD drop >= 20% at NFE=10) is also reported on the paired batch.",
+  "config": {
+    "seeds": [
+      42,
+      43
+    ],
+    "nfes": [
+      1,
+      10
+    ],
+    "vae_frozen_from": "./sat_model_scale_{seed}/sat",
+    "model_dirs": "./sat_model_{tag}_{seed}/sat",
+    "cfg": 2.0,
+    "x0_seed_offset": 9000,
+    "device": "cuda"
+  },
+  "seeds": {
+    "42": {
+      "batch_fingerprint": "20e3cd6f82a4",
+      "oracle_cd_mean": 0.021471,
+      "cells": {
+        "nfe1": {
+          "status": "ok",
+          "base_100ep": {
+            "per_cloud_cd": [
+              0.02105,
+              0.612809,
+              0.07243,
+              0.12038,
+              0.065624,
+              0.01213,
+              0.090578,
+              0.335527
+            ],
+            "cd_mean": 0.166316
+          },
+          "m3_400ep": {
+            "per_cloud_cd": [
+              0.03608,
+              0.577695,
+              0.051636,
+              0.0158,
+              0.136373,
+              0.008078,
+              0.043293,
+              0.304217
+            ],
+            "cd_mean": 0.146646
+          },
+          "delta_per_cloud": [
+            0.01503,
+            -0.035114,
+            -0.020794,
+            -0.10458,
+            0.070749,
+            -0.004052,
+            -0.047285,
+            -0.03131
+          ],
+          "median_delta": -0.026052,
+          "n_improved": 6,
+          "n_worsened": 2,
+          "top2_abs_delta_share": 0.5331,
+          "reading": "consistent improvement",
+          "aggregate_sign_outlier_driven": false,
+          "mean_cd_drop_pct": 11.83,
+          "gap_ratio_base": 7.75,
+          "gap_ratio_m3": 6.83
+        },
+        "nfe10": {
+          "status": "ok",
+          "base_100ep": {
+            "per_cloud_cd": [
+              0.018588,
+              0.595101,
+              0.065213,
+              0.073756,
+              0.043854,
+              0.016769,
+              0.100529,
+              0.259869
+            ],
+            "cd_mean": 0.14671
+          },
+          "m3_400ep": {
+            "per_cloud_cd": [
+              0.060679,
+              0.734925,
+              0.06033,
+              0.027606,
+              0.128222,
+              0.023998,
+              0.06956,
+              0.425358
+            ],
+            "cd_mean": 0.191335
+          },
+          "delta_per_cloud": [
+            0.042091,
+            0.139824,
+            -0.004883,
+            -0.04615,
+            0.084368,
+            0.007229,
+            -0.030969,
+            0.165489
+          ],
+          "median_delta": 0.02466,
+          "n_improved": 3,
+          "n_worsened": 5,
+          "top2_abs_delta_share": 0.586,
+          "reading": "no consistent scale effect at n=8",
+          "aggregate_sign_outlier_driven": false,
+          "mean_cd_drop_pct": -30.42,
+          "gap_ratio_base": 6.83,
+          "gap_ratio_m3": 8.91
+        }
+      },
+      "seed_verdict": "not PASS"
+    },
+    "43": {
+      "batch_fingerprint": "ff9fa19c2465",
+      "oracle_cd_mean": 0.036955,
+      "cells": {
+        "nfe1": {
+          "status": "ok",
+          "base_100ep": {
+            "per_cloud_cd": [
+              0.130731,
+              0.309514,
+              0.082065,
+              0.585846,
+              0.196158,
+              0.231546,
+              0.350327,
+              0.207167
+            ],
+            "cd_mean": 0.261669
+          },
+          "m3_400ep": {
+            "per_cloud_cd": [
+              0.114302,
+              0.276131,
+              0.192728,
+              0.376008,
+              0.178229,
+              0.212224,
+              0.182334,
+              0.168975
+            ],
+            "cd_mean": 0.212616
+          },
+          "delta_per_cloud": [
+            -0.016429,
+            -0.033383,
+            0.110663,
+            -0.209838,
+            -0.017929,
+            -0.019322,
+            -0.167993,
+            -0.038192
+          ],
+          "median_delta": -0.026353,
+          "n_improved": 7,
+          "n_worsened": 1,
+          "top2_abs_delta_share": 0.6156,
+          "reading": "consistent improvement",
+          "aggregate_sign_outlier_driven": true,
+          "mean_cd_drop_pct": 18.75,
+          "gap_ratio_base": 7.08,
+          "gap_ratio_m3": 5.75
+        },
+        "nfe10": {
+          "status": "ok",
+          "base_100ep": {
+            "per_cloud_cd": [
+              0.053254,
+              0.270592,
+              0.053237,
+              0.592834,
+              0.699288,
+              0.342487,
+              0.791526,
+              0.70594
+            ],
+            "cd_mean": 0.438645
+          },
+          "m3_400ep": {
+            "per_cloud_cd": [
+              0.029857,
+              0.201927,
+              0.17617,
+              0.169435,
+              0.564998,
+              0.057468,
+              0.358159,
+              0.578264
+            ],
+            "cd_mean": 0.267035
+          },
+          "delta_per_cloud": [
+            -0.023397,
+            -0.068665,
+            0.122933,
+            -0.423399,
+            -0.13429,
+            -0.285019,
+            -0.433367,
+            -0.127676
+          ],
+          "median_delta": -0.130983,
+          "n_improved": 7,
+          "n_worsened": 1,
+          "top2_abs_delta_share": 0.5293,
+          "reading": "consistent improvement",
+          "aggregate_sign_outlier_driven": false,
+          "mean_cd_drop_pct": 39.12,
+          "gap_ratio_base": 11.87,
+          "gap_ratio_m3": 7.23
+        }
+      },
+      "seed_verdict": "PASS"
+    }
+  },
+  "verdicts": {
+    "42": "not PASS",
+    "43": "PASS"
+  }
+}
