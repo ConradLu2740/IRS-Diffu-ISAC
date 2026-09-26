@@ -80,6 +80,17 @@ def main(args):
         feats.append(f)
     pcs = torch.stack(pcs)                 # [N, P, 3]
     feats = torch.stack(feats)             # [N, D]
+    if args.spread_norm and args.cond_feat == "isar" and not args.dop_only:
+        # 按特征块的两两距离尺度归一化：data_sat 已对每块做单位范数，
+        # 稀释来自块间 pairwise spread 不等（非 scale），按 mean pairwise
+        # 距离缩放才 Equalize 块间方差
+        h, d = feats[:, :512], feats[:, 512:]
+        iuN = torch.triu_indices(args.n_samples, args.n_samples, offset=1)
+        mh = torch.cdist(h, h)[iuN[0], iuN[1]].mean()
+        md = torch.cdist(d, d)[iuN[0], iuN[1]].mean()
+        feats = torch.cat([h / mh, d / md], dim=1)
+        print(f"spread 归一化: HRRP 平均两两距离 {mh:.4f}, dop {md:.4f} "
+              f"(缩放比 {float(mh / md):.1f}×)")
     tag = "多普勒剖面" if args.dop_only else ("HRRP+ISAR" if args.cond_feat == "isar" else "HRRP")
     print(f"样本: pcs {tuple(pcs.shape)}, 条件特征({tag}) {tuple(feats.shape)}")
 
@@ -152,6 +163,8 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--dop_only", action="store_true",
                         help="只用条件特征末 32 维（ISAR 多普勒剖面）")
+    parser.add_argument("--spread_norm", action="store_true",
+                        help="ISAR 拼接条件按特征块两两距离尺度归一化（验证 C3 设计修正）")
     parser.add_argument("--save_dir", type=str, default="./sat_model_c1")
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
