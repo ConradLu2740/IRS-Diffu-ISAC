@@ -39,7 +39,8 @@ make demo     # 感知-通信闭环 demo（自动训练 + 闭环）
 | `fm_utils.py` | Flow Matching（OT-CFM）训练/采样工具（与 legacy/train.py 的 DDPM 工具同构） | （被 train_fm / compare_gen 引用） | — |
 | `train_fm.py` | Flow Matching 版 3D 重建训练（与 train_sat.py 同数据/同架构/同超参） | `python train_fm.py --modes sat --nfe_list 1 10 50` | `sat_model_fm/{mode}/` |
 | `compare_gen.py` | 扩散 vs Flow Matching 等算力公平对比（共享 VAE，NFE 扫描） | `python compare_gen.py --modes sat --gen_epochs 100` | `sat_model_cmp/`（JSON + NFE 曲线） |
-| `train_fm_distill.py` | C1 HRRP 条件 FM 渐进蒸馏：1 步学生回归 teacher 的 midpoint 输出（fresh-data 协议） | `python train_fm_distill.py --epochs 60 --train_data 512` | `sat_model_distill/`（student + 结果 JSON） |
+| `train_fm_distill.py` | C1 HRRP 条件 FM 渐进蒸馏：1 步学生回归 teacher 的 midpoint 输出（fresh-data 协议；`--eval_seed` 使测试批与 train_data 解耦） | `python train_fm_distill.py --epochs 60 --train_data 512` | `sat_model_distill/`（student + 结果 JSON） |
+| `verify_fm_distill_diversity.py` | D1：蒸馏学生 vs teacher 样本多样性（同 cond × 16 噪声，模式坍塌检测） | `python verify_fm_distill_diversity.py` | `sat_model_distill/`（多样性结果 JSON） |
 | `task_sat.py` | 感知任务升级：目标分类 + 姿态估计 | `python task_sat.py` | 评估输出 |
 | `baseline_classic.py` | 经典基线对比：2D-CFAR + MUSIC vs 学习式感知 | `python baseline_classic.py` | 对比图 |
 

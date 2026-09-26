@@ -166,6 +166,9 @@ compare-gen: ## 扩散 vs Flow Matching 等算力对比（共享 VAE，输出 NF
 train-fm-distill: ## C1 HRRP 条件 FM 渐进蒸馏：1 步学生（fresh-data 协议，~分钟级）
 	cd $(ISAC) && ../../$(VENV)/bin/python train_fm_distill.py --epochs 60 --train_data 512
 
+verify-fm-distill-diversity: ## D1：蒸馏学生 vs teacher 样本多样性（模式坍塌检测，~6 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_fm_distill_diversity.py
+
 finding-angle-wall: ## 角度墙配置扫描热力图 + 双站反例出图（CPU 秒级）
 	$(PY) isac_sim/findings/plot_angle_wall_scan.py
 

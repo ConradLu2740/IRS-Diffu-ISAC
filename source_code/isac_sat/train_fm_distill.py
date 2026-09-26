@@ -9,6 +9,8 @@ teacher（midpoint NFE=2）的输出：同 1 次前向成本，去掉积分误�
   - 逐 epoch 新样本（SatROIDataset 逐样本生成，不物化）
   - teacher 输出无梯度；学生参数独立
   - 与学生同构：z_student = x0 + v_s(x0, 0, c)，loss = MSE(z_student, z_teacher)
+  - 评估前按 --eval_seed 重播种：测试批与 train_data 规模解耦，
+    不同训练预算的 student 可在同一测试批上配对比较
 
 预注册命题：
   P1 学生 1 步 CD ≤ teacher 1 步 CD − 3%（积分误差被消除）
@@ -127,6 +129,8 @@ def main(args):
     torch.save(student.state_dict(), os.path.join(args.save_dir, "student_1step.pth"))
 
     # ---- 评估：同一测试批，teacher vs student ----
+    # eval_seed 重播种：测试批与 train_data 规模解耦（跨训练预算配对可比）
+    random.seed(args.eval_seed); np.random.seed(args.eval_seed); torch.manual_seed(args.eval_seed)
     test_ds = SatROIDataset(args.test_data, channels, num_points=args.num_points,
                             device=device, tau=args.tau, phase_mode=args.phase_mode,
                             cond_feat=args.cond_feat)
@@ -191,6 +195,8 @@ if __name__ == "__main__":
     parser.add_argument("--save_dir", type=str, default="./sat_model_distill")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--x0_seed", type=int, default=123)
+    parser.add_argument("--eval_seed", type=int, default=999,
+                        help="评估前重播种（测试批与 train_data 规模解耦，跨运行配对可比）")
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
     main(args)

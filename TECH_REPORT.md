@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.39 (2026-09-26) — companion to the open-source repository
+**Version**: v1.40 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -40,6 +40,7 @@
 *v1.37 additions: registered proposition NF-3 sweeps the phase-calibration noise (0–5°) in both regimes (Section 6.32): no threshold recovers the near-field advantage in the ML setting — the near-field curvature signal (~6e-3 rad over the full y range) is unextractable even with perfect calibration (MLP converges to the prior), while the far-field DOA is robust (CRB 387 mm, 38% efficiency, flat under 5° calibration noise). The geometry line closes: the coherent XL-array DOA is the robust wall-escape observable (far field suffices); near-field curvature is low-value in practice. Registered NF-4: XL-array DOA in the low-altitude closed loop.*
 *v1.38 additions: the differentiable-loop direction (D2) is closed with the soft-voxel relaxation (Section 6.33): the differentiable pipeline is verified (autograd matches finite differences, 4/4 seeds), but the smooth limit of the value function is also flat (κ(H_V) ≈ 0, no LOS alignment) — the closed-form phase design absorbs position error, confirming the G-κ gate from the smooth side. The 5× power gain from position ascent is a coverage-broadening artifact (η > 1), not position refinement. The sensing-side bottleneck is the shape prior (consistent with the FM-shape success, Section 7.5), not position weighting.*
 *v1.39 additions: the generative line closes its final segment with progressive distillation (Section 6.34, `train_fm_distill.py`): a 1-step student trained to regress the C1 HRRP-conditional FM teacher's midpoint (NFE=2) outputs beats its own teacher at identical inference cost — CD 0.3101 vs 0.4047 (−23.4%, pre-registered threshold 3%, P1–P3 all PASS) — amortizing the single-step Euler integration error into the network weights. Two honest caveats are recorded: the eval protocol (n_eval=8, test batch 32, x0 seed 999) is not comparable to the absolute CD of `compare_gen` (0.2269, n_eval=16) — the claim is the paired same-batch comparison only; and the distillation budget (512 samples/60 epochs) is below the teacher's (1024/100), leaving a full-scale retrain as follow-up. The teacher's own NFE=2 output is non-monotonically worse than NFE=1 on this batch (0.4967 vs 0.4047), itself evidence that the teacher's few-step scaling is noisy at this eval size.*
+*v1.40 additions: the v1.39 distillation headline is qualified by a diversity audit (Section 6.35, `verify_fm_distill_diversity.py`). On an independently seeded eval batch (`--eval_seed`, now decoupling the test batch from the training-data size), the student does NOT replicate its CD advantage — CD 0.3839 vs teacher 0.2318 (+65.6% worse), while the teacher's own CD swung 0.4047 → 0.2318 across batches: the v1.39 P1 verdict is batch-specific, not robust (n_eval=8 variance dominates). The audit's substantive finding is on the diversity side: the C1 teacher at NFE=1 is near-mode-collapsed (16 initial noises give pairwise CD 0.0053, diversity ratio 0.02 — effectively a deterministic conditional-mean shape estimator; the v1.11 no-collapse certificate covered a different model), and the distilled student restores 9× the sample diversity (pairwise 0.0488) by regressing the teacher's 2-step midpoint outputs instead of replicating the collapsed 1-step map. A protocol improvement ships with it: `--eval_seed` re-seeding before evaluation, making students of different training budgets comparable on one common test batch (full-scale 1024/100 retrain in progress).*
 
 ---
 
@@ -1090,6 +1091,35 @@ same-batch comparison only; (ii) the distillation budget (512 samples / 60 epoch
 teacher's (1024 / 100); a full-scale retrain is registered as follow-up. The generative line now closes
 four segments: DDPM→FM parity + few-step advantage, HRRP conditioning (Δ(0)=0.302), shape-prior closed
 loop (η_sense 0.840→0.932), and 1-step distillation (−23.4% at identical cost).
+
+### 6.35 The Distillation Audit: Teacher NFE=1 Is Near-Collapsed, the Student Restores 9× Diversity, the CD Advantage Does Not Replicate (v1.40)
+
+Registered proposition D1 (`verify_fm_distill_diversity.py`): the v1.39 distillation student was reported on CD
+alone; few-step/distilled generation can pay in sample diversity, so the v1.11 diversity protocol (same
+condition × 16 initial noises, CFG w=2.0; pairwise CD vs GT-vs-posterior-mean CD; ratio ≈ 0 signals collapse)
+is re-run on the C1 teacher and the student, on an independently seeded eval batch. A protocol improvement
+ships with it: `train_fm_distill.py --eval_seed` re-seeds before evaluation, decoupling the test batch from the
+training-data size so that students of different budgets are comparable on one common batch.
+
+| Proposition | Prediction | Measured | Verdict |
+|---|---|---|---|
+| D1 student ratio ≥ 0.7 × teacher ratio | no disproportionate collapse | 0.19 vs 0.02 (**9×**) | **PASS** (threshold calibration below) |
+| D2 student pairwise ≥ 0.5 × teacher | samples genuinely differ | 0.0488 vs 0.0053 | **PASS** |
+| D3 student CD ≤ teacher CD | quality advantage replicates | 0.3839 vs 0.2318 (**+65.6% worse**) | **FAIL** |
+
+Three findings. (i) The C1 teacher at NFE=1 is near-mode-collapsed: 16 different initial noises produce
+pairwise CD 0.0053 (ratio 0.02) — under HRRP conditioning with CFG w=2.0 the 1-step map is effectively a
+deterministic conditional-mean shape estimator, not a distributional model; the v1.11 no-collapse certificate
+(ratio 2.72) measured a different model and does not cover C1. (ii) Distillation restores diversity 9×
+(pairwise 0.0488): the student regresses the teacher's 2-step midpoint outputs — a better ODE solution that
+preserves the x0-dependence — rather than replicating the collapsed 1-step map, so the integration error (and
+the collapse riding on it) is repaired. (iii) The v1.39 −23.4% does not replicate: on the eval_seed batch the
+student is 65.6% worse, while the teacher's own CD moved 0.4047 → 0.2318 across batches — the v1.39 P1
+verdict is batch-specific, not robust, at n_eval=8. The robust statement of this line is about diversity, not
+CD. D1's pre-registered 0.7× threshold was too loose against a near-collapsed teacher (0.7 × 0.02 = 0.014);
+the pass is near-trivial and the informative content is the 9× relative gain, which the threshold did not
+capture — recorded honestly. A full-scale retrain (1024/100) is running on the same eval batch for a
+three-way paired comparison.
 
 ## 7. Limitations and Honest Discussion
 
