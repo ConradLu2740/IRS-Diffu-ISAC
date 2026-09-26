@@ -1,0 +1,72 @@
+{
+  "experiment": "w1_multiseed",
+  "title": "W1 multi-seed closure: C1 conditioning channel Δ(0) and ISAR augmentation gain (C5 protocol) on seeds 42/43/44",
+  "motivation": "Two single-seed headline claims are extended to three seeds (42/43/44) with honest verdicts and 3-seed min/max ranges (NOT bootstrap CIs, per the headline_multiseed convention): (A) the conditioning channel Δ(0) of the C1 protocol (HRRP-conditioned FM, 1024/100 budget); (B) the ISAR augmentation gain of the C5 protocol (spread-equalized ISAR vs matched-budget HRRP-only control, both 512/60). Seed-42 assets already exist and are reused as the baseline; only seeds 43 and 44 are replicated here.",
+  "proposition_registered_before_run": true,
+  "prereg_timestamp": "2026-09-26 (before any seed-43/44 training or audit in this experiment)",
+  "propositions": {
+    "P_cond3": {
+      "statement": "The C1 Δ(0) (t=0.05 bin, per-dim MSE units, CFM conditional-loss gap L(t,null)-L(t,cond)) exceeds the pre-registered threshold 0.05 on ALL THREE seeds 42/43/44.",
+      "threshold": 0.05,
+      "threshold_note": "Seed-42 C1 Δ(0)=0.302 was reported as 'six times the pre-registered threshold' (roadmap §7.11), i.e. threshold ≈ 0.05.",
+      "falsified_if": "any seed has Δ(0) <= 0.05"
+    },
+    "P_isar3": {
+      "statement": "The spread-equalized ISAR Δ(0) exceeds the matched-budget HRRP-only control Δ(0) on ALL THREE seeds (the seed-42 +6.9% direction).",
+      "seed42_baseline": {"isar_delta0": 0.15354037284851074, "control_delta0": 0.1436229944229126, "gain_pct": 6.905},
+      "falsified_if": "any seed has ISAR Δ(0) <= control Δ(0)"
+    }
+  },
+  "protocols": {
+    "C1": {
+      "script": "compare_gen.py",
+      "command_template": "py compare_gen.py --modes sat --train_data 1024 --test_data 32 --vae_epochs 200 --gen_epochs 100 --T 100 --cond_feat hrrp --vae_ckpt ./sat_model_scale_42 --seed <seed> --save_dir ./sat_model_c1<_sNN>",
+      "inferred_from": "c1_run.log (Stage 1 VAE reused from ./sat_model_scale_42, DDPM/FM epochs=100) + sat_model_c1/compare_gen.json (train_data=1024, test_data=32, vae_epochs=200, gen_epochs=100, T=100, seed=42, phase_mode=random) + roadmap §7.11 (HRRP conditioning, posterior-sample target, per-dim whitening, lr_cond=1e-4 - all script defaults)",
+      "seed42_model_dir": "./sat_model_c1",
+      "seed42_audit": "isac_demo/info_audit_c1.json (Δ(0)=0.3019444942474365, 21.8% variance explained)"
+    },
+    "C5_pair": {
+      "script": "compare_gen.py",
+      "isar_command_template": "py compare_gen.py --modes sat --train_data 512 --test_data 16 --gen_epochs 60 --T 100 --cond_feat isar --spread_equalize --vae_ckpt ./sat_model_scale_42 --seed <seed> --save_dir ./sat_model_c5_isar<_sNN>",
+      "control_command_template": "py compare_gen.py --modes sat --train_data 512 --test_data 16 --gen_epochs 60 --T 100 --cond_feat hrrp --vae_ckpt ./sat_model_scale_42 --seed <seed> --save_dir ./sat_model_c5_ctl<_sNN>",
+      "inferred_from": "c3_eq_run.log (spread-equalized ISAR, 512/60, VAE reused from ./sat_model_scale_42) + hrrp512_run.log (matched-budget HRRP-only control, 512/60) + sat_model_c3/ and sat_model_hrrp512/ compare_gen.json (train_data=512, test_data=16, gen_epochs=60, seed=42) + c3_eq_audit.log / c5_audit.log",
+      "seed42_isar_model_dir": "./sat_model_c3",
+      "seed42_control_model_dir": "./sat_model_hrrp512",
+      "seed42_audits": {"isar": "isac_demo/info_audit_c3_eq.json (Δ(0)=0.15354037284851074)", "control": "isac_demo/info_audit_c5.json (Δ(0)=0.1436229944229126)"}
+    },
+    "audit": {
+      "script": "verify_info_audit.py",
+      "note": "Block-3 CFM audit; reseeds with --seed BEFORE building the eval batch (fixed fm_seed=7). Audit flags match each seed-42 baseline: C1 audits run with --mc 0 --null_ab_epochs 0 (as info_audit_c1.json); C5-pair audits run with defaults --mc 48 --null_ab_epochs 15 (as info_audit.json / info_audit_c3_eq.json). Block-3 Δ(0) is invariant to those flags.",
+      "c1_audit_template": "py verify_info_audit.py --save_dir ./sat_model_c1<_sNN> --mode sat --cond_feat hrrp --seed <seed> --mc 0 --null_ab_epochs 0",
+      "isar_audit_template": "py verify_info_audit.py --save_dir ./sat_model_c5_isar<_sNN> --mode sat --cond_feat isar --spread_equalize --seed <seed>",
+      "control_audit_template": "py verify_info_audit.py --save_dir ./sat_model_c5_ctl<_sNN> --mode sat --cond_feat hrrp --seed <seed>"
+    }
+  },
+  "frozen_vae_note": "Stage-1 PointVAE is frozen and shared across all seeds exactly as in the seed-42 C1/C5 runs (--vae_ckpt ./sat_model_scale_42, md5 95cc5622f36c03d6610d1b68e6fde59d copied into each model dir for the audit loader). The seed therefore varies the generative training + fresh per-epoch data sampling + the audit's reseeded eval batch; it does NOT reseed the VAE (the M3/scale per-seed-VAE convention was deliberately not used here, to match the seed-42 headline protocol exactly).",
+  "fidelity_check": "PASS (bit-exact): re-auditing the existing ./sat_model_c1 with the inferred protocol (--cond_feat hrrp, --seed 42, --mc 0 --null_ab_epochs 0) reproduced Δ(0) = 0.3019444942474365 with abs diff 0.0 vs isac_demo/info_audit_c1.json. The same check on ./sat_model_c3 (--cond_feat isar --spread_equalize) and ./sat_model_hrrp512 (--cond_feat hrrp) reproduced 0.15354037284851074 and 0.1436229944229126 bit-exact, validating the C5-pair audit flags. See fidelity_c1.log / fidelity_c3eq.log / fidelity_c5ctl.log.",
+  "c1_rows": {
+    "42": {"delta0": 0.3019444942474365, "var_x1": 1.3868529796600342, "variance_explained_pct": 21.77, "condenc_collapsed": false, "identity_max_resid": 1.6e-07, "source": "existing isac_demo/info_audit_c1.json (model ./sat_model_c1)"},
+    "43": {"delta0": 0.19022321701049805, "var_x1": 1.178572416305542, "variance_explained_pct": 16.14, "condenc_collapsed": false, "identity_max_resid": 1.3e-07, "source": "isac_demo/info_audit_c1_s43.json (model ./sat_model_c1_s43, trained this experiment)"},
+    "44": {"delta0": 0.2147294282913208, "var_x1": 1.295182466506958, "variance_explained_pct": 16.58, "condenc_collapsed": false, "identity_max_resid": 5.2e-08, "source": "isac_demo/info_audit_c1_s44.json (model ./sat_model_c1_s44, trained this experiment)"}
+  },
+  "isar_pair_rows": {
+    "42": {"isar_delta0": 0.15354037284851074, "control_delta0": 0.1436229944229126, "gain_pct": 6.905, "source": "existing isac_demo/info_audit_c3_eq.json (./sat_model_c3) and isac_demo/info_audit_c5.json (./sat_model_hrrp512)"},
+    "43": "PENDING",
+    "44": "PENDING"
+  },
+  "verdicts": {
+    "P_cond3": {
+      "status": "PASS (all 3 seeds complete)",
+      "detail": "C1 Δ(0) = 0.302 (s42) / 0.190 (s43) / 0.215 (s44), all >= pre-registered threshold 0.05 (min/mean margin 3.8x/4.7x); condenc not collapsed on any seed; CFM identity residual <= 1.6e-07 on all seeds.",
+      "delta0_3seed_range": [0.19022321701049805, 0.3019444942474365],
+      "delta0_3seed_mean": 0.2356323795163848
+    },
+    "P_isar3": "PENDING (C5-pair seeds 43/44 in progress)"
+  },
+  "caveats": [
+    "Each seed's audit reseeds its own eval batch (audit --seed = model seed), so the 3-seed comparison includes eval-batch variance in addition to training-seed variance (conservative direction), same as proposition M1.",
+    "n=3 with a shared frozen VAE: per-seed Δ(0) min/max is reported as the 3-seed range; no bootstrap CI is claimed (3-point bootstrap is a min/max envelope, per the protocol contamination audit).",
+    "Δ(0) is measured on a fixed 64-cloud eval batch per seed (fm_n_eval=64, fm_draws=4, fm_bins=10, fm_seed=7); batch-level noise of order the seed-42 null A/B gap (~0.26 max) bounds single-seed interpretability."
+  ],
+  "status": "IN PROGRESS - C1 cells (3/3 seeds) complete and committed; C5 pair: ISAR s43 training running, ctrl s43 / ISAR s44 / ctrl s44 pending"
+}

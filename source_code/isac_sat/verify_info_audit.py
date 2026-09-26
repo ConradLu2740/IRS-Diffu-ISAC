@@ -29,7 +29,8 @@ verify_info_audit.py — 感知特征互信息审计（Fano 阶梯 / Van Trees �
         附加 warm-start null-only A/B 微调量化该偏差（二选一之外的补充证据）
 
 协议：固定种子；每个数字由本脚本实跑产出；阴性结果如实报告。
-输出：isac_demo/info_audit.json + 控制台表格。
+输出：isac_demo/info_audit.json + 控制台表格（--out_json 可显式指定输出路径，
+多种子/多模型并行留证时避免互相覆盖默认路径）。
 用法：py verify_info_audit.py [--fano_seeds 5 --fim_seeds 4 --mc 48]（全程约 3-4 分钟）
 """
 
@@ -802,10 +803,10 @@ def main(args):
           f"{b3['delta_max_abs']:.2e} ⇒ {cfm_verdict}；null A/B 差 "
           f"{b3['null_ab']['max_abs_gap'] if b3['null_ab'] else 'N/A'}")
 
-    os.makedirs(os.path.dirname(OUT_JSON), exist_ok=True)
-    with open(OUT_JSON, "w", encoding="utf-8") as f:
+    os.makedirs(os.path.dirname(args.out_json), exist_ok=True)
+    with open(args.out_json, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2, ensure_ascii=False)
-    print(f"\n结果已保存: {OUT_JSON}  (总耗时 {out['meta']['runtime_s']}s)")
+    print(f"\n结果已保存: {args.out_json}  (总耗时 {out['meta']['runtime_s']}s)")
 
 
 if __name__ == "__main__":
@@ -844,5 +845,8 @@ if __name__ == "__main__":
     p.add_argument("--fm_seed", type=int, default=7)
     p.add_argument("--null_ab_epochs", type=int, default=15,
                    help="null-only A/B 微调 epochs（0=跳过）")
+    p.add_argument("--out_json", type=str, default=OUT_JSON,
+                   help="审计结果输出路径（默认 isac_demo/info_audit.json；"
+                        "多种子留证时显式指定，避免覆盖既有文件）")
     args = p.parse_args()
     main(args)
