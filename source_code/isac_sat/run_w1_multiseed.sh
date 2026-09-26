@@ -12,6 +12,11 @@
 # with these exact flags reproduced Δ(0) = 0.3019444942474365 / 0.15354037284851074 /
 # 0.1436229944229126 bit-exact (abs diff 0.0).
 #
+# NOTE: every audit passes an explicit --out_json so the default path
+# (isac_demo/info_audit.json, tracked) is never overwritten (W1 incident, 2026-09-26).
+# Seeds 43/44 were executed with exactly these commands (C1: 2026-09-26 22:43-23:57;
+# C5 pair: 2026-09-26 23:57 - 2026-09-27 02:31); see sat_model_cmp/w1_multiseed.json.
+#
 # The frozen Stage-1 VAE (sat_model_scale_42/sat/vae_best.pth) is copied into each new
 # model dir after training because --vae_ckpt runs do not save it and the audit loader
 # requires it (same convention as the existing sat_model_c1 / sat_model_c3 / sat_model_hrrp512).
@@ -37,14 +42,14 @@ train() {  # train <save_dir> <seed> <cond_feat> <spread_flag> <train_data> <gen
 train ./sat_model_c1_s43  43 hrrp "" 1024 100 32 200 w1_c1_s43_run.log
 echo "[$(ts)] === audit sat_model_c1_s43 -> info_audit_c1_s43.json ==="
 py verify_info_audit.py --save_dir ./sat_model_c1_s43 --mode sat --cond_feat hrrp \
-    --seed 43 --mc 0 --null_ab_epochs 0 > w1_c1_s43_audit.log 2>&1
-cp isac_demo/info_audit.json isac_demo/info_audit_c1_s43.json
+    --seed 43 --mc 0 --null_ab_epochs 0 --out_json isac_demo/info_audit_c1_s43.json \
+    > w1_c1_s43_audit.log 2>&1
 
 train ./sat_model_c1_s44  44 hrrp "" 1024 100 32 200 w1_c1_s44_run.log
 echo "[$(ts)] === audit sat_model_c1_s44 -> info_audit_c1_s44.json ==="
 py verify_info_audit.py --save_dir ./sat_model_c1_s44 --mode sat --cond_feat hrrp \
-    --seed 44 --mc 0 --null_ab_epochs 0 > w1_c1_s44_audit.log 2>&1
-cp isac_demo/info_audit.json isac_demo/info_audit_c1_s44.json
+    --seed 44 --mc 0 --null_ab_epochs 0 --out_json isac_demo/info_audit_c1_s44.json \
+    > w1_c1_s44_audit.log 2>&1
 
 # ---------- C5 pair (spread-equalized ISAR vs matched-budget HRRP-only control, 512/60) ----------
 # Audit flags match the seed-42 C5-pair baselines (info_audit_c3_eq.json / info_audit_c5.json:
@@ -52,25 +57,25 @@ cp isac_demo/info_audit.json isac_demo/info_audit_c1_s44.json
 train ./sat_model_c5_isar_s43 43 isar "--spread_equalize" 512 60 16 10 w1_c5_isar_s43_run.log
 echo "[$(ts)] === audit sat_model_c5_isar_s43 -> info_audit_c5_isar_s43.json ==="
 py verify_info_audit.py --save_dir ./sat_model_c5_isar_s43 --mode sat --cond_feat isar \
-    --spread_equalize --seed 43 > w1_c5_isar_s43_audit.log 2>&1
-cp isac_demo/info_audit.json isac_demo/info_audit_c5_isar_s43.json
+    --spread_equalize --seed 43 --out_json isac_demo/info_audit_c5_isar_s43.json \
+    > w1_c5_isar_s43_audit.log 2>&1
 
-train ./sat_model_c5_ctl_s43   43 hrrp "" 512 60 16 10 w1_c5_ctl_s43_run.log
-echo "[$(ts)] === audit sat_model_c5_ctl_s43 -> info_audit_c5_ctl_s43.json ==="
-py verify_info_audit.py --save_dir ./sat_model_c5_ctl_s43 --mode sat --cond_feat hrrp \
-    --seed 43 > w1_c5_ctl_s43_audit.log 2>&1
-cp isac_demo/info_audit.json isac_demo/info_audit_c5_ctl_s43.json
+train ./sat_model_c5_ctrl_s43   43 hrrp "" 512 60 16 10 w1_c5_ctrl_s43_run.log
+echo "[$(ts)] === audit sat_model_c5_ctrl_s43 -> info_audit_c5_ctrl_s43.json ==="
+py verify_info_audit.py --save_dir ./sat_model_c5_ctrl_s43 --mode sat --cond_feat hrrp \
+    --seed 43 --out_json isac_demo/info_audit_c5_ctrl_s43.json \
+    > w1_c5_ctrl_s43_audit.log 2>&1
 
 train ./sat_model_c5_isar_s44 44 isar "--spread_equalize" 512 60 16 10 w1_c5_isar_s44_run.log
 echo "[$(ts)] === audit sat_model_c5_isar_s44 -> info_audit_c5_isar_s44.json ==="
 py verify_info_audit.py --save_dir ./sat_model_c5_isar_s44 --mode sat --cond_feat isar \
-    --spread_equalize --seed 44 > w1_c5_isar_s44_audit.log 2>&1
-cp isac_demo/info_audit.json isac_demo/info_audit_c5_isar_s44.json
+    --spread_equalize --seed 44 --out_json isac_demo/info_audit_c5_isar_s44.json \
+    > w1_c5_isar_s44_audit.log 2>&1
 
-train ./sat_model_c5_ctl_s44   44 hrrp "" 512 60 16 10 w1_c5_ctl_s44_run.log
-echo "[$(ts)] === audit sat_model_c5_ctl_s44 -> info_audit_c5_ctl_s44.json ==="
-py verify_info_audit.py --save_dir ./sat_model_c5_ctl_s44 --mode sat --cond_feat hrrp \
-    --seed 44 > w1_c5_ctl_s44_audit.log 2>&1
-cp isac_demo/info_audit.json isac_demo/info_audit_c5_ctl_s44.json
+train ./sat_model_c5_ctrl_s44   44 hrrp "" 512 60 16 10 w1_c5_ctrl_s44_run.log
+echo "[$(ts)] === audit sat_model_c5_ctrl_s44 -> info_audit_c5_ctrl_s44.json ==="
+py verify_info_audit.py --save_dir ./sat_model_c5_ctrl_s44 --mode sat --cond_feat hrrp \
+    --seed 44 --out_json isac_demo/info_audit_c5_ctrl_s44.json \
+    > w1_c5_ctrl_s44_audit.log 2>&1
 
 echo "[$(ts)] === W1 MULTISEED ALL DONE ==="
