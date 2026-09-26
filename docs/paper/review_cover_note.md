@@ -16,7 +16,7 @@ FMShape 是空-天 ISAC 中由实测 HRRP 条件生成目标区域三维点云�
 | W2 | 物理真实性边界 | 已补 | 电离层敏感性段（VI-H）：Ka 波段 2–20 m vs 0.15 m 距离分辨，延迟标定前提 |
 | W3 | 算法贡献升维 | 窄切片形态规避 | 无需拆篇 |
 | W4 | 文档形态 | 已统一 | 论文与 TECH_REPORT 活文档分离；TECH_REPORT v1.50：CA 可达值 = 下界、ELBO 正名、±611 kHz 闭式、FM/DDPM parity |
-| W5 | 生成指标偏窄 | 已补 | coverage / 1-NNA / MMD-CD（VI-G Table IV），一步图优势已标注为条件均值坍缩签名 |
+| W5 | 生成指标偏窄 | 已补 | coverage / 1-NNA / MMD-CD（VI-G Table IV，n=32）：一步图坍缩签名（1-NNA=1.000、内部间距 0.028 vs 到参考 0.291）与十步采样分散性（coverage 0.812/0.906、1-NNA 0.906）均已量化，n=8 试点保留在证据中 |
 | W6 | 用语不严谨 | 随 W4 修正 | 同批术语与 headline 口径修订 |
 
 整改依据：`bd4f22f`（W1/W4/W6）、`1cf63d1`（W5）、`a37d436`（venue 定稿）。
