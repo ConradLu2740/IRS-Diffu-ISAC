@@ -579,7 +579,8 @@ class SatROIDataset(Dataset):
         """center: 显式指定距离像投影中心（'roi' 保留位置 / 'centroid' 形状特征）。
         None 时由 rp_align 决定：align=False → 'roi'（定位），align=True → 'centroid'。
         cond_feat: 'narrowband'（默认，逐帧窄带 cond）/ 'hrrp'（宽带距离像广播，
-        C1）/ 'both'（窄带 + HRRP 拼接，C2：双域条件融合）。"""
+        C1）/ 'both'（窄带 + HRRP 拼接，C2）/ 'isar'（HRRP + ISAR 慢时多普勒
+        剖面，C3：姿态分辨新信息）。"""
         self.n = n_samples
         self.ch = channels
         self.device = device
@@ -592,7 +593,7 @@ class SatROIDataset(Dataset):
         self.target_source = target_source
         self.with_label = with_label
         self.cond_feat = cond_feat
-        self.wideband = wideband or isar or cond_feat in ("hrrp", "both")  # 宽带条件隐含宽带
+        self.wideband = wideband or isar or cond_feat in ("hrrp", "both", "isar")
         self.wideband_snr_db = wideband_snr_db
         self.isar = isar
         self.rp_align = rp_align
@@ -710,6 +711,21 @@ class SatROIDataset(Dataset):
             elif self.cond_feat == "both":
                 cond = torch.cat([cond, feat.unsqueeze(0).expand(self.tau, -1)],
                                  dim=-1).contiguous().float()   # [Tau, narrow+512]
+            elif self.cond_feat == "isar":
+                # C3: HRRP + ISAR 慢时多普勒剖面（旋转引起的距离单元迁移的慢时谱）
+                if self.isar:
+                    isar_seq = feat                                    # [M, K]
+                else:
+                    isar_seq = torch.from_numpy(compute_isar_sequence(
+                        ROI_np, self._target_ecef, self._ground_ecef,
+                        self.ch.wavelength_m, snr_db=self.wideband_snr_db,
+                        seed=idx)).float()                            # [M, K]
+                slow = isar_seq - isar_seq.mean(dim=0, keepdim=True)
+                dop = torch.fft.fft(slow, dim=0).abs().mean(dim=1)     # [M] 多普勒剖面
+                dop = dop / (dop.norm() + 1e-12)
+                cond = torch.cat([feat.unsqueeze(0).expand(self.tau, -1),
+                                  dop.unsqueeze(0).expand(self.tau, -1)],
+                                 dim=-1).contiguous().float()          # [Tau, 512+32]
             if self.with_label:
                 if self.multi:
                     return point_cloud.float(), cond, feat, targets

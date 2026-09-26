@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.32 (2026-09-26) — companion to the open-source repository
+**Version**: v1.33 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -33,6 +33,7 @@
 *v1.30 additions: registered proposition S2 adds the binary objectness head to the Hungarian matching (Section 6.25). The confidence ranking is recovered (P@R=0.67 0.441 -> 0.610, slightly above the 0.599 sorted baseline) and MOT recall (0.759) and RMSE (0.1899) reach their best values; ID switches rise to 192.0 because the sigmoid threshold 0.3 is not the same operating point as the old max-softmax 0.3 — threshold calibration (Section 6.18 machinery) is the remaining engineering step (registered S3). The DETR-style triple (matching loss, set prediction, objectness) is complete.*
 *v1.31 additions: registered proposition S3 calibrates the objectness threshold on held-out data (Section 6.26). The objectness score is genuinely more discriminative than max-softmax (F1 0.841 vs 0.727 at the same recall, precision 0.739 vs 0.571). The full variant table closes the detection line: the DETR-style head (S2, calibrated) reaches MOT recall 0.758 and RMSE 0.1860 against the original pipeline 0.699 / 0.2010 (+8.4% recall, -7.5% RMSE); ID stability trades against recall intrinsically (S1 158 switches @ recall 0.703 vs S2 185 @ 0.758).*
 *v1.32 additions: registered proposition C2 (dual-domain condition fusion, narrowband + HRRP concatenated) is falsified (Section 6.27): Delta(0) drops 0.302 -> 0.238, condition sensitivity 0.290 -> 0.143, and FM NFE=1 CD degrades 0.2269 -> 0.2752. The narrowband channel is representation-diluting, not complementary (consistent with the probe finding that narrowband carries less information than the class label). HRRP-only remains the best condition input; the remaining 78% of unexplained latent variance needs genuinely new information (pose-resolving observations such as rotation-ISAR sequences), registered as C3.*
+*v1.33 additions: registered proposition C3 (ISAR-sequence conditioning) surfaced a methodological trap (Section 6.28): the first run materialized the dataset once (to afford the expensive per-sample ISAR computation), which froze the samples and let the model memorize them — the condition became unnecessary and the encoder collapsed (Delta ~ 0). Lesson: in conditional generative training, data freezing -> memorization -> condition collapse; C1 succeeded precisely because its data were regenerated per epoch. A confound-free information test shows the ISAR slow-time Doppler profile carries genuine class information (40.5% vs 20% chance) but weaker than HRRP (0.80+). Registered C4: rerun C3 with per-epoch fresh data at a smaller scene budget.*
 
 ---
 
@@ -932,6 +933,26 @@ Section 6.14), so the encoder's capacity is spent on 61 weak dims and the HRRP c
 HRRP-only is the best condition input; the remaining 78% of unexplained latent variance requires
 genuinely new information (pose-resolving observations such as rotation-ISAR sequences), registered
 as C3.
+
+### 6.28 C3: ISAR Conditioning Surfaces a Methodological Trap (v1.33)
+
+Registered proposition C3 augments the condition with the ISAR slow-time Doppler profile (HRRP + 32-dim
+Doppler, 544 dims). Two experiments:
+
+**Experiment 1 (trained model, Delta test)**: Delta ~ 0 — the condition encoder collapsed again.
+Root cause: this run materialized the dataset once (to afford the expensive per-sample ISAR
+computation), freezing the 1024 samples; the model memorized them, the condition became unnecessary,
+and the encoder collapsed. Methodological lesson: in conditional generative training, data freezing ->
+memorization -> condition collapse. C1 succeeded precisely because its data were regenerated per epoch;
+materialization is only safe for unconditional/discriminative tasks.
+
+**Experiment 2 (direct information test, no training confound)**: the ISAR slow-time Doppler profile
+predicts the 5 target classes at 40.5% +/- 4.7% (chance 20%) — genuine new information beyond HRRP,
+but weaker (HRRP gives 0.80+).
+
+Conclusion: the model-level C3 test is invalidated by the confound; the information-level test confirms
+the ISAR Doppler channel carries real but modest incremental information. Registered C4: rerun C3 with
+per-epoch fresh data at a smaller scene budget (32 scenes x 100 epochs).
 
 ## 7. Limitations and Honest Discussion
 

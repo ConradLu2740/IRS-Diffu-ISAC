@@ -20,7 +20,7 @@ import numpy as np
 import random
 import torch
 import sys
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 
 _LEGACY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "legacy")
 if _LEGACY not in sys.path:
@@ -93,10 +93,23 @@ def run_mode(args, irs_mode):
     test_ds = SatROIDataset(args.test_data, channels, num_points=args.num_points,
                             device=device, tau=args.tau, phase_mode=args.phase_mode,
                             cond_feat=args.cond_feat)
-    train_loader = DataLoader(_PairView(train_ds), batch_size=args.batch_size,
-                              shuffle=True, num_workers=0)
-    test_loader = DataLoader(_PairView(test_ds), batch_size=args.batch_size,
-                             shuffle=False, num_workers=0)
+    if args.cond_feat == "isar":
+        # ISAR 条件逐样本计算昂贵：一次性物化（样本冻结，之后 epoch 复用）
+        def _materialize(ds):
+            pcs, conds = [], []
+            for i in range(len(ds)):
+                pc, cond = ds[i][0], ds[i][1]
+                pcs.append(pc); conds.append(cond)
+            return DataLoader(TensorDataset(torch.stack(pcs), torch.stack(conds)),
+                              batch_size=args.batch_size, shuffle=True, num_workers=0)
+        train_loader = _materialize(train_ds)
+        test_loader = _materialize(test_ds)
+        print(f"[{irs_mode}] ISAR 条件模式：数据集已物化（{len(train_ds)}+{len(test_ds)} 样本）")
+    else:
+        train_loader = DataLoader(_PairView(train_ds), batch_size=args.batch_size,
+                                  shuffle=True, num_workers=0)
+        test_loader = DataLoader(_PairView(test_ds), batch_size=args.batch_size,
+                                 shuffle=False, num_workers=0)
     cond_dim = train_ds[0][1].shape[-1]   # 由实际样本推断（hrrp 模式为 512）
 
     save_dir = os.path.join(args.save_dir, irs_mode)
@@ -258,7 +271,7 @@ if __name__ == "__main__":
                         help="潜空间归一化：perdim=逐维白化（默认，恢复逐维高斯恒等式）；scalar=旧标量")
     parser.add_argument("--vae_ckpt", type=str, default=None,
                         help="提供 VAE checkpoint 目录则复用（跳过 VAE 训练，隔离生成侧变量）")
-    parser.add_argument("--cond_feat", choices=["narrowband", "hrrp", "both"], default="narrowband",
+    parser.add_argument("--cond_feat", choices=["narrowband", "hrrp", "both", "isar"], default="narrowband",
                         help="条件输入：narrowband（默认）或 hrrp（C1：宽带距离像广播）")
     parser.add_argument("--T", type=int, default=100)
     parser.add_argument("--depth", type=int, default=2)

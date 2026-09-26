@@ -155,7 +155,7 @@ if __name__ == "__main__":
     parser.add_argument("--posterior_sample", type=int, default=1,
                         help="1=后验样本 z~q（ELBO 一致性，默认）；0=后验均值 μ（旧行为）")
     parser.add_argument("--whiten", choices=["scalar", "perdim"], default="perdim")
-    parser.add_argument("--cond_feat", choices=["narrowband", "hrrp", "both"], default="narrowband",
+    parser.add_argument("--cond_feat", choices=["narrowband", "hrrp", "both", "isar"], default="narrowband",
                         help="条件输入：narrowband（默认）或 hrrp（宽带距离像广播）")
     parser.add_argument("--depth", type=int, default=2)
     parser.add_argument("--tau", type=int, default=8)
