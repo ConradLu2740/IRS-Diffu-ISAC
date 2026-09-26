@@ -54,6 +54,7 @@ import setup_sat as ss
 from data_sat import (SatScenarioChannels, make_roi_local, compute_range_profile,
                       generate_ground_target_sample, WIDEBAND_K, WIDEBAND_BW_HZ)
 from train_sensing import SensingMLP
+from compare_gen import _PairView
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_JSON = os.path.join(HERE, "isac_demo", "info_audit.json")
@@ -704,7 +705,7 @@ def block3_cfm(args):
                               cond_feat=args.cond_feat,
                               device=device, tau=args.tau, phase_mode="random",
                               spread_equalize=args.spread_equalize)
-        loader_ab = DataLoader(ds_ab, batch_size=32, shuffle=True, num_workers=0)
+        loader_ab = DataLoader(_PairView(ds_ab), batch_size=32, shuffle=True, num_workers=0)
         condenc_ft = copy.deepcopy(condenc)
         vnet_ft = copy.deepcopy(vnet)
         condenc_ft.train(); vnet_ft.train()
