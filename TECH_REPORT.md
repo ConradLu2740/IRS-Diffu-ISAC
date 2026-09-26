@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.42 (2026-09-26) — companion to the open-source repository
+**Version**: v1.43 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -43,6 +43,7 @@
 *v1.40 additions: the v1.39 distillation headline is qualified by a diversity audit (Section 6.35, `verify_fm_distill_diversity.py`). On an independently seeded eval batch (`--eval_seed`, now decoupling the test batch from the training-data size), the student does NOT replicate its CD advantage — CD 0.3839 vs teacher 0.2318 (+65.6% worse), while the teacher's own CD swung 0.4047 → 0.2318 across batches: the v1.39 P1 verdict is batch-specific, not robust (n_eval=8 variance dominates). The audit's substantive finding is on the diversity side: the C1 teacher at NFE=1 is near-mode-collapsed (16 initial noises give pairwise CD 0.0053, diversity ratio 0.02 — effectively a deterministic conditional-mean shape estimator; the v1.11 no-collapse certificate covered a different model), and the distilled student restores 9× the sample diversity (pairwise 0.0488) by regressing the teacher's 2-step midpoint outputs instead of replicating the collapsed 1-step map. A protocol improvement ships with it: `--eval_seed` re-seeding before evaluation, making students of different training budgets comparable on one common test batch (full-scale 1024/100 retrain in progress).*
 *v1.41 additions: the CFG-scale sweep closes the mechanism question behind the v1.40 audit (Section 6.36). The teacher's near-collapse is intrinsic, not a guidance artifact — the diversity ratio stays 0.02 at w = 0/1/2, i.e. even fully unconditional sampling produces near-identical outputs, so the C1 velocity field maps essentially all x0 to one latent (a deterministic conditional-mean estimator, not a distributional model). Guidance is pure profit for the teacher: CD improves monotonically 0.3060 → 0.2725 → 0.2664 with diversity unchanged, so the closed-loop shape prior correctly runs at w=2. The student's guidance behavior is inverted relative to a standard generative model — its diversity ratio rises with w (0.04 → 0.09 → 0.19), because the regressed guidance direction retains x0-dependence — and its paired CD is worse than the teacher's at every w (+44% at w=2). The student is therefore a different quality–diversity operating point (useful where sampling diversity matters, e.g. data augmentation), not a free upgrade of the teacher. The re-run also reproduced the §6.35 headline numbers exactly (deterministic protocol check).*
 *v1.42 additions: a data-level audit adjudicates the collapse question (Section 6.37, `verify_cond_shape_diversity.py`): the over-collapse is a modeling failure, not the Bayes-correct answer. On the training distribution (96 samples, 4560 pairs; HRRP conditions are unit-norm range profiles, clouds measured raw and centroid-aligned), the closest available condition pairs still map to point clouds differing by CD 0.663 raw / 0.0265 aligned — 125× / 5× the teacher's x0-spread (0.0053) — so the conditional posterior genuinely has width (ROI position + cross-range shape are not determined by the HRRP) and the teacher's near-point-mass output discards it; the student's 9× wider spread is directionally right but still 13.6× short of the true conditional width. The audit also measures the condition's pairwise shape-discriminative power: Spearman ρ(condition distance, shape distance) = −0.015 ≈ 0 — the range profile is a many-to-one map that carries no shape-similarity signal at any distance (consistent with C1's weak conditional channel and the Wall Map's "information lives elsewhere"). Honest scope: with 96 samples the closest condition pair is still 0.717 (unit norm) apart, so the diversity numbers are lower bounds at this condition resolution. Registered next directions: dispersion-matching training against the empirical conditional width, and C3 (ISAR slow-time profile) as the cross-range information source.*
+*v1.43 additions: a theorem unifies the v1.40–6.42 arc and corrects the v1.39 framing (Section 6.38). For OT-CFM with x_t = (1−t)x₀ + t·x₁ and x₀ ⊥ (x₁, c), the optimal velocity at t=0 is v\*(x₀, 0, c) = μ(c) − x₀, so the NFE=1 Euler output is exactly the conditional mean μ(c) — the near-collapse of a well-trained 1-step map is the *optimal* behavior, not a defect (the measured ratio 0.02 is the network's approximation accuracy to v\*; changing the CFG weight only changes which mean μ_w(c) is produced, hence M1's failure). Dispersion can only come from multi-step integration (at t>0 the mixture x_t genuinely carries x₁ information), which explains the distilled student's 9× diversity (it regresses the 2-step map) and its CD cost: the mean is the Bayes estimator under Chamfer distance, so any dispersed sampler has strictly worse expected CD (bias–variance, not an implementation flaw — the v1.39 "integration error eliminated" framing had the relationship backwards; the 1-step output's deviation from the ODE solution *is* the diversity). The v1.11 no-collapse certificate (ratio 2.72) is re-scoped: it measured the old network's deviation from v\*, not posterior sampling, and does not transfer to the converged C1 model. All previously reported numbers are re-interpreted in one reconciliation table with no re-runs. Net guidance: the teacher at NFE=1 (the guided conditional mean) is the correct tool for the CD-driven closed-loop shape prior; a 1-step *sampler* requires regressing a higher-NFE map — the distillation mechanism itself is sound. Registered experiment R1: sweep `--teacher_nfe` ∈ {2, 4, 10} and verify the predicted bias–variance frontier (diversity ↑ monotonically with K, CD ↓ ... worsens monotonically).*
 
 ---
 
@@ -1175,6 +1176,55 @@ posterior. Honest scope: with 96 samples no near-duplicate conditions exist (clo
 the diversity numbers are lower bounds at this condition resolution. Registered next directions:
 dispersion-matching training against the empirical conditional width, and C3 (ISAR slow-time profile) as the
 candidate cross-range information source.
+
+### 6.38 Theorem: the NFE=1 CFM Output Is Exactly the Conditional Mean — the Collapse Is Optimal (v1.43)
+
+An elementary theorem unifies the v1.40–6.37 arc and corrects the v1.39 framing. Setup: OT-CFM with
+x_t = (1−t)x₀ + t·x₁ (x₀ ~ N(0, I) noise, x₁ data, c condition), regression target v(x, t, c) → x₁ − x₀, optimal
+field v\*(x, t, c) = E[x₁ − x₀ | x_t = x, t, c].
+
+**T1 (optimal velocity at t=0).** v\*(x₀, 0, c) = μ(c) − x₀ with μ(c) = E[x₁ | c]. *Proof:* at t = 0, x_t = x₀,
+and x₀ ⊥ (x₁, c) (noise independent of data and condition), so E[x₁ − x₀ | x₀, c] = E[x₁ | c] − x₀. ∎
+
+**T2 (NFE=1 output = conditional mean).** The single Euler step gives z = x₀ + v\*(x₀, 0, c) = μ(c),
+independent of x₀. *Corollary:* any network that approximates v\* well necessarily collapses its 1-step map onto
+μ(c) — the near-collapse is optimal behavior, not a training defect: the measured ratio 0.02 is the network's
+approximation accuracy to v\*, and no CFG weight repairs it because v_cfg's 1-step output is still a (guided)
+mean μ_w(c) = (1−w)μ_null + w·μ_c — a point mass at every w (explains §6.36's M1 failure; the measured CD
+improvement with w is the guided mean extrapolating sharper toward the data).
+
+**T3 (dispersion requires multi-step integration).** At t > 0 the mixture x_t genuinely carries x₁
+information, v\* truly depends on x_t, trajectories bend with x₀, and NFE ≥ 2 integration preserves the
+x₀-dependence — the output is a posterior sample, not the mean (explains the distilled student's 9× diversity:
+it regresses the teacher's 2-step map; and why the §6.37 conditional width 0.66 is unreachable at NFE=1).
+
+**T4 (bias–variance: the student's CD cost is structural).** μ(c) minimizes the expected Chamfer distance (the
+mean is the Bayes estimator under CD); any dispersed sampler has strictly worse expected CD. The v1.39 P1
+verdict and the §6.35 D3 failure are this mean-vs-sampler distinction, not implementation flaws — the v1.39
+"integration error eliminated" framing had the relationship backwards: the 1-step output's deviation from the
+ODE solution *is* the diversity. It also explains why the teacher's NFE=2 CD was worse than NFE=1.
+
+**T5 (scope of the v1.11 certificate).** The v1.11 ratio 2.72 ("no mode collapse at NFE=1") measured the old
+network's deviation from v\* — i.e. approximation error, not posterior sampling — and does not transfer to the
+converged C1 model.
+
+**Reconciliation of all prior observations** (no re-runs; every old number re-interpreted):
+
+| Prior observation | New explanation |
+|---|---|
+| §6.35 teacher ratio 0.02 | T2: high approximation accuracy to v\* |
+| §6.36 M1 fail (no w restores diversity) | T2: the guided mean is still a point mass |
+| §6.36 M1b (CD 0.306→0.266 with w) | T2: the guided mean extrapolates sharper |
+| §6.35 student 9× diversity, worse CD | T3 + T4: regressing the 2-step map yields a sampler at the bias–variance price |
+| §6.37 conditional width 0.66 ≫ teacher spread | T2 + T3: one step cannot reach the posterior width |
+| v1.34 teacher NFE=2 CD worse than NFE=1 | T4: the 2-step output is more dispersed |
+| v1.11 ratio 2.72 "no collapse" | T5: old-network approximation error, not sampling |
+
+**Net guidance for optimization.** For the CD-driven closed-loop shape prior, the teacher at NFE=1 (the guided
+conditional mean) is the correct tool — no change needed. A 1-step *sampler* requires regressing a higher-NFE
+map; the distillation mechanism itself is sound. Registered experiment R1: sweep `--teacher_nfe` ∈ {2, 4, 10}
+with the existing script and verify the predicted bias–variance frontier — student diversity monotonically
+increasing in K, student CD monotonically worsening in K.
 
 ## 7. Limitations and Honest Discussion
 
