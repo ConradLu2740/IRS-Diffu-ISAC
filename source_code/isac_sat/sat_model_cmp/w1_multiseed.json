@@ -13,7 +13,11 @@
     },
     "P_isar3": {
       "statement": "The spread-equalized ISAR Δ(0) exceeds the matched-budget HRRP-only control Δ(0) on ALL THREE seeds (the seed-42 +6.9% direction).",
-      "seed42_baseline": {"isar_delta0": 0.15354037284851074, "control_delta0": 0.1436229944229126, "gain_pct": 6.905},
+      "seed42_baseline": {
+        "isar_delta0": 0.15354037284851074,
+        "control_delta0": 0.1436229944229126,
+        "gain_pct": 6.905
+      },
       "falsified_if": "any seed has ISAR Δ(0) <= control Δ(0)"
     }
   },
@@ -32,7 +36,10 @@
       "inferred_from": "c3_eq_run.log (spread-equalized ISAR, 512/60, VAE reused from ./sat_model_scale_42) + hrrp512_run.log (matched-budget HRRP-only control, 512/60) + sat_model_c3/ and sat_model_hrrp512/ compare_gen.json (train_data=512, test_data=16, gen_epochs=60, seed=42) + c3_eq_audit.log / c5_audit.log",
       "seed42_isar_model_dir": "./sat_model_c3",
       "seed42_control_model_dir": "./sat_model_hrrp512",
-      "seed42_audits": {"isar": "isac_demo/info_audit_c3_eq.json (Δ(0)=0.15354037284851074)", "control": "isac_demo/info_audit_c5.json (Δ(0)=0.1436229944229126)"}
+      "seed42_audits": {
+        "isar": "isac_demo/info_audit_c3_eq.json (Δ(0)=0.15354037284851074)",
+        "control": "isac_demo/info_audit_c5.json (Δ(0)=0.1436229944229126)"
+      }
     },
     "audit": {
       "script": "verify_info_audit.py",
@@ -43,30 +50,104 @@
     }
   },
   "frozen_vae_note": "Stage-1 PointVAE is frozen and shared across all seeds exactly as in the seed-42 C1/C5 runs (--vae_ckpt ./sat_model_scale_42, md5 95cc5622f36c03d6610d1b68e6fde59d copied into each model dir for the audit loader). The seed therefore varies the generative training + fresh per-epoch data sampling + the audit's reseeded eval batch; it does NOT reseed the VAE (the M3/scale per-seed-VAE convention was deliberately not used here, to match the seed-42 headline protocol exactly).",
+  "run_record": {
+    "trainings_executed": [
+      "py compare_gen.py --modes sat --train_data 512 --test_data 16 --vae_epochs 10 --gen_epochs 60 --T 100 --cond_feat isar --spread_equalize --vae_ckpt ./sat_model_scale_42 --seed 43 --save_dir ./sat_model_c5_isar_s43   (2026-09-26 23:57 -> 2026-09-27 01:07)",
+      "py compare_gen.py --modes sat --train_data 512 --test_data 16 --vae_epochs 10 --gen_epochs 60 --T 100 --cond_feat hrrp --vae_ckpt ./sat_model_scale_42 --seed 43 --save_dir ./sat_model_c5_ctrl_s43   (2026-09-27 00:51 -> 01:14)",
+      "py compare_gen.py --modes sat --train_data 512 --test_data 16 --vae_epochs 10 --gen_epochs 60 --T 100 --cond_feat isar --spread_equalize --vae_ckpt ./sat_model_scale_42 --seed 44 --save_dir ./sat_model_c5_isar_s44   (2026-09-27 01:08 -> 02:31)",
+      "py compare_gen.py --modes sat --train_data 512 --test_data 16 --vae_epochs 10 --gen_epochs 60 --T 100 --cond_feat hrrp --vae_ckpt ./sat_model_scale_42 --seed 44 --save_dir ./sat_model_c5_ctrl_s44   (2026-09-27 01:08 -> 01:28)",
+      "C1 seeds 43/44 (--cond_feat hrrp, 1024/100, --vae_ckpt ./sat_model_scale_42, --save_dir ./sat_model_c1_s43 / ./sat_model_c1_s44) were trained 2026-09-26 22:43-23:57 in the same session (see w1_c1_s43_run.log / w1_c1_s44_run.log)"
+    ],
+    "audits_executed": [
+      "py verify_info_audit.py --save_dir ./sat_model_c5_isar_s43 --mode sat --cond_feat isar --spread_equalize --seed 43 --out_json isac_demo/info_audit_c5_isar_s43.json",
+      "py verify_info_audit.py --save_dir ./sat_model_c5_ctrl_s43 --mode sat --cond_feat hrrp --seed 43 --out_json isac_demo/info_audit_c5_ctrl_s43.json",
+      "py verify_info_audit.py --save_dir ./sat_model_c5_isar_s44 --mode sat --cond_feat isar --spread_equalize --seed 44 --out_json isac_demo/info_audit_c5_isar_s44.json",
+      "py verify_info_audit.py --save_dir ./sat_model_c5_ctrl_s44 --mode sat --cond_feat hrrp --seed 44 --out_json isac_demo/info_audit_c5_ctrl_s44.json",
+      "C1 audits used --mc 0 --null_ab_epochs 0 (matching info_audit_c1.json); C5-pair audits used full defaults --mc 48 --null_ab_epochs 15 (matching info_audit.json / info_audit_c3_eq.json). Block-3 Δ(0) is invariant to those flags (verified by the bit-exact fidelity check)."
+    ],
+    "out_json_note": "verify_info_audit.py gained an --out_json flag (default unchanged: isac_demo/info_audit.json) so multi-seed evidence never overwrites prior audit JSONs; every audit in this experiment passed an explicit --out_json."
+  },
   "fidelity_check": "PASS (bit-exact): re-auditing the existing ./sat_model_c1 with the inferred protocol (--cond_feat hrrp, --seed 42, --mc 0 --null_ab_epochs 0) reproduced Δ(0) = 0.3019444942474365 with abs diff 0.0 vs isac_demo/info_audit_c1.json. The same check on ./sat_model_c3 (--cond_feat isar --spread_equalize) and ./sat_model_hrrp512 (--cond_feat hrrp) reproduced 0.15354037284851074 and 0.1436229944229126 bit-exact, validating the C5-pair audit flags. See fidelity_c1.log / fidelity_c3eq.log / fidelity_c5ctl.log.",
   "c1_rows": {
-    "42": {"delta0": 0.3019444942474365, "var_x1": 1.3868529796600342, "variance_explained_pct": 21.77, "condenc_collapsed": false, "identity_max_resid": 1.6e-07, "source": "existing isac_demo/info_audit_c1.json (model ./sat_model_c1)"},
-    "43": {"delta0": 0.19022321701049805, "var_x1": 1.178572416305542, "variance_explained_pct": 16.14, "condenc_collapsed": false, "identity_max_resid": 1.3e-07, "source": "isac_demo/info_audit_c1_s43.json (model ./sat_model_c1_s43, trained this experiment)"},
-    "44": {"delta0": 0.2147294282913208, "var_x1": 1.295182466506958, "variance_explained_pct": 16.58, "condenc_collapsed": false, "identity_max_resid": 5.2e-08, "source": "isac_demo/info_audit_c1_s44.json (model ./sat_model_c1_s44, trained this experiment)"}
+    "42": {
+      "delta0": 0.3019444942474365,
+      "var_x1": 1.3868529796600342,
+      "variance_explained_pct": 21.77,
+      "condenc_collapsed": false,
+      "identity_max_resid": 1.6e-07,
+      "source": "existing isac_demo/info_audit_c1.json (model ./sat_model_c1)"
+    },
+    "43": {
+      "delta0": 0.19022321701049805,
+      "var_x1": 1.178572416305542,
+      "variance_explained_pct": 16.14,
+      "condenc_collapsed": false,
+      "identity_max_resid": 1.3e-07,
+      "source": "isac_demo/info_audit_c1_s43.json (model ./sat_model_c1_s43, trained this experiment)"
+    },
+    "44": {
+      "delta0": 0.2147294282913208,
+      "var_x1": 1.295182466506958,
+      "variance_explained_pct": 16.58,
+      "condenc_collapsed": false,
+      "identity_max_resid": 5.2e-08,
+      "source": "isac_demo/info_audit_c1_s44.json (model ./sat_model_c1_s44, trained this experiment)"
+    }
   },
   "isar_pair_rows": {
-    "42": {"isar_delta0": 0.15354037284851074, "control_delta0": 0.1436229944229126, "gain_pct": 6.905, "source": "existing isac_demo/info_audit_c3_eq.json (./sat_model_c3) and isac_demo/info_audit_c5.json (./sat_model_hrrp512)"},
-    "43": {"isar_delta0": 0.04386711120605469, "control_delta0": 0.042204856872558594, "gain_pct": 3.939, "source": "isac_demo/info_audit_c5_isar_s43.json (./sat_model_c5_isar_s43) and isac_demo/info_audit_c5_ctrl_s43.json (./sat_model_c5_ctrl_s43), trained + audited this experiment"},
-    "44": "PENDING"
+    "42": {
+      "isar_delta0": 0.15354037284851074,
+      "control_delta0": 0.1436229944229126,
+      "gain_pct": 6.905,
+      "source": "existing isac_demo/info_audit_c3_eq.json (./sat_model_c3) and isac_demo/info_audit_c5.json (./sat_model_hrrp512)"
+    },
+    "43": {
+      "isar_delta0": 0.04386711120605469,
+      "control_delta0": 0.042204856872558594,
+      "gain_pct": 3.939,
+      "source": "isac_demo/info_audit_c5_isar_s43.json (./sat_model_c5_isar_s43) and isac_demo/info_audit_c5_ctrl_s43.json (./sat_model_c5_ctrl_s43), trained + audited this experiment"
+    },
+    "44": {
+      "isar_delta0": 0.0007047653198242188,
+      "control_delta0": 0.09058606624603271,
+      "gain_pct": -99.2,
+      "source": "isac_demo/info_audit_c5_isar_s44.json (./sat_model_c5_isar_s44) and isac_demo/info_audit_c5_ctrl_s44.json (./sat_model_c5_ctrl_s44), trained this experiment",
+      "note": "seed-44 ISAR channel functionally inert (delta_max_abs 0.0051 << 0.05 threshold); encoder not formally collapsed per audit criterion (collapse_confirmed=false, v_cond_vs_null_rel 0.063) but carries no usable information"
+    }
   },
   "verdicts": {
     "P_cond3": {
-      "status": "PASS (all 3 seeds complete)",
-      "detail": "C1 Δ(0) = 0.302 (s42) / 0.190 (s43) / 0.215 (s44), all >= pre-registered threshold 0.05 (min/mean margin 3.8x/4.7x); condenc not collapsed on any seed; CFM identity residual <= 1.6e-07 on all seeds.",
-      "delta0_3seed_range": [0.19022321701049805, 0.3019444942474365],
-      "delta0_3seed_mean": 0.2356323795163848
+      "status": "PASS",
+      "detail": "C1 Δ(0) = 0.3019 (s42) / 0.1902 (s43) / 0.2147 (s44); all three seeds exceed the pre-registered threshold 0.05 (min margin 3.8x). Variance explained Δ(0)/Var(x1) = 21.8% / 16.1% / 16.6%. Condition encoder not collapsed on any seed; CFM identity L=V+B residual <= 1.6e-07 on all seeds. The HRRP conditioning channel therefore replicates across seeds, with a 3-seed min/max range of [0.190, 0.302] (mean 0.236) - NOT a bootstrap CI.",
+      "delta0_3seed_range": [
+        0.19022321701049805,
+        0.3019444942474365
+      ],
+      "delta0_3seed_mean": 0.2356323795163848,
+      "delta0_per_seed": {
+        "42": 0.3019444942474365,
+        "43": 0.19022321701049805,
+        "44": 0.2147294282913208
+      }
     },
-    "P_isar3": "PENDING (C5-pair seeds 43/44 in progress)"
+    "P_isar3": {
+      "status": "FALSIFIED (2/3 seeds)",
+      "detail": "per-seed ISAR-vs-control gains: +6.9% (s42), +3.9% (s43), -99.2% (s44). The +6.9% single-seed claim does not replicate: on seed 44 the ISAR condition is functionally inert (delta0 0.0007 vs control 0.0906). Control delta0 itself varies 0.042-0.144 across seeds, so the channel width is seed-sensitive at this budget.",
+      "isar_gains_pct": [
+        6.905,
+        3.939,
+        -99.2
+      ]
+    }
   },
   "caveats": [
-    "Each seed's audit reseeds its own eval batch (audit --seed = model seed), so the 3-seed comparison includes eval-batch variance in addition to training-seed variance (conservative direction), same as proposition M1.",
+    "Each seed's audit reseeds its own eval batch (audit --seed = model seed), so the 3-seed comparison includes eval-batch variance in addition to training-seed variance (conservative direction), same as proposition M1. Concretely, the per-seed eval batches have different Var(x1) (1.387 / 1.179 / 1.295 for seeds 42/43/44), which is why the C5-pair Δ(0) levels differ across seeds; the meaningful comparison is the paired within-seed ISAR-vs-control gap (same batch), which is what P_isar3 tests.",
     "n=3 with a shared frozen VAE: per-seed Δ(0) min/max is reported as the 3-seed range; no bootstrap CI is claimed (3-point bootstrap is a min/max envelope, per the protocol contamination audit).",
-    "Δ(0) is measured on a fixed 64-cloud eval batch per seed (fm_n_eval=64, fm_draws=4, fm_bins=10, fm_seed=7); batch-level noise of order the seed-42 null A/B gap (~0.26 max) bounds single-seed interpretability."
+    "Δ(0) is measured on a fixed 64-cloud eval batch per seed (fm_n_eval=64, fm_draws=4, fm_bins=10, fm_seed=7); batch-level noise of order the seed-42 null A/B gap (~0.26 max) bounds single-seed interpretability.",
+    "Seed-44 ISAR anomaly: Δ(0)=0.0007 with a non-collapsed condition encoder (unlike the G15 narrowband collapse). The failure mode is 'encoder alive but vnet ignores the condition' - a training outcome, not a measurable-information certificate; it is reported, not hidden, and it falsifies P_isar3.",
+    "C1 P_cond3 PASS: delta0 0.302/0.190/0.215 (3-seed range 0.190-0.302, mean 0.236), all >= 0.05 threshold; encoder non-collapsed and CFM identity residual <= 1.6e-07 on all seeds.",
+    "C5 P_isar3 FALSIFIED: seed-44 ISAR model functionally inert (delta0 0.0007, delta_max 0.0051); the matched-budget ISAR gain is a 2/3-seed result, not a stable effect.",
+    "Cross-seed comparison includes batch variance (each seed's audit uses its own reseeded batch) - conservative direction, same convention as proposition M1."
   ],
-  "status": "IN PROGRESS - C1 cells (3/3 seeds) complete; C5 pair: seeds 42/43 complete (ISAR gains +6.9% / +3.9%), seed 44 trainings running"
+  "status": "COMPLETE - C1 3/3 seeds (P_cond3 PASS); C5 pair 3/3 seeds (P_isar3 FALSIFIED 2/3)"
 }
