@@ -246,12 +246,13 @@ This paper presented FMShape, a conditional flow-matching framework that reconst
 
 ---
 
-## 图表占位清单（成稿时补）
+## 图表（已生成，`figs/` 目录，300 dpi）
 
-- **Fig. 1** — 空-地 ISAC 场景示意图（SGP4 卫星 → ROI → RIS → 地面站；观测帧序列）
-- **Fig. 2** — FMShape 框架图（HRRP → VAE 潜空间 → OT-CFM 单步 → 解码 → 点云）
-- **Fig. 3** — 质量-NFE 曲线（FM 连续曲线 + DDPM 单点 + DDIM/蒸馏基线 + VAE 天花板）
-- **表 I–III** — 已就位
+- **Fig. 1** `figs/fig1_scenario.png` — 空-地 ISAC 场景示意（SGP4 卫星轨道、感知回波直接路径、RIS 辅助通信链路、ROI 体素、逐帧 HRRP 形成）
+- **Fig. 2** `figs/fig2_framework.png` — FMShape 框架（推理主链路：HRRP→条件编码→OT-CFM 单步→解码→点云；训练支路：VAE 潜空间+路径+FM loss；定理 callout）
+- **Fig. 3** `figs/fig3_nfe_curve.png` — 质量-NFE 曲线（真实实验数据）：(a) HRRP 条件化 FMShape 曲线 + DDPM 基线 + VAE 上界 + NFE\*≤2 交叉带；(b) 强少步基线（DDIM / FM-Euler / 1 步蒸馏学生）
+- 图表脚本：`source_code/isac_sat/paper_figs/fig{1,2,3}_*.py`（Fig. 3 直接读实验 JSON，可复现）
+- **表 I–III** — 已在正文内
 
 ## 参考文献表（真实论文垫底，成稿补全条目）
 
