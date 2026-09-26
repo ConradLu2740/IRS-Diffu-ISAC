@@ -95,7 +95,7 @@ class NearFieldUla:
 
 
 def make_dataset(ula, n, r_range, y_range, gamma_db=20.0, farfield=False,
-                 seed=0):
+                 seed=0, phase_noise_deg=0.0):
     """合成定位数据集：返回 X [n, 2N]（实/虚部）、Y [n, 2]（R, y）。"""
     rng = np.random.default_rng(seed)
     fn = ula.farfield_channel if farfield else ula.channel
