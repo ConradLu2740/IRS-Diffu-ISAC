@@ -1,0 +1,190 @@
+{
+  "experiment": "fm_train_scale_paired",
+  "title": "Paired per-cloud re-evaluation of the FM training-budget sweep on a per-seed common test batch",
+  "motivation": "run_cell draws the test batch AFTER training consumes the global RNG while SatROIDataset.__getitem__ samples on the fly (random.choice/uniform + torch.rand), so each cell's recorded aggregate CD was computed on a different 8-cloud batch; cross-budget comparison is confounded by batch noise. This file is the load-bearing paired comparison: one fixed common batch per seed, shared x0 across cells, per-cloud CD.",
+  "proposition": "P_paired (registered before running): on a per-seed common test batch (fixed construction, shared x0 across cells), the paired per-cloud CD difference vs the (512,60) base cell reads 'consistent improvement' (median <= -0.02 and >= 6/8 clouds improving) on BOTH seeds 42 and 43. A median within +/-0.02, or a mixed sign pattern, reads 'no consistent scale effect at n=8' regardless of the aggregate sign; an aggregate sign flip dominated by <= 2 clouds (top-2 |delta| share >= 60%) is recorded as outlier-driven, not as 'scaling harmful'.",
+  "proposition_registered_before_run": true,
+  "config": {
+    "seeds": [
+      42,
+      43
+    ],
+    "budgets": [
+      "512/60",
+      "1024/100",
+      "2048/200"
+    ],
+    "irs_mode": "sat",
+    "cond_feat": "hrrp",
+    "phase_mode": "random",
+    "test_data": 32,
+    "n_eval": 8,
+    "num_points": 512,
+    "tau": 8,
+    "dit_depth": 2,
+    "vae_frozen_from": "./sat_model_scale_{seed}",
+    "checkpoints": "./sat_model_m3b_{seed}/<seed>/<tag>/*_latest.pth (final weights)",
+    "sampling": {
+      "nfe": 1,
+      "cfg_scale": 2.0,
+      "solver": "euler",
+      "x0_seed_offset": 9000
+    },
+    "device": "cuda"
+  },
+  "seeds": {
+    "42": {
+      "batch_fingerprint": "a3b0522e80d2",
+      "oracle_per_cloud_cd": [
+        0.028248,
+        0.017174,
+        0.017206,
+        0.024322,
+        0.038768,
+        0.013639,
+        0.011333,
+        0.021081
+      ],
+      "oracle_cd_mean": 0.021471,
+      "cells": {
+        "b512_60": {
+          "tag": "b512_60",
+          "status": "ok",
+          "per_cloud_cd": [
+            0.057592,
+            0.593297,
+            0.06704,
+            0.075485,
+            0.093559,
+            0.04049,
+            0.07171,
+            0.318066
+          ],
+          "cd_mean": 0.164655
+        },
+        "b1024_100": {
+          "tag": "b1024_100",
+          "status": "ok",
+          "per_cloud_cd": [
+            0.008582,
+            0.450378,
+            0.253778,
+            0.157086,
+            0.096945,
+            0.046632,
+            0.092926,
+            0.314254
+          ],
+          "cd_mean": 0.177573
+        },
+        "b2048_200": {
+          "tag": "b2048_200",
+          "status": "not completed",
+          "note": "final checkpoints (*_latest.pth) not found; cell not trained yet"
+        }
+      },
+      "paired_vs_base": {
+        "b1024_100": {
+          "base": "b512_60",
+          "delta_per_cloud": [
+            -0.04901,
+            -0.142919,
+            0.186738,
+            0.081601,
+            0.003386,
+            0.006142,
+            0.021216,
+            -0.003812
+          ],
+          "median_delta": 0.004764,
+          "n_improved": 3,
+          "n_worsened": 5,
+          "top2_abs_delta_share": 0.6662,
+          "reading": "no consistent scale effect at n=8",
+          "aggregate_sign_outlier_driven": true
+        }
+      },
+      "seed_verdict": "not PASS"
+    },
+    "43": {
+      "batch_fingerprint": "d64e22f630aa",
+      "oracle_per_cloud_cd": [
+        0.059058,
+        0.025549,
+        0.028458,
+        0.033886,
+        0.043425,
+        0.037338,
+        0.042942,
+        0.024984
+      ],
+      "oracle_cd_mean": 0.036955,
+      "cells": {
+        "b512_60": {
+          "tag": "b512_60",
+          "status": "ok",
+          "per_cloud_cd": [
+            0.076601,
+            0.237265,
+            0.304915,
+            0.620688,
+            0.14486,
+            0.103325,
+            0.26838,
+            0.21685
+          ],
+          "cd_mean": 0.246611
+        },
+        "b1024_100": {
+          "tag": "b1024_100",
+          "status": "ok",
+          "per_cloud_cd": [
+            0.078677,
+            0.50188,
+            0.22297,
+            0.228211,
+            0.109556,
+            0.116034,
+            0.51223,
+            0.294478
+          ],
+          "cd_mean": 0.258005
+        },
+        "b2048_200": {
+          "tag": "b2048_200",
+          "status": "not completed",
+          "note": "final checkpoints (*_latest.pth) not found; cell not trained yet"
+        }
+      },
+      "paired_vs_base": {
+        "b1024_100": {
+          "base": "b512_60",
+          "delta_per_cloud": [
+            0.002076,
+            0.264615,
+            -0.081945,
+            -0.392477,
+            -0.035304,
+            0.012709,
+            0.24385,
+            0.077628
+          ],
+          "median_delta": 0.007392,
+          "n_improved": 3,
+          "n_worsened": 5,
+          "top2_abs_delta_share": 0.5917,
+          "reading": "no consistent scale effect at n=8",
+          "aggregate_sign_outlier_driven": false
+        }
+      },
+      "seed_verdict": "not PASS"
+    }
+  },
+  "verdicts": {
+    "P_scale_paired_PASS_requires_both_seeds_consistent_improvement": {
+      "42": "not PASS",
+      "43": "not PASS"
+    },
+    "overall": "not PASS"
+  }
+}
