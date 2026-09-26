@@ -1,0 +1,132 @@
+{
+  "results": {
+    "fm_nfe1": {
+      "label": "FMShape (Euler NFE=1)",
+      "nfe": 1,
+      "checkpoint": "./sat_model_c1/sat/condenc_fm_best.pth + ./sat_model_c1/sat/vnet_fm_best.pth",
+      "n_samples": 32,
+      "coverage_0.1": 0.59375,
+      "coverage_0.2": 0.8125,
+      "nna_accuracy": 1.0,
+      "nna_accuracy_ref_side": 0.8125,
+      "gen_to_ref": 0.3235071767503541,
+      "ref_to_gen": 0.3235071767503541,
+      "mmd_cd": 0.3235071767503541,
+      "mmd_cd_offdiag": 0.32456051863001417,
+      "pairwise_cd_gen_internal": 0.028235078901601693,
+      "cd_mean": 0.2908535784808919,
+      "fs_0.1": 0.14215934863500296,
+      "fs_0.2": 0.32166803342044403
+    },
+    "fm_nfe10": {
+      "label": "FMShape (Euler NFE=10)",
+      "nfe": 10,
+      "checkpoint": "./sat_model_c1/sat/condenc_fm_best.pth + ./sat_model_c1/sat/vnet_fm_best.pth",
+      "n_samples": 32,
+      "coverage_0.1": 0.8125,
+      "coverage_0.2": 0.90625,
+      "nna_accuracy": 0.90625,
+      "nna_accuracy_ref_side": 0.5,
+      "gen_to_ref": 0.4973132885615996,
+      "ref_to_gen": 0.4973132885615996,
+      "mmd_cd": 0.4973132885615996,
+      "mmd_cd_offdiag": 0.49780994921363136,
+      "pairwise_cd_gen_internal": 0.17537355604027624,
+      "cd_mean": 0.4819168083486147,
+      "fs_0.1": 0.12392682888896894,
+      "fs_0.2": 0.23056360203444787
+    },
+    "ddpm_nfe100": {
+      "label": "DDPM (ancestral NFE=100)",
+      "nfe": 100,
+      "checkpoint": "./sat_model_c1/sat/condenc_best.pth + ./sat_model_c1/sat/epsnet_best.pth",
+      "n_samples": 32,
+      "coverage_0.1": 0.6875,
+      "coverage_0.2": 0.84375,
+      "nna_accuracy": 1.0,
+      "nna_accuracy_ref_side": 0.46875,
+      "gen_to_ref": 0.39466683134833147,
+      "ref_to_gen": 0.39466683134833147,
+      "mmd_cd": 0.39466683134833147,
+      "mmd_cd_offdiag": 0.3947416796365888,
+      "pairwise_cd_gen_internal": 0.04257393793734316,
+      "cd_mean": 0.39234653441235423,
+      "fs_0.1": 0.17539216845731181,
+      "fs_0.2": 0.33115354737165315
+    },
+    "student_1step": {
+      "label": "Distilled student (1 step)",
+      "nfe": 1,
+      "checkpoint": "./sat_model_distill/student_1step.pth",
+      "n_samples": 32,
+      "coverage_0.1": 0.75,
+      "coverage_0.2": 0.84375,
+      "nna_accuracy": 0.9375,
+      "nna_accuracy_ref_side": 0.46875,
+      "gen_to_ref": 0.41665668268524314,
+      "ref_to_gen": 0.41665668268524314,
+      "mmd_cd": 0.41665668268524314,
+      "mmd_cd_offdiag": 0.4174643629484044,
+      "pairwise_cd_gen_internal": 0.08165857872588658,
+      "cd_mean": 0.39161859452724457,
+      "fs_0.1": 0.13497328925866198,
+      "fs_0.2": 0.2525024662873452
+    },
+    "vae_oracle": {
+      "label": "VAE oracle (GT latent decode)",
+      "nfe": 0,
+      "checkpoint": "./sat_model_c1/sat/vae_best.pth",
+      "n_samples": 32,
+      "coverage_0.1": 1.0,
+      "coverage_0.2": 1.0,
+      "nna_accuracy": 0.15625,
+      "nna_accuracy_ref_side": 0.0,
+      "gen_to_ref": 0.5446386701937627,
+      "ref_to_gen": 0.5446386701937627,
+      "mmd_cd": 0.5446386701937627,
+      "mmd_cd_offdiag": 0.5619146978274183,
+      "pairwise_cd_gen_internal": 0.43172005065641694,
+      "cd_mean": 0.0090818135504378,
+      "fs_0.1": 0.8976627735734843,
+      "fs_0.2": 0.9935565302027
+    }
+  },
+  "reference": {
+    "n": 32,
+    "mmd_cd_ref_self": 0.6923725860636502
+  },
+  "metric_definitions": {
+    "cd": "train.chamfer_distance_loss\uff08\u53cc\u5411\u6700\u5c0f\u5e73\u65b9\u8ddd\u79bb\u5747\u503c\uff0c\u5f52\u4e00\u5316\u70b9\u4e91\u5355\u4f4d\uff09\uff0c\u5168\u6307\u6807\u590d\u7528\uff0c\u4e0d\u91cd\u9020",
+    "coverage_tau": "\u53c2\u8003\u70b9\u4e91\u4e2d\u81f3\u5c11\u6709\u4e00\u4e2a\u751f\u6210\u6837\u672c CD < tau \u7684\u6bd4\u4f8b\uff1btau \u4e0e F-Score \u9608\u503c\u4e00\u81f4",
+    "nna_accuracy": "\u751f\u6210\u70b9\u4e91\u5728 \u751f\u6210\u222a\u53c2\u8003 \u6df7\u5408\u6c60\u4e2d\u7684\u6700\u8fd1\u90bb\uff08\u6392\u9664\u81ea\u8eab\uff09\u843d\u5728\u751f\u6210\u4fa7\u7684\u6bd4\u4f8b\uff1b\u22480.5 = \u4e0e\u53c2\u8003\u4e0d\u53ef\u533a\u5206\uff0c>0.5 = \u8bb0\u5fc6\u5316/\u6a21\u5f0f\u574d\u584c\u4fe1\u53f7\uff1b\u914d pairwise_cd_gen_internal\uff08\u751f\u6210\u96c6\u5185\u90e8 i\u2260j CD\uff09\u89e3\u8bfb\u2014\u2014\u5185\u90e8 CD \u8fdc\u5c0f\u4e8e gen\u2192ref CD \u65f6\uff0c\u89e6\u9876\u53cd\u6620\u591a\u6837\u6027\u574d\u584c\u800c\u975e\u590d\u5236\u53c2\u8003",
+    "mmd_cd": "\u4ee5 CD \u4e3a\u6838\u7684 MMD \u4f30\u8ba1 = 0.5\u00b7(mean CD(gen\u2192ref) + mean CD(ref\u2192gen))\uff1b\u6761\u4ef6\u751f\u6210\u4e0b gen_i/ref_i \u540c\u6761\u4ef6\u914d\u5bf9\uff0c\u53e6\u62a5 mmd_cd_offdiag\uff08i\u2260j\uff09\u5254\u9664\u914d\u5bf9\u89d2",
+    "mmd_cd_ref_self": "\u53c2\u8003\u96c6 i\u2260j \u6709\u5e8f\u5bf9 CD \u5747\u503c\uff1a\u540c\u5206\u5e03\u4e24\u6b21\u72ec\u7acb\u62bd\u6837\u7684\u4e0d\u53ef\u7ea6\u4e0b\u754c",
+    "note": "\u6837\u672c\u96c6\u89c4\u6a21 = \u53c2\u8003\u96c6\u89c4\u6a21\uff08n=32\uff0c\u6bcf\u53c2\u8003\u6761\u4ef6 1 \u4e2a\u6837\u672c\uff09\uff0c\u8986\u76d6\u7387/1-NNA \u5728\u6b64\u89c4\u6a21\u4e0b\u65b9\u5dee\u8f83\u5927\uff0c\u8bfb\u6570\u6309\u91cf\u7ea7\u800c\u975e\u7cbe\u786e\u503c\u89e3\u8bfb"
+  },
+  "protocol": {
+    "task": "C1 HRRP-conditioned point-cloud reconstruction, common test batch",
+    "ckpt_dir": "./sat_model_c1",
+    "student_dir": "./sat_model_distill",
+    "cond_feat": "hrrp",
+    "phase_mode": "random",
+    "seed": 42,
+    "eval_seed": 999,
+    "sample_seed": 999,
+    "x0_seed": 999,
+    "test_data": 32,
+    "batch_size": 32,
+    "n_eval": 32,
+    "num_points": 512,
+    "T": 100,
+    "cfg_scale": 2.0,
+    "nfe_list": [
+      1,
+      10
+    ],
+    "cd_taus": [
+      0.1,
+      0.2
+    ],
+    "torch": "2.11.0+cu128"
+  }
+}

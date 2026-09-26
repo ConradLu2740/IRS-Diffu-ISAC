@@ -184,6 +184,9 @@ verify-fm-distill-diversity: ## D1：蒸馏学生 vs teacher 样本多样性（�
 verify-gen-metrics: ## 分布型生成指标：Coverage@τ / 1-NNA / MMD-CD（需先训 sat_model_c1 + sat_model_distill，~10 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python eval_gen_metrics.py --ckpt_dir ./sat_model_c1 --student_dir ./sat_model_distill --save_dir ./sat_model_cmp
 
+verify-gen-metrics-n32: ## 同上但 n=32 评估批（论文 Table IV 口径；注意 batch_size 须 ≥ n_eval）
+	cd $(ISAC) && ../../$(VENV)/bin/python eval_gen_metrics.py --ckpt_dir ./sat_model_c1 --student_dir ./sat_model_distill --n_eval 32 --batch_size 32 --save_dir ./sat_model_cmp && mv ./sat_model_cmp/gen_metrics.json ./sat_model_cmp/gen_metrics_n32.json
+
 verify-cond-diversity: ## N1/N2/N3：条件-形状多样性审计（数据本身有无同条件不同形状，~6 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_cond_shape_diversity.py
 
