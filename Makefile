@@ -172,6 +172,9 @@ train-fm-distill-full: ## 全规模蒸馏重训（1024/100，与 teacher 同预�
 verify-fm-distill-diversity: ## D1：蒸馏学生 vs teacher 样本多样性（模式坍塌检测，~6 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_fm_distill_diversity.py
 
+verify-gen-metrics: ## 分布型生成指标：Coverage@τ / 1-NNA / MMD-CD（需先训 sat_model_c1 + sat_model_distill，~10 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python eval_gen_metrics.py --ckpt_dir ./sat_model_c1 --student_dir ./sat_model_distill --save_dir ./sat_model_cmp
+
 verify-cond-diversity: ## N1/N2/N3：条件-形状多样性审计（数据本身有无同条件不同形状，~6 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_cond_shape_diversity.py
 
