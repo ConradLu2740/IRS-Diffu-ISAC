@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.34 (2026-09-26) — companion to the open-source repository
+**Version**: v1.35 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -35,6 +35,7 @@
 *v1.32 additions: registered proposition C2 (dual-domain condition fusion, narrowband + HRRP concatenated) is falsified (Section 6.27): Delta(0) drops 0.302 -> 0.238, condition sensitivity 0.290 -> 0.143, and FM NFE=1 CD degrades 0.2269 -> 0.2752. The narrowband channel is representation-diluting, not complementary (consistent with the probe finding that narrowband carries less information than the class label). HRRP-only remains the best condition input; the remaining 78% of unexplained latent variance needs genuinely new information (pose-resolving observations such as rotation-ISAR sequences), registered as C3.*
 *v1.33 additions: registered proposition C3 (ISAR-sequence conditioning) surfaced a methodological trap (Section 6.28): the first run materialized the dataset once (to afford the expensive per-sample ISAR computation), which froze the samples and let the model memorize them — the condition became unnecessary and the encoder collapsed (Delta ~ 0). Lesson: in conditional generative training, data freezing -> memorization -> condition collapse; C1 succeeded precisely because its data were regenerated per epoch. A confound-free information test shows the ISAR slow-time Doppler profile carries genuine class information (40.5% vs 20% chance) but weaker than HRRP (0.80+). Registered C4: rerun C3 with per-epoch fresh data at a smaller scene budget.*
 *v1.34 additions: registered proposition C4 runs the controlled experiment for the C3 confound (Section 6.29): materialized 2048 samples + 20 epochs, ISAR arm vs HRRP-only control arm, otherwise identical. Both arms collapse (Delta(0) ~ 3e-5 and ~ 6e-5) — the control proves the collapse is the general consequence of data freezing, not an ISAR-specific effect, and retroactively validates C1 (whose Delta(0) = 0.302 was measured under the correct per-epoch-fresh-data protocol). The C-line closes: HRRP-only is the best validated condition input; the reusable asset is the protocol lesson (conditional generative training must not freeze data).*
+*v1.35 additions: the geometry direction of the Wall Map is opened with the near-field XL-RIS certificates (Section 6.30): (F1) the far-field validity bound Δφ = (2π/λ)D²/(8R) is verified against the exact per-element spherical-phase model (<2% deviation), positively certifying the far-field assumption of the spaceborne scenario (D* = 58.9 m for a 10 m panel at 695 km) and identifying the UAV case (1 m panel at 100 m, D* = 0.71 m) as genuinely near-field; (F2) the near-field ranging CRB is verified by Monte Carlo (MC/CRB = 0.98–1.17): a 1 m aperture achieves σ_R = 65 mm at 100 m and 5.6 mm at 30 m — breaking the 11.84 m far-field single-station wall by 180–2000×; (F3) the Rayleigh window R_F = 2D²/λ is confirmed by the FIM condition-number explosion (4×10⁹ at 0.25 R_F → 3×10¹⁴ at 4 R_F).*
 
 ---
 
@@ -974,6 +975,33 @@ condition input (the ISAR model-level verification needs cheaper ISAR at fresh d
 expected gain, registered as backlog), and the reusable asset of the line is the protocol lesson —
 conditional generative training must regenerate data per epoch (or use enough data plus strong
 regularization); materialization is a trap.
+
+### 6.30 Near-Field XL-RIS: Certificates for the Third Wall-Escape Path (v1.35)
+
+The Wall Map's geometry direction is opened with three certificates
+(`verify_near_field_crb.py`, numpy-only, MC-verified):
+
+**F1 — far-field validity certificate (positive).** The closed-form bound
+Δφ_max = (2π/λ)·D²/(8R) ≤ π/8 ⟺ D ≤ D* = sqrt(λR/2) matches the exact per-element
+spherical-phase model to within 2% in all scenarios. Consequences: the spaceborne
+scenario's far-field assumption is positively certified (D* = 58.9 m for a 10 m
+panel at 695 km; Δφ = 0.011 rad), and the UAV case (1 m panel at 100 m, D* = 0.71 m,
+Δφ = 0.786 rad) is genuinely near-field.
+
+**F2 — near-field ranging CRB (MC-verified).** For a 1 m aperture XL array
+(N=200, λ/2 at 30 GHz): σ_R = 65 mm at 100 m (MC/CRB = 0.98, the MLE is efficient)
+and 5.6 mm at 30 m (MC/CRB = 1.17). Against the 11.84 m far-field single-station
+wall (Section 5.3), single-station near-field ranging breaks the wall by 180–2000×.
+
+**F3 — the Rayleigh window.** Sweeping R/R_F confirms the FIM condition-number
+explosion (4×10⁹ at 0.25 R_F → 3×10¹⁴ at 4 R_F) with MC RMSE growing 0.35 m → 104 m:
+the identifiable region's boundary is exactly the Rayleigh distance R_F = 2D²/λ.
+
+The Wall Map now has three escape routes, all certified: two-station trilateration
+(CRB-optimal deployment), single-station near-field (this section; low-altitude
+scenarios; aperture requirement σ_R ≤ 5 m ⟺ 1 m aperture within 200 m), and none in
+the far field. Registered NF-2: a near-field channel layer feeding a low-altitude
+closed-loop demo.
 
 ## 7. Limitations and Honest Discussion
 

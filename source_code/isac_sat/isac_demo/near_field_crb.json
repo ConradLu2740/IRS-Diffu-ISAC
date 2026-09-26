@@ -1,0 +1,140 @@
+{
+  "f1": [
+    {
+      "scenario": "\u661f\u8f7d 10m @695km",
+      "D_m": 10.0,
+      "R_m": 695000.0,
+      "wavelength_m": 0.009993081933333333,
+      "closed_form_quad_phase_rad": 0.011308516305494686,
+      "exact_minus_quad_max_rad": 1.7765947204345656e-07,
+      "closed_form_accurate": true,
+      "D_star_m": 58.92873638415585,
+      "farfield_valid": true,
+      "resid_ratio": 1.5710237067716278e-05
+    },
+    {
+      "scenario": "\u5730\u9762 1m @47.7km",
+      "D_m": 1.0,
+      "R_m": 47700.0,
+      "wavelength_m": 0.009993081933333333,
+      "closed_form_quad_phase_rad": 0.0016476769040500642,
+      "exact_minus_quad_max_rad": 7.830352838139251e-09,
+      "closed_form_accurate": true,
+      "D_star_m": 15.438102348086698,
+      "farfield_valid": true,
+      "resid_ratio": 4.752359409112242e-06
+    },
+    {
+      "scenario": "UAV 1m @100m",
+      "D_m": 1.0,
+      "R_m": 100.0,
+      "wavelength_m": 0.009993081933333333,
+      "closed_form_quad_phase_rad": 0.7859418832318806,
+      "exact_minus_quad_max_rad": 4.912073218288349e-06,
+      "closed_form_accurate": true,
+      "D_star_m": 0.706862148276923,
+      "farfield_valid": false,
+      "resid_ratio": 6.249919139172678e-06
+    },
+    {
+      "scenario": "UAV 1m @30m",
+      "D_m": 1.0,
+      "R_m": 30.0,
+      "wavelength_m": 0.009993081933333333,
+      "closed_form_quad_phase_rad": 2.619806277439602,
+      "exact_minus_quad_max_rad": 0.00018190572645826464,
+      "closed_form_accurate": true,
+      "D_star_m": 0.3871643436578322,
+      "farfield_valid": false,
+      "resid_ratio": 6.943480058992964e-05
+    }
+  ],
+  "f2": [
+    {
+      "scenario": "XL \u5b54\u5f841m N=200 @100m",
+      "N": 200,
+      "d_el_m": 0.005025125628140704,
+      "R_m": 100.0,
+      "y_off_m": 1.0,
+      "aperture_m": 1.0,
+      "crb_R_m2": 4.2876408601870875,
+      "crb_y_m2": 1.4229260748333595e-10,
+      "crb_closed_R_m2": 1.9836162698015214,
+      "mc_var_R": 4.189914226807683,
+      "mc_var_y": 1.6808432276178728e-10,
+      "mc_over_crb_R": 0.9772073649435413,
+      "n_mc": 200
+    },
+    {
+      "scenario": "XL \u5b54\u5f841m N=200 @30m",
+      "N": 200,
+      "d_el_m": 0.005025125628140704,
+      "R_m": 30.0,
+      "y_off_m": 1.0,
+      "aperture_m": 1.0,
+      "crb_R_m2": 0.03157943633829412,
+      "crb_y_m2": 1.4230092150983212e-10,
+      "crb_closed_R_m2": 0.016067291785392325,
+      "mc_var_R": 0.03709792535593339,
+      "mc_var_y": 1.9167357489250674e-10,
+      "mc_over_crb_R": 1.1747494463967807,
+      "n_mc": 200
+    },
+    {
+      "scenario": "\u9762\u677f0.5m N=100 @100m",
+      "N": 100,
+      "d_el_m": 0.005050505050505051,
+      "R_m": 100.0,
+      "y_off_m": 1.0,
+      "aperture_m": 0.5,
+      "crb_R_m2": 134.51559149581254,
+      "crb_y_m2": 2.846201610699579e-10,
+      "crb_closed_R_m2": 62.224968041045166,
+      "mc_var_R": 162.9005900278597,
+      "mc_var_y": 2.886879534957427e-10,
+      "mc_over_crb_R": 1.2110164198544284,
+      "n_mc": 200
+    }
+  ],
+  "f3": {
+    "aperture_m": 1.0,
+    "rayleigh_m": 200.13845711889124,
+    "points": [
+      {
+        "R_over_RF": 0.25,
+        "R_m": 50.03461427972281,
+        "fim_cond": 4080713499.97036,
+        "mc_rmse_m": 0.352106046474723
+      },
+      {
+        "R_over_RF": 0.5,
+        "R_m": 100.06922855944562,
+        "fim_cond": 67990779553.824646,
+        "mc_rmse_m": 1.3283769782387038
+      },
+      {
+        "R_over_RF": 1.0,
+        "R_m": 200.13845711889124,
+        "fim_cond": 1109955318223.6655,
+        "mc_rmse_m": 6.715880847706933
+      },
+      {
+        "R_over_RF": 2.0,
+        "R_m": 400.2769142377825,
+        "fim_cond": 17937883455112.594,
+        "mc_rmse_m": 23.775042007581412
+      },
+      {
+        "R_over_RF": 4.0,
+        "R_m": 800.553828475565,
+        "fim_cond": 288424476316474.75,
+        "mc_rmse_m": 103.59201686659634
+      }
+    ]
+  },
+  "protocol": {
+    "fc_hz": 30000000000.0,
+    "gamma_db": 20.0,
+    "n_mc": 200
+  }
+}
