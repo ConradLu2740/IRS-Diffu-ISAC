@@ -145,6 +145,9 @@ verify-detect-multiframe: ## F1 多帧堆叠检测 vs 单帧（变计数场景�
 verify-detect-diversity: ## N1 测量分集（4 realizing 平均）vs 单 realizing，~25 秒
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_detect_multiframe.py --mode diversity --f1_name detect_best_n1.pth --stack 4
 
+verify-obj-calib: ## S3 objectness 阈值校准（held-out F1 选阈 + 全变体 MOT 对比，~25 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_detect_obj_calib.py
+
 train-fm: ## Flow Matching 训练（扩散同架构/同数据，3 种 IRS 模式）
 	cd $(ISAC) && ../../$(VENV)/bin/python train_fm.py
 

@@ -609,3 +609,32 @@ max-softmax 阈值 0.3 **不是同一工作点**，虚警偏多。自然的收�
 （排序 +recall）。DETR 式三件套（匹配损失、集合预测、objectness）全部就位，
 剩余纯工程校准。
 
+### 7.22 S3：objectness 阈值校准——检测线收尾（2026-09-26）
+
+S3 执行（`verify_detect_obj_calib.py`，held-out F1 选阈）：
+
+| 模型 | 最优阈值 | F1 | P | R |
+|---|---|---|---|---|
+| S2（objectness） | 0.986 | **0.841** | **0.739** | 0.977 |
+| 基线（max-softmax） | 0.227 | 0.727 | 0.571 | 1.000 |
+
+objectness 分数确实比 max-softmax 更具区分度（同 recall 下 precision 大幅更高）。
+MOT 全变体最优工作点总表：
+
+| 变体 | RMSE | recall | ID 切换 |
+|---|---|---|---|
+| base@0.3 | 0.2010 | 0.699 | 178.0 |
+| base@calib | 0.2013 | 0.703 | 184.0 |
+| S1（匹配，无 objectness） | 0.1915 | 0.703 | **158.3（最佳）** |
+| S2@0.3 | 0.1899 | 0.759 | 192.0 |
+| **S2@calib** | **0.1860（最佳）** | **0.758（最佳）** | 185.0 |
+
+裁决：S3a FAIL（IDsw 185 > 158）、S3a2 PASS（recall 0.758 ≥ 0.70）、
+**S3b PASS**（S2@calib 对 base@calib 在 recall +7.8%、RMSE −7.6% 两项占优，
+ID 切换基本打平）。
+
+**检测线完整结论**：DETR 化（S1+S2+校准）把 MOT 推到 recall 0.758 / RMSE 0.186，
+相对原始管线（0.699 / 0.201）recall +8.4%、RMSE −7.5%；ID 稳定性与 recall 存在
+内在权衡（S1 的 158 @ recall 0.703 vs S2 的 185 @ recall 0.758）——由任务
+偏好选择工作点，两者都已在脚本中一键复现。
+

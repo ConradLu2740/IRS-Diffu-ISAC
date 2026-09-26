@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.30 (2026-09-26) — companion to the open-source repository
+**Version**: v1.31 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -31,6 +31,7 @@
 *v1.28 additions: the measurement-diversity candidate (4 independent realizations averaged per frame, trained and evaluated consistently) degrades precision (P@R=0.67 0.591 -> 0.407) while reducing ID switches by 21% (Section 6.23). The detection precision limit is therefore not input-noise-driven but structural (slot-assignment ambiguity under the x-sorted matching loss). The detection line closes with a precise remaining hypothesis: DETR-style set prediction (differentiable matching) or genuinely new geometry (two-station differential delay structure).*
 *v1.29 additions: registered proposition S1 implements DETR-style set prediction (Hungarian matching in the loss, `train_detect.py --match hungarian`). The diagnosed structural cause is confirmed and improved: MOT RMSE -4.7% (0.2010 -> 0.1915), recall +0.4pp, ID switches -11% (178.0 -> 158.3). But slot-level confidence ranking degrades (P@R=0.67 0.599 -> 0.441) because optimal matching supervises every slot and the max-softmax confidence loses discriminability — the architecture lacks a dedicated objectness head. Registered S2: Hungarian matching plus a binary objectness head (Section 6.24).*
 *v1.30 additions: registered proposition S2 adds the binary objectness head to the Hungarian matching (Section 6.25). The confidence ranking is recovered (P@R=0.67 0.441 -> 0.610, slightly above the 0.599 sorted baseline) and MOT recall (0.759) and RMSE (0.1899) reach their best values; ID switches rise to 192.0 because the sigmoid threshold 0.3 is not the same operating point as the old max-softmax 0.3 — threshold calibration (Section 6.18 machinery) is the remaining engineering step (registered S3). The DETR-style triple (matching loss, set prediction, objectness) is complete.*
+*v1.31 additions: registered proposition S3 calibrates the objectness threshold on held-out data (Section 6.26). The objectness score is genuinely more discriminative than max-softmax (F1 0.841 vs 0.727 at the same recall, precision 0.739 vs 0.571). The full variant table closes the detection line: the DETR-style head (S2, calibrated) reaches MOT recall 0.758 and RMSE 0.1860 against the original pipeline 0.699 / 0.2010 (+8.4% recall, -7.5% RMSE); ID stability trades against recall intrinsically (S1 158 switches @ recall 0.703 vs S2 185 @ 0.758).*
 
 ---
 
@@ -879,6 +880,36 @@ old max-softmax 0.3, so more false positives survive. The remaining step is thre
 the objectness score (the Section 6.18 machinery), registered as S3. The architecture arc for the
 detection line is complete: sorted -> Hungarian (geometry + ID stability) -> + objectness (ranking +
 recall): the DETR-style triple (matching loss, set prediction, objectness) is fully in place.
+
+### 6.26 S3: Objectness Threshold Calibration Closes the Detection Line (v1.31)
+
+Registered proposition S3: select the detection threshold on held-out scenes (seeds 11-13, disjoint
+from training and MOT scenes) by maximum F1, for both the S2 objectness score and the baseline max-
+softmax score (fair comparison), then evaluate MOT at the calibrated points
+(`verify_detect_obj_calib.py`):
+
+| Model | Optimal threshold | F1 | Precision | Recall |
+|---|---|---|---|---|
+| S2 (objectness) | 0.986 | **0.841** | **0.739** | 0.977 |
+| Baseline (max-softmax) | 0.227 | 0.727 | 0.571 | 1.000 |
+
+The objectness score is genuinely more discriminative (much higher precision at matched recall).
+Full variant table at each one's best operating point:
+
+| Variant | RMSE | Recall | ID switches |
+|---|---|---|---|
+| base@0.3 | 0.2010 | 0.699 | 178.0 |
+| base@calib | 0.2013 | 0.703 | 184.0 |
+| S1 (matching, no objectness) | 0.1915 | 0.703 | **158.3** (best) |
+| S2@0.3 | 0.1899 | 0.759 | 192.0 |
+| **S2@calib** | **0.1860** (best) | **0.758** (best) | 185.0 |
+
+Verdicts: S3a fails (ID switches 185 > 158), S3a2 passes (recall 0.758), S3b passes (S2@calib
+dominates base@calib on recall +7.8% and RMSE -7.6%, ID switches tied). The detection line closes:
+DETR-ization (S1 + S2 + calibration) moves MOT to recall 0.758 / RMSE 0.1860 against the original
+pipeline's 0.699 / 0.2010 (+8.4% recall, -7.5% RMSE); ID stability trades against recall
+intrinsically (S1: 158 switches at recall 0.703; S2: 185 at 0.758), and both operating points are
+one-command reproducible.
 
 ## 7. Limitations and Honest Discussion
 
