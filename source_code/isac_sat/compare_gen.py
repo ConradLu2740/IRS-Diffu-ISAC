@@ -93,8 +93,8 @@ def run_mode(args, irs_mode):
     test_ds = SatROIDataset(args.test_data, channels, num_points=args.num_points,
                             device=device, tau=args.tau, phase_mode=args.phase_mode,
                             cond_feat=args.cond_feat)
-    if args.cond_feat == "isar":
-        # ISAR 条件逐样本计算昂贵：一次性物化（样本冻结，之后 epoch 复用）
+    if args.materialize or args.cond_feat == "isar":
+        # 一次性物化（样本冻结）；--materialize 用于受控对比（C4）
         def _materialize(ds):
             pcs, conds = [], []
             for i in range(len(ds)):
@@ -273,6 +273,8 @@ if __name__ == "__main__":
                         help="提供 VAE checkpoint 目录则复用（跳过 VAE 训练，隔离生成侧变量）")
     parser.add_argument("--cond_feat", choices=["narrowband", "hrrp", "both", "isar"], default="narrowband",
                         help="条件输入：narrowband（默认）或 hrrp（C1：宽带距离像广播）")
+    parser.add_argument("--materialize", action="store_true",
+                        help="物化数据集（C4 受控对比用：冻结样本 + 短训练防记忆化）")
     parser.add_argument("--T", type=int, default=100)
     parser.add_argument("--depth", type=int, default=2)
     parser.add_argument("--tau", type=int, default=8)

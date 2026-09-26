@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.33 (2026-09-26) — companion to the open-source repository
+**Version**: v1.34 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -34,6 +34,7 @@
 *v1.31 additions: registered proposition S3 calibrates the objectness threshold on held-out data (Section 6.26). The objectness score is genuinely more discriminative than max-softmax (F1 0.841 vs 0.727 at the same recall, precision 0.739 vs 0.571). The full variant table closes the detection line: the DETR-style head (S2, calibrated) reaches MOT recall 0.758 and RMSE 0.1860 against the original pipeline 0.699 / 0.2010 (+8.4% recall, -7.5% RMSE); ID stability trades against recall intrinsically (S1 158 switches @ recall 0.703 vs S2 185 @ 0.758).*
 *v1.32 additions: registered proposition C2 (dual-domain condition fusion, narrowband + HRRP concatenated) is falsified (Section 6.27): Delta(0) drops 0.302 -> 0.238, condition sensitivity 0.290 -> 0.143, and FM NFE=1 CD degrades 0.2269 -> 0.2752. The narrowband channel is representation-diluting, not complementary (consistent with the probe finding that narrowband carries less information than the class label). HRRP-only remains the best condition input; the remaining 78% of unexplained latent variance needs genuinely new information (pose-resolving observations such as rotation-ISAR sequences), registered as C3.*
 *v1.33 additions: registered proposition C3 (ISAR-sequence conditioning) surfaced a methodological trap (Section 6.28): the first run materialized the dataset once (to afford the expensive per-sample ISAR computation), which froze the samples and let the model memorize them — the condition became unnecessary and the encoder collapsed (Delta ~ 0). Lesson: in conditional generative training, data freezing -> memorization -> condition collapse; C1 succeeded precisely because its data were regenerated per epoch. A confound-free information test shows the ISAR slow-time Doppler profile carries genuine class information (40.5% vs 20% chance) but weaker than HRRP (0.80+). Registered C4: rerun C3 with per-epoch fresh data at a smaller scene budget.*
+*v1.34 additions: registered proposition C4 runs the controlled experiment for the C3 confound (Section 6.29): materialized 2048 samples + 20 epochs, ISAR arm vs HRRP-only control arm, otherwise identical. Both arms collapse (Delta(0) ~ 3e-5 and ~ 6e-5) — the control proves the collapse is the general consequence of data freezing, not an ISAR-specific effect, and retroactively validates C1 (whose Delta(0) = 0.302 was measured under the correct per-epoch-fresh-data protocol). The C-line closes: HRRP-only is the best validated condition input; the reusable asset is the protocol lesson (conditional generative training must not freeze data).*
 
 ---
 
@@ -953,6 +954,26 @@ but weaker (HRRP gives 0.80+).
 Conclusion: the model-level C3 test is invalidated by the confound; the information-level test confirms
 the ISAR Doppler channel carries real but modest incremental information. Registered C4: rerun C3 with
 per-epoch fresh data at a smaller scene budget (32 scenes x 100 epochs).
+
+### 6.29 C4: The Control Proves the Confound — the C-Line Closes on a Protocol Lesson (v1.34)
+
+Registered proposition C4: rerun the ISAR-vs-HRRP comparison with the materialization confound
+controlled (materialized 2048 samples, 20 epochs to limit memorization, ISAR arm vs HRRP-only control
+arm, everything else identical):
+
+| Arm | Condition | Delta(0) |
+|---|---|---|
+| C4a | HRRP + ISAR Doppler | ~0 (3.2e-5) |
+| C4b (control) | HRRP only | ~0 (5.8e-5) |
+
+The control arm collapses too — the same regime that yields Delta(0) = 0.302 under per-epoch fresh
+data (C1) yields ~0 under frozen data for the *same* condition. The C3 collapse is therefore the
+general consequence of data freezing, not an ISAR-specific effect; and C1's measurement is
+retroactively validated as protocol-correct. The C-line closes: HRRP-only is the best validated
+condition input (the ISAR model-level verification needs cheaper ISAR at fresh data, with a small
+expected gain, registered as backlog), and the reusable asset of the line is the protocol lesson —
+conditional generative training must regenerate data per epoch (or use enough data plus strong
+regularization); materialization is a trap.
 
 ## 7. Limitations and Honest Discussion
 
