@@ -600,7 +600,6 @@ def block3_cfm(args):
     scenario = ss.SatISACScenario(tau=args.tau)
     frames = scenario.build_frames()
     channels = SatScenarioChannels(frames, irs_mode=args.mode, device=device)
-    cond_dim = channels.frame_cond_dim()
     ds = SatROIDataset(args.fm_n_eval, channels, num_points=args.num_points,
                        device=device, tau=args.tau, phase_mode="random",
                        cond_feat=args.cond_feat, spread_equalize=args.spread_equalize)
@@ -608,6 +607,7 @@ def block3_cfm(args):
                                   num_workers=0)))
     pc_gt, cond = _batch[0], _batch[1]
     pc_gt, cond = pc_gt.to(device), cond.to(device)
+    cond_dim = int(cond.shape[-1])   # 实际条件宽度（hrrp=512 / isar=544），勿用 frame_cond_dim()
     vae, condenc, vnet, z_mean, z_std = load_fm_models(args, device, cond_dim)
     _zm = float(z_mean.mean()) if z_mean.numel() > 1 else float(z_mean)
     _zs = float(z_std.mean()) if z_std.numel() > 1 else float(z_std)
