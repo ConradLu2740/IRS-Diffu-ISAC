@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.44 (2026-09-26) — companion to the open-source repository
+**Version**: v1.45 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -45,6 +45,7 @@
 *v1.42 additions: a data-level audit adjudicates the collapse question (Section 6.37, `verify_cond_shape_diversity.py`): the over-collapse is a modeling failure, not the Bayes-correct answer. On the training distribution (96 samples, 4560 pairs; HRRP conditions are unit-norm range profiles, clouds measured raw and centroid-aligned), the closest available condition pairs still map to point clouds differing by CD 0.663 raw / 0.0265 aligned — 125× / 5× the teacher's x0-spread (0.0053) — so the conditional posterior genuinely has width (ROI position + cross-range shape are not determined by the HRRP) and the teacher's near-point-mass output discards it; the student's 9× wider spread is directionally right but still 13.6× short of the true conditional width. The audit also measures the condition's pairwise shape-discriminative power: Spearman ρ(condition distance, shape distance) = −0.015 ≈ 0 — the range profile is a many-to-one map that carries no shape-similarity signal at any distance (consistent with C1's weak conditional channel and the Wall Map's "information lives elsewhere"). Honest scope: with 96 samples the closest condition pair is still 0.717 (unit norm) apart, so the diversity numbers are lower bounds at this condition resolution. Registered next directions: dispersion-matching training against the empirical conditional width, and C3 (ISAR slow-time profile) as the cross-range information source.*
 *v1.43 additions: a theorem unifies the v1.40–6.42 arc and corrects the v1.39 framing (Section 6.38). For OT-CFM with x_t = (1−t)x₀ + t·x₁ and x₀ ⊥ (x₁, c), the optimal velocity at t=0 is v\*(x₀, 0, c) = μ(c) − x₀, so the NFE=1 Euler output is exactly the conditional mean μ(c) — the near-collapse of a well-trained 1-step map is the *optimal* behavior, not a defect (the measured ratio 0.02 is the network's approximation accuracy to v\*; changing the CFG weight only changes which mean μ_w(c) is produced, hence M1's failure). Dispersion can only come from multi-step integration (at t>0 the mixture x_t genuinely carries x₁ information), which explains the distilled student's 9× diversity (it regresses the 2-step map) and its CD cost: the mean is the Bayes estimator under Chamfer distance, so any dispersed sampler has strictly worse expected CD (bias–variance, not an implementation flaw — the v1.39 "integration error eliminated" framing had the relationship backwards; the 1-step output's deviation from the ODE solution *is* the diversity). The v1.11 no-collapse certificate (ratio 2.72) is re-scoped: it measured the old network's deviation from v\*, not posterior sampling, and does not transfer to the converged C1 model. All previously reported numbers are re-interpreted in one reconciliation table with no re-runs. Net guidance: the teacher at NFE=1 (the guided conditional mean) is the correct tool for the CD-driven closed-loop shape prior; a 1-step *sampler* requires regressing a higher-NFE map — the distillation mechanism itself is sound. Registered experiment R1: sweep `--teacher_nfe` ∈ {2, 4, 10} and verify the predicted bias–variance frontier (diversity ↑ monotonically with K, CD ↓ ... worsens monotonically).*
 *v1.44 additions: the full-scale retrain closes the v1.39 budget caveat and delivers the final verdict on the distillation line (Section 6.39). With the `--eval_seed` protocol, the 1024/100 student is compared to the 512/60 student on one common batch (teacher numbers reproduce bit-exactly): the matched-budget student FAILS both P1 and P2 — CD 0.5056 vs teacher 0.2318 (+118.1%) and vs the teacher's 2-step map 0.4950 — so the v1.39 −23.4% advantage not only vanishes at matched budget, it inverts sign: the small-budget run's apparent win was underfitting averaging the student back toward the mean. The bias–variance frontier of Section 6.38 is measured along the training-budget axis: budget ↑ → fidelity to the 2-step sampler ↑ (loss 0.2535 → 0.0958) → diversity ↑ monotonically (pairwise 0.0488 → 0.1127, ratio 0.19 → 0.48) and CD ↑ monotonically (0.3839 → 0.5056); the full-budget student's spread reaches 17% of the empirical conditional width (§6.37). Final positioning: teacher NFE=1 (guided conditional mean, CD 0.2318) is the CD-Bayes-optimal tool for the closed-loop shape prior; the distilled student is a 1-step sampler whose diversity grows with budget at a structural CD cost (+66% to +118%), for data augmentation / uncertainty estimation rather than CD metrics; narrowing the posterior requires new information (C3/ISAR), not more distillation.*
+*v1.45 additions: the C3 pre-screen (Section 6.40, `verify_cond_shape_diversity.py --cond_feat isar`) tests at the data level whether the ISAR slow-time Doppler profile carries the cross-range information that the HRRP lacks — before spending training compute. Paired on the same 96 scenes (CD statistics bit-identical across condition features): the Doppler profile alone has Spearman ρ(condition distance, shape distance) = 0.212 vs HRRP's −0.015 — the rotation-induced range-migration physics is real, C3 is not vacuous — but naive HRRP+dop concatenation collapses ρ to 0.002: the 512-dimensional HRRP swamps the 32-dimensional Doppler profile in any L2-based signal, the same dilution failure as C2 (Δ(0) 0.302 → 0.238) now visible at the data level. The dop-only nearest-condition pairs are also 16% closer in shape (aligned CD 0.0222 vs 0.0265) — a modest narrowing. Registered design correction: any C3 training run must normalize/whiten condition feature blocks before concatenation, or the network side will reproduce C2's dilution. Pre-screen verdicts: I1 (dop ρ ≥ 0.1) PASS, I2 (concatenation narrows) FAIL, I3 (dop-only narrows) PASS.*
 
 ---
 
@@ -1253,6 +1254,29 @@ claims): the closed-loop shape prior uses the teacher NFE=1 guided mean (CD 0.23
 distilled student is a 1-step sampler whose diversity grows with budget at a structural CD cost (+66% to
 +118%), intended for data augmentation / uncertainty estimation rather than CD metrics; narrowing the
 posterior requires new information (C3/ISAR), not more distillation.
+
+### 6.40 The C3 Pre-Screen: the ISAR Doppler Profile Carries Real Shape Information, but Concatenation Dilutes It (v1.45)
+
+Before spending training compute on C3, `verify_cond_shape_diversity.py --cond_feat isar [--dop_only]` tests at
+the data level whether the ISAR slow-time Doppler profile carries the cross-range information the HRRP lacks.
+Paired on the same 96 scenes (CD statistics bit-identical across condition features — same seeds, only the
+condition changes):
+
+| Condition feature | ρ(cond. distance, shape CD) | Closest-decile aligned CD |
+|---|---|---|
+| HRRP only (512-d) | −0.015 | 0.0265 |
+| C3 full (HRRP + dop concatenated, 544-d) | **0.002** | 0.0264 |
+| Doppler profile only (32-d) | **0.212** | **0.0222** (−16%) |
+
+Three conclusions. (i) The ISAR physics holds: the rotation-induced range-migration spectrum correlates with
+shape distance at ρ = 0.212 against HRRP's −0.015 — the cross-range information exists and C3 is not vacuous.
+(ii) Naive concatenation kills it: HRRP+dop collapses ρ to 0.002 because the 512-dimensional HRRP swamps the
+32-dimensional Doppler profile in any L2-based signal — the same dilution failure as C2 (Δ(0) 0.302 → 0.238),
+now visible at the data level. (iii) The strength is modest even undiluted: ρ = 0.212 is far from a strong
+information source, and the dop-only narrowing of the conditional width is −16%. Registered design correction:
+a C3 training run must normalize/whiten condition feature blocks before concatenation, or the network side
+will reproduce C2's dilution; without block normalization, C3-as-concatenation is HRRP-only in effect.
+Pre-screen verdicts: I1 (dop ρ ≥ 0.1) PASS, I2 (concatenation narrows) FAIL, I3 (dop-only narrows) PASS.
 
 ## 7. Limitations and Honest Discussion
 

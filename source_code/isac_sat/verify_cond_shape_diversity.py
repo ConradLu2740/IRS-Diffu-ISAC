@@ -73,10 +73,15 @@ def main(args):
     for i in range(args.n_samples):
         pc, cond, feat = ds[i]
         pcs.append(pc.to(device))
-        feats.append(feat.to(device))
+        # cond [Tau, D] 逐帧广播；ISAR 模式下 D = 512(HRRP)+32(多普勒剖面)
+        f = cond[0]
+        if args.dop_only:
+            f = f[-32:]
+        feats.append(f)
     pcs = torch.stack(pcs)                 # [N, P, 3]
-    feats = torch.stack(feats)             # [N, K]
-    print(f"样本: pcs {tuple(pcs.shape)}, HRRP 特征 {tuple(feats.shape)}")
+    feats = torch.stack(feats)             # [N, D]
+    tag = "多普勒剖面" if args.dop_only else ("HRRP+ISAR" if args.cond_feat == "isar" else "HRRP")
+    print(f"样本: pcs {tuple(pcs.shape)}, 条件特征({tag}) {tuple(feats.shape)}")
 
     # 条件距离（HRRP 剖面 L2）与形状距离（原始 / 质心对齐）
     cd_cond = torch.cdist(feats, feats)                       # [N, N]
@@ -145,6 +150,8 @@ if __name__ == "__main__":
                         default="hrrp")
     parser.add_argument("--phase_mode", choices=["random", "tracked"], default="random")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--dop_only", action="store_true",
+                        help="只用条件特征末 32 维（ISAR 多普勒剖面）")
     parser.add_argument("--save_dir", type=str, default="./sat_model_c1")
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
