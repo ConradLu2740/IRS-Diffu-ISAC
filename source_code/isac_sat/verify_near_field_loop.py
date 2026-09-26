@@ -41,11 +41,13 @@ class LocMLP(nn.Module):
         return self.net(x)
 
 
-def run_regime(ula, R, farfield, args):
+def run_regime(ula, R, farfield, args, phase_noise_deg=0.0):
     Xtr, Ytr = make_dataset(ula, args.n_train, (R, R), (-1.0, 1.0),
-                            gamma_db=args.gamma_db, farfield=farfield, seed=1)
+                            gamma_db=args.gamma_db, farfield=farfield, seed=1,
+                            phase_noise_deg=phase_noise_deg)
     Xte, Yte = make_dataset(ula, args.n_test, (R, R), (-1.0, 1.0),
-                            gamma_db=args.gamma_db, farfield=farfield, seed=2)
+                            gamma_db=args.gamma_db, farfield=farfield, seed=2,
+                            phase_noise_deg=phase_noise_deg)
 
     torch.manual_seed(0)
     mu, sd = Xtr.mean(0), Xtr.std(0) + 1e-8
@@ -88,6 +90,16 @@ def main(args):
     print(f"ULA: N={args.n_elements}, 孔径={args.aperture_m}m, "
           f"λ={ula.lam * 100:.1f}cm, Rayleigh 距离={R_F:.0f}m")
 
+    # NF-3：相位校准噪声扫描（两种 regime）
+    sweep = {}
+    print("\n相位校准噪声扫描（MLP y-RMSE, mm）:")
+    print(f"  {'σ_ψ(°)':>8} {'近场(100m)':>12} {'远场(1000m)':>12}")
+    for pn in args.phase_noise_list:
+        rn = run_regime(ula, args.r_near, False, args, phase_noise_deg=pn)
+        rf = run_regime(ula, args.r_far, True, args, phase_noise_deg=pn)
+        sweep[pn] = {"near": rn, "far": rf}
+        print(f"  {pn:>8} {rn['rmse_y'] * 1000:>12.1f} {rf['rmse_y'] * 1000:>12.1f}")
+
     regimes = {}
     for name, farfield, R in [("near", False, args.r_near), ("far", True, args.r_far)]:
         r = run_regime(ula, R, farfield, args)
@@ -104,9 +116,16 @@ def main(args):
         "L2_far_y_ge_10x_near": bool(f["rmse_y"] >= 10 * n["rmse_y"]),
         "L3_far_at_prior": bool(abs(f["rmse_y"] - f["prior_std_y"]) < 0.2 * f["prior_std_y"]),
     }
+    better = [pn for pn, r in sweep.items() if r["near"]["rmse_y"] < r["far"]["rmse_y"]]
+    verdicts["N1_near_beats_far_below_threshold"] = bool(len(better) > 0)
+    if better:
+        print(f"\n  NF-3: 近场优于远场的校准噪声范围 σ_ψ ≤ {max(better)}°")
     print(f"\n  裁决: {json.dumps(verdicts, indent=2)}")
 
     out = {"regimes": regimes, "rayleigh_m": R_F, "verdicts": verdicts,
+           "phase_noise_sweep": {str(k): {"near_rmse_y": v["near"]["rmse_y"],
+                                          "far_rmse_y": v["far"]["rmse_y"]}
+                                 for k, v in sweep.items()},
            "protocol": {"n_elements": args.n_elements, "aperture_m": args.aperture_m,
                         "gamma_db": args.gamma_db, "epochs": args.epochs}}
     json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -128,5 +147,8 @@ if __name__ == "__main__":
     parser.add_argument("--n_train", type=int, default=8000)
     parser.add_argument("--n_test", type=int, default=1000)
     parser.add_argument("--epochs", type=int, default=40)
+    parser.add_argument("--phase_noise_list", nargs="+", type=float,
+                        default=[0.0, 0.1, 0.5, 1.0, 2.0, 5.0],
+                        help="逐单元相位校准残差幅度（度）扫描（NF-3）")
     args = parser.parse_args()
     main(args)

@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.36 (2026-09-26) — companion to the open-source repository
+**Version**: v1.37 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -37,6 +37,7 @@
 *v1.34 additions: registered proposition C4 runs the controlled experiment for the C3 confound (Section 6.29): materialized 2048 samples + 20 epochs, ISAR arm vs HRRP-only control arm, otherwise identical. Both arms collapse (Delta(0) ~ 3e-5 and ~ 6e-5) — the control proves the collapse is the general consequence of data freezing, not an ISAR-specific effect, and retroactively validates C1 (whose Delta(0) = 0.302 was measured under the correct per-epoch-fresh-data protocol). The C-line closes: HRRP-only is the best validated condition input; the reusable asset is the protocol lesson (conditional generative training must not freeze data).*
 *v1.35 additions: the geometry direction of the Wall Map is opened with the near-field XL-RIS certificates (Section 6.30): (F1) the far-field validity bound Δφ = (2π/λ)D²/(8R) is verified against the exact per-element spherical-phase model (<2% deviation), positively certifying the far-field assumption of the spaceborne scenario (D* = 58.9 m for a 10 m panel at 695 km) and identifying the UAV case (1 m panel at 100 m, D* = 0.71 m) as genuinely near-field; (F2) the near-field ranging CRB is verified by Monte Carlo (MC/CRB = 0.98–1.17): a 1 m aperture achieves σ_R = 65 mm at 100 m and 5.6 mm at 30 m — breaking the 11.84 m far-field single-station wall by 180–2000×; (F3) the Rayleigh window R_F = 2D²/λ is confirmed by the FIM condition-number explosion (4×10⁹ at 0.25 R_F → 3×10¹⁴ at 4 R_F).*
 *v1.36 additions: registered proposition NF-2 separates the observables behind the wall (Section 6.31). With a phase-reference-less coherent receiver (nuisance-projected CRB), the far-field DOA of a 1 m XL aperture gives σ_y = 0.39 m at 1 km — 30× better than the 11.84 m range-profile wall — while the near-field curvature signal degrades to ~30 m once the unknown global phase is projected out, which corrects the scope of the F2 certificate (65 mm assumed a known phase reference). The MLP converges to the prior whenever the information is absent (625 mm vs prior 590 mm), a network-level demonstration of posterior = prior; the far-field MLP achieves 38% of the DOA CRB. Registered NF-3: near-field CRB with phase calibration.*
+*v1.37 additions: registered proposition NF-3 sweeps the phase-calibration noise (0–5°) in both regimes (Section 6.32): no threshold recovers the near-field advantage in the ML setting — the near-field curvature signal (~6e-3 rad over the full y range) is unextractable even with perfect calibration (MLP converges to the prior), while the far-field DOA is robust (CRB 387 mm, 38% efficiency, flat under 5° calibration noise). The geometry line closes: the coherent XL-array DOA is the robust wall-escape observable (far field suffices); near-field curvature is low-value in practice. Registered NF-4: XL-array DOA in the low-altitude closed loop.*
 
 ---
 
@@ -1022,6 +1023,26 @@ with the phase unknown, the near-field curvature signal (the second-order n-vari
 derivative) is projected out and σ_y degrades to ~30 m, so near-field wall-breaking requires phase
 calibration (registered NF-3). Methodological note: the MLP converges to the prior exactly when the
 information is absent (625 mm vs 590 mm), a network-level demonstration of posterior = prior.
+
+### 6.32 NF-3: No Calibration Threshold Recovers the Near-Field Advantage (v1.37)
+
+Registered proposition NF-3 sweeps the per-element phase-calibration residual (0–5°) in both regimes
+(`verify_near_field_loop.py --phase_noise_list`):
+
+| σ_ψ (°) | Near-field y-RMSE | Far-field y-RMSE |
+|---|---|---|
+| 0 (perfect) | 650.7 mm | 650.7 mm |
+| 0.1 / 0.5 / 1 / 2 / 5 | 650.7 mm (flat) | 650.7 mm (flat) |
+
+N1 fails: no calibration threshold makes the near-field regime beat the far-field one. The near-field
+curvature signal (the second-order n-variation of the phase derivative, ~6×10⁻³ rad across the full y
+range) is unextractable even with perfect calibration — the MLP converges to the prior (650 mm vs 590
+mm) — while the far-field DOA ramp is large and robust to 5° calibration noise (CRB 387 mm, 38%
+efficiency). The geometry line closes with a coherent three-part statement: (i) the 11.84 m wall is a
+delay-observable wall; (ii) coherent XL-array DOA is the robust wall-escape observable and far field
+suffices; (iii) near-field curvature is low-value in practice (the F2 65 mm certificate's scope —
+known phase reference — is now explicitly bounded). Registered NF-4: XL-array DOA in the low-altitude
+closed loop.
 
 ## 7. Limitations and Honest Discussion
 

@@ -2,18 +2,18 @@
   "regimes": {
     "near": {
       "R_m": 100.0,
-      "rmse_y": 0.6248912811279297,
+      "rmse_y": 0.6507046222686768,
       "crb_y_std": 29.877976786564414,
-      "prior_std_y": 0.5898781418800354,
-      "efficiency_vs_crb": 2286.0906146014754,
+      "prior_std_y": 0.5926533341407776,
+      "efficiency_vs_crb": 2108.3105769034332,
       "R_over_RF": 0.49965409666666666
     },
     "far": {
       "R_m": 1000.0,
-      "rmse_y": 0.6284379363059998,
+      "rmse_y": 0.6506685614585876,
       "crb_y_std": 0.38763565286577567,
-      "prior_std_y": 0.5898781418800354,
-      "efficiency_vs_crb": 0.38047194756557273,
+      "prior_std_y": 0.5926533341407776,
+      "efficiency_vs_crb": 0.3549178013294206,
       "R_over_RF": 4.996540966666666
     }
   },
@@ -21,12 +21,39 @@
   "verdicts": {
     "L1_near_efficiency_ge_0.3": true,
     "L2_far_y_ge_10x_near": false,
-    "L3_far_at_prior": true
+    "L3_far_at_prior": true,
+    "N1_near_beats_far_below_threshold": false
+  },
+  "phase_noise_sweep": {
+    "0.0": {
+      "near_rmse_y": 0.6507046222686768,
+      "far_rmse_y": 0.6506685614585876
+    },
+    "0.1": {
+      "near_rmse_y": 0.6507046222686768,
+      "far_rmse_y": 0.6506685614585876
+    },
+    "0.5": {
+      "near_rmse_y": 0.6507046222686768,
+      "far_rmse_y": 0.6506685614585876
+    },
+    "1.0": {
+      "near_rmse_y": 0.6507046222686768,
+      "far_rmse_y": 0.6506685614585876
+    },
+    "2.0": {
+      "near_rmse_y": 0.6507046222686768,
+      "far_rmse_y": 0.6506685614585876
+    },
+    "5.0": {
+      "near_rmse_y": 0.6507046222686768,
+      "far_rmse_y": 0.6506685614585876
+    }
   },
   "protocol": {
     "n_elements": 200,
     "aperture_m": 1.0,
     "gamma_db": 20.0,
-    "epochs": 40
+    "epochs": 30
   }
 }
