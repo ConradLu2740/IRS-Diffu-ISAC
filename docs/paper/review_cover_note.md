@@ -6,7 +6,7 @@
 
 ## 1. 论文定位（一句话）
 
-FMShape 是空-天 ISAC 中由实测 HRRP 条件生成目标区域三维点云形状的条件流匹配框架：VAE 潜空间 + OT-CFM，单步采样。主投 IEEE TAES（EDICS: Sensing; Radar signal processing; Machine learning），备选 IEEE IoT-J / TSP。现状：七节正文 + Fig. 1–3 + Table I–IV + 17 条全部真实文献。
+FMShape 是空-天 ISAC 中由实测 HRRP 条件生成目标区域三维点云形状的条件流匹配框架：VAE 潜空间 + OT-CFM，单步采样。主投 IEEE TAES（EDICS: Sensing; Radar signal processing; Machine learning），备选 IEEE IoT-J / TSP。现状：七节正文 + Fig. 1–3 + Table I–IV + 19 条全部真实文献（含 2 篇 2025–2026 邻近工作，文献核查后补引）。
 
 ## 2. 外部评审 W1–W6 整改状态
 
