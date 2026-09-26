@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.46 (2026-09-26) — companion to the open-source repository
+**Version**: v1.47 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -47,6 +47,7 @@
 *v1.44 additions: the full-scale retrain closes the v1.39 budget caveat and delivers the final verdict on the distillation line (Section 6.39). With the `--eval_seed` protocol, the 1024/100 student is compared to the 512/60 student on one common batch (teacher numbers reproduce bit-exactly): the matched-budget student FAILS both P1 and P2 — CD 0.5056 vs teacher 0.2318 (+118.1%) and vs the teacher's 2-step map 0.4950 — so the v1.39 −23.4% advantage not only vanishes at matched budget, it inverts sign: the small-budget run's apparent win was underfitting averaging the student back toward the mean. The bias–variance frontier of Section 6.38 is measured along the training-budget axis: budget ↑ → fidelity to the 2-step sampler ↑ (loss 0.2535 → 0.0958) → diversity ↑ monotonically (pairwise 0.0488 → 0.1127, ratio 0.19 → 0.48) and CD ↑ monotonically (0.3839 → 0.5056); the full-budget student's spread reaches 17% of the empirical conditional width (§6.37). Final positioning: teacher NFE=1 (guided conditional mean, CD 0.2318) is the CD-Bayes-optimal tool for the closed-loop shape prior; the distilled student is a 1-step sampler whose diversity grows with budget at a structural CD cost (+66% to +118%), for data augmentation / uncertainty estimation rather than CD metrics; narrowing the posterior requires new information (C3/ISAR), not more distillation.*
 *v1.45 additions: the C3 pre-screen (Section 6.40, `verify_cond_shape_diversity.py --cond_feat isar`) tests at the data level whether the ISAR slow-time Doppler profile carries the cross-range information that the HRRP lacks — before spending training compute. Paired on the same 96 scenes (CD statistics bit-identical across condition features): the Doppler profile alone has Spearman ρ(condition distance, shape distance) = 0.212 vs HRRP's −0.015 — the rotation-induced range-migration physics is real, C3 is not vacuous — but naive HRRP+dop concatenation collapses ρ to 0.002: the 512-dimensional HRRP swamps the 32-dimensional Doppler profile in any L2-based signal, the same dilution failure as C2 (Δ(0) 0.302 → 0.238) now visible at the data level. The dop-only nearest-condition pairs are also 16% closer in shape (aligned CD 0.0222 vs 0.0265) — a modest narrowing. Registered design correction: any C3 training run must normalize/whiten condition feature blocks before concatenation, or the network side will reproduce C2's dilution. Pre-screen verdicts: I1 (dop ρ ≥ 0.1) PASS, I2 (concatenation narrows) FAIL, I3 (dop-only narrows) PASS.*
 *v1.46 additions: the registered C3 correction is tested and corrected itself (Section 6.41). The first proposed fix — per-block unit normalization — is a no-op: `data_sat.py` already unit-norms every block, and the numbers are bit-identical before and after. The actual dilution mechanism is unequal per-block pairwise spread: HRRP mean pairwise distance 0.9448 vs Doppler 0.1884 (5.0×), so the 512-d near-orthogonal HRRP dominates the L2 neighbor structure. The operative fix — dividing each block by its own mean pairwise distance (block standardization, 5.0× for the Doppler block) — recovers 97% of the Doppler profile's standalone discriminative signal (ρ 0.002 → 0.205 vs dop-only 0.212; closest-pair aligned CD 0.0221 ≈ dop-only 0.0222). The C3 training protocol is thereby fixed: spread-equalized block concatenation, not raw or unit-norm concatenation; without it, C3-as-concatenation is HRRP-only and reproduces the C2 dilution. Verdicts: S1 (ρ ≥ 0.5× dop) PASS, S2 (> 3× raw concatenation) PASS.*
+*v1.47 additions: registered experiment R1 completes the bias–variance frontier along the teacher-integration axis (Section 6.42). At fixed budget (512/60), distilling from K-step teacher maps for K ∈ {2, 4, 10} on the common eval batch: student CD 0.3839 / 0.3956 / 0.4368 and diversity (pairwise) 0.0488 / 0.0640 / 0.0687 — both monotone in K, exactly as T3/T4 predict. Two operational findings: (i) diminishing returns beyond K=4 — diversity gains only 7% from K=4→10 while CD pays another 10.4%, so K=4 is the practical sampler operating point; (ii) the regression loss grows with K (0.2535 → 0.3785 → 0.3822) because higher-order maps are more x0-dependent and harder for a 1-step student to fit — which also explains why the 1024/100 budget was only necessary at K=2 (§6.39). P1 fails at every K (the student's CD cost vs the mean is the structural T4 price); P2 passes at K=4/10 and fails only for the well-fit K=2 full-budget run, so the student's CD position is set by its fit to the K-step map. The frontier is now complete on both axes (budget, K).*
 
 ---
 
@@ -1301,6 +1302,28 @@ Pre-registered checks: S1 (ρ ≥ 0.5× dop) PASS, S2 (> 3× raw concatenation) 
 dop-only operating point. The C3 training protocol is thereby fixed before any compute is spent: spread-
 equalized block concatenation, not raw or unit-norm concatenation — without it, C3-as-concatenation is
 HRRP-only and reproduces the C2 dilution.
+
+### 6.42 R1 Complete: the K-Axis of the Bias–Variance Frontier — Predictions All Confirmed, Diminishing Returns Beyond K=4 (v1.47)
+
+Registered experiment R1: at fixed budget (512/60), distilling from K-step teacher maps for K ∈ {2, 4, 10} on
+the common eval batch (teacher numbers reproduce bit-exactly):
+
+| K (teacher integration steps) | Student CD | vs teacher1 | Pairwise CD | Diversity ratio | Regression loss |
+|---|---|---|---|---|---|
+| 2 | 0.3839 | +65.6% | 0.0488 | 0.19 | 0.2535 |
+| 4 | 0.3956 | +70.6% | 0.0640 | 0.27 | 0.3785 |
+| 10 | 0.4368 | +88.4% | 0.0687 | 0.29 | 0.3822 |
+
+The T3/T4 predictions are all confirmed: diversity rises monotonically with K (0.0488 → 0.0640 → 0.0687) and
+CD worsens monotonically (0.3839 → 0.3956 → 0.4368) — the higher the order of the regressed map, the more
+dispersion the student inherits and the larger the bias–variance price. Two operational findings: (i)
+diminishing returns beyond K=4 — diversity gains only 7% from K=4→10 while CD pays another 10.4%, so K=4 is
+the practical sampler operating point; (ii) the regression loss grows with K (0.2535 → 0.3785 → 0.3822)
+because higher-order maps are more x0-dependent and harder for a 1-step student to fit, which also explains
+why the 1024/100 budget was only necessary at K=2 (§6.39). P1 fails at every K (the CD cost vs the mean is
+the structural T4 price); P2 passes at K=4/10 and fails only for the well-fit K=2 full-budget run, so the
+student's CD position is set by its fit to the K-step map. The frontier is now complete on both axes
+(budget, K).
 
 ## 7. Limitations and Honest Discussion
 
