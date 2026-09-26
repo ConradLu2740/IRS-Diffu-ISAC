@@ -227,7 +227,10 @@ def main(args):
             "speedup_x": (100 / crossover) if crossover else None,
         },
         "protocol": {"seed": args.seed, "x0_seed": args.x0_seed, "n_eval": args.n_eval,
-                     "T": args.T, "cfg_scale": 2.0, "torch": torch.__version__},
+                     "batch_size": args.batch_size, "n_effective": int(pc_gt.shape[0]),
+                     "test_data": args.test_data, "nfe_list": args.nfe_list,
+                     "mode": args.mode, "T": args.T, "cfg_scale": 2.0,
+                     "torch": torch.__version__},
     }
     out = os.path.join(args.save_dir, "verify_fm_bounds.json")
     with open(out, "w") as f:
