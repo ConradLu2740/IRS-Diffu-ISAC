@@ -51,7 +51,7 @@
   },
   "isar_pair_rows": {
     "42": {"isar_delta0": 0.15354037284851074, "control_delta0": 0.1436229944229126, "gain_pct": 6.905, "source": "existing isac_demo/info_audit_c3_eq.json (./sat_model_c3) and isac_demo/info_audit_c5.json (./sat_model_hrrp512)"},
-    "43": "PENDING",
+    "43": {"isar_delta0": 0.04386711120605469, "control_delta0": 0.042204856872558594, "gain_pct": 3.939, "source": "isac_demo/info_audit_c5_isar_s43.json (./sat_model_c5_isar_s43) and isac_demo/info_audit_c5_ctrl_s43.json (./sat_model_c5_ctrl_s43), trained + audited this experiment"},
     "44": "PENDING"
   },
   "verdicts": {
@@ -68,5 +68,5 @@
     "n=3 with a shared frozen VAE: per-seed Δ(0) min/max is reported as the 3-seed range; no bootstrap CI is claimed (3-point bootstrap is a min/max envelope, per the protocol contamination audit).",
     "Δ(0) is measured on a fixed 64-cloud eval batch per seed (fm_n_eval=64, fm_draws=4, fm_bins=10, fm_seed=7); batch-level noise of order the seed-42 null A/B gap (~0.26 max) bounds single-seed interpretability."
   ],
-  "status": "IN PROGRESS - C1 cells (3/3 seeds) complete and committed; C5 pair: ISAR s43 training running, ctrl s43 / ISAR s44 / ctrl s44 pending"
+  "status": "IN PROGRESS - C1 cells (3/3 seeds) complete; C5 pair: seeds 42/43 complete (ISAR gains +6.9% / +3.9%), seed 44 trainings running"
 }
