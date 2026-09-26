@@ -79,8 +79,18 @@
         },
         "b2048_200": {
           "tag": "b2048_200",
-          "status": "not completed",
-          "note": "final checkpoints (*_latest.pth) not found; cell not trained yet"
+          "status": "ok",
+          "per_cloud_cd": [
+            0.011059,
+            0.281808,
+            0.401043,
+            0.142106,
+            0.208945,
+            0.024049,
+            0.072244,
+            0.295982
+          ],
+          "cd_mean": 0.179655
         }
       },
       "paired_vs_base": {
@@ -100,6 +110,25 @@
           "n_improved": 3,
           "n_worsened": 5,
           "top2_abs_delta_share": 0.6662,
+          "reading": "no consistent scale effect at n=8",
+          "aggregate_sign_outlier_driven": true
+        },
+        "b2048_200": {
+          "base": "b512_60",
+          "delta_per_cloud": [
+            -0.046533,
+            -0.311489,
+            0.334003,
+            0.066621,
+            0.115386,
+            -0.016441,
+            0.000534,
+            -0.022084
+          ],
+          "median_delta": -0.007954,
+          "n_improved": 4,
+          "n_worsened": 4,
+          "top2_abs_delta_share": 0.7069,
           "reading": "no consistent scale effect at n=8",
           "aggregate_sign_outlier_driven": true
         }
@@ -152,8 +181,18 @@
         },
         "b2048_200": {
           "tag": "b2048_200",
-          "status": "not completed",
-          "note": "final checkpoints (*_latest.pth) not found; cell not trained yet"
+          "status": "ok",
+          "per_cloud_cd": [
+            0.104816,
+            0.654532,
+            0.134299,
+            0.129848,
+            0.239664,
+            0.275256,
+            0.59787,
+            0.613552
+          ],
+          "cd_mean": 0.343729
         }
       },
       "paired_vs_base": {
@@ -174,6 +213,25 @@
           "n_worsened": 5,
           "top2_abs_delta_share": 0.5917,
           "reading": "no consistent scale effect at n=8",
+          "aggregate_sign_outlier_driven": false
+        },
+        "b2048_200": {
+          "base": "b512_60",
+          "delta_per_cloud": [
+            0.028215,
+            0.417267,
+            -0.170616,
+            -0.49084,
+            0.094804,
+            0.171931,
+            0.32949,
+            0.396702
+          ],
+          "median_delta": 0.133367,
+          "n_improved": 2,
+          "n_worsened": 6,
+          "top2_abs_delta_share": 0.4325,
+          "reading": "consistent degradation",
           "aggregate_sign_outlier_driven": false
         }
       },

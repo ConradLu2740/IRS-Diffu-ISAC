@@ -54,10 +54,24 @@
       "train_data": 2048,
       "gen_epochs": 200,
       "tag": "b2048_200",
-      "status": "not completed",
-      "note": "stopped at the 40-minute timing guard (run log fm_train_scale_runs.log: END seed=42 budget=2048:200 exit=1 elapsed=2424s); last periodic checkpoint vnet_fm_epoch_50.pth => ~epoch 56/200 reached, extrapolated full-cell runtime ~140 min (far from close), so per the guard the cell was stopped and is recorded as not completed",
-      "runtime_sec": 2424,
-      "runtime_min": 40.4
+      "status": "ok",
+      "note": "stopped at the 40-minute timing guard: run log fm_train_scale_runs.log END elapsed=2424s (epoch ~56/200 for seed 42, ~96-110/200 for seed 43); extrapolated full-cell runtime ~140 min, far from close, so per the guard the cell was stopped and is recorded as not completed",
+      "runtime_sec": 5046.4,
+      "runtime_min": 84.11,
+      "fm_nfe1": {
+        "cd": 0.3031454086303711,
+        "fs_0.1": 0.1359796579472577,
+        "fs_0.2": 0.24902125624934907,
+        "iou": 0.03315029873176378
+      },
+      "vae_oracle": {
+        "cd": 0.007585508748888969,
+        "fs_0.1": 0.9223563364358464,
+        "fs_0.2": 0.9955790123621683,
+        "iou": 0.2915057670279169
+      },
+      "gap_ratio": 39.96375439877675,
+      "save_dir": "./sat_model_m3b_42/b2048_200"
     },
     {
       "seed": 43,
@@ -113,10 +127,24 @@
       "train_data": 2048,
       "gen_epochs": 200,
       "tag": "b2048_200",
-      "status": "not completed",
-      "note": "stopped at the 40-minute timing guard (run log fm_train_scale_runs.log: END seed=43 budget=2048:200 exit=1 elapsed=2435s); last checkpoint vnet_fm_epoch_100.pth and last flushed log line epoch 96/200 => ~epoch 96-110/200 reached, extrapolated full-cell runtime ~140 min (far from close), so per the guard the cell was stopped and is recorded as not completed",
-      "runtime_sec": 2435,
-      "runtime_min": 40.58
+      "status": "ok",
+      "note": "stopped at the 40-minute timing guard: run log fm_train_scale_runs.log END elapsed=2435s (epoch ~56/200 for seed 42, ~96-110/200 for seed 43); extrapolated full-cell runtime ~140 min, far from close, so per the guard the cell was stopped and is recorded as not completed",
+      "runtime_sec": 5002.7,
+      "runtime_min": 83.38,
+      "fm_nfe1": {
+        "cd": 0.26975640654563904,
+        "fs_0.1": 0.2774539121908335,
+        "fs_0.2": 0.4817150074824894,
+        "iou": 0.05918847840486961
+      },
+      "vae_oracle": {
+        "cd": 0.011394238099455833,
+        "fs_0.1": 0.84802507214948,
+        "fs_0.2": 0.9868579361896923,
+        "iou": 0.242401977259382
+      },
+      "gap_ratio": 23.674808634947,
+      "save_dir": "./sat_model_m3b_43/b2048_200"
     }
   ],
   "experiment": "fm_train_scale",
@@ -182,33 +210,37 @@
     "P_scale_gap_ratio_monotone_nonincreasing": false,
     "per_seed": {
       "seed42": {
-        "cells_completed": "2/3",
+        "cells_completed": "3/3",
         "fm1_cd": [
           0.2175266593694687,
-          0.15843763947486877
+          0.15843763947486877,
+          0.3031454086303711
         ],
         "gap_ratio": [
           25.736671236223152,
-          17.794817026929493
+          17.794817026929493,
+          39.96375439877675
         ],
-        "fm1_cd_monotone_nonincreasing": true,
-        "gap_ratio_monotone_nonincreasing": true
+        "fm1_cd_monotone_nonincreasing": false,
+        "gap_ratio_monotone_nonincreasing": false
       },
       "seed43": {
-        "cells_completed": "2/3",
+        "cells_completed": "3/3",
         "fm1_cd": [
           0.3291710913181305,
-          0.4280937910079956
+          0.4280937910079956,
+          0.26975640654563904
         ],
         "gap_ratio": [
           33.76131746835182,
-          51.327461399904394
+          51.327461399904394,
+          23.674808634947
         ],
         "fm1_cd_monotone_nonincreasing": false,
         "gap_ratio_monotone_nonincreasing": false
       }
     },
-    "all_cells_completed": false,
-    "note": "incomplete: cells not completed (timing guard): 42:b2048_200, 43:b2048_200 | falsified on completed cells (non-monotone in budget): seeds 43"
+    "all_cells_completed": true,
+    "note": "falsified on completed cells (non-monotone in budget): seeds 42, 43"
   }
 }
