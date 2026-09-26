@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.40 (2026-09-26) — companion to the open-source repository
+**Version**: v1.41 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -41,6 +41,7 @@
 *v1.38 additions: the differentiable-loop direction (D2) is closed with the soft-voxel relaxation (Section 6.33): the differentiable pipeline is verified (autograd matches finite differences, 4/4 seeds), but the smooth limit of the value function is also flat (κ(H_V) ≈ 0, no LOS alignment) — the closed-form phase design absorbs position error, confirming the G-κ gate from the smooth side. The 5× power gain from position ascent is a coverage-broadening artifact (η > 1), not position refinement. The sensing-side bottleneck is the shape prior (consistent with the FM-shape success, Section 7.5), not position weighting.*
 *v1.39 additions: the generative line closes its final segment with progressive distillation (Section 6.34, `train_fm_distill.py`): a 1-step student trained to regress the C1 HRRP-conditional FM teacher's midpoint (NFE=2) outputs beats its own teacher at identical inference cost — CD 0.3101 vs 0.4047 (−23.4%, pre-registered threshold 3%, P1–P3 all PASS) — amortizing the single-step Euler integration error into the network weights. Two honest caveats are recorded: the eval protocol (n_eval=8, test batch 32, x0 seed 999) is not comparable to the absolute CD of `compare_gen` (0.2269, n_eval=16) — the claim is the paired same-batch comparison only; and the distillation budget (512 samples/60 epochs) is below the teacher's (1024/100), leaving a full-scale retrain as follow-up. The teacher's own NFE=2 output is non-monotonically worse than NFE=1 on this batch (0.4967 vs 0.4047), itself evidence that the teacher's few-step scaling is noisy at this eval size.*
 *v1.40 additions: the v1.39 distillation headline is qualified by a diversity audit (Section 6.35, `verify_fm_distill_diversity.py`). On an independently seeded eval batch (`--eval_seed`, now decoupling the test batch from the training-data size), the student does NOT replicate its CD advantage — CD 0.3839 vs teacher 0.2318 (+65.6% worse), while the teacher's own CD swung 0.4047 → 0.2318 across batches: the v1.39 P1 verdict is batch-specific, not robust (n_eval=8 variance dominates). The audit's substantive finding is on the diversity side: the C1 teacher at NFE=1 is near-mode-collapsed (16 initial noises give pairwise CD 0.0053, diversity ratio 0.02 — effectively a deterministic conditional-mean shape estimator; the v1.11 no-collapse certificate covered a different model), and the distilled student restores 9× the sample diversity (pairwise 0.0488) by regressing the teacher's 2-step midpoint outputs instead of replicating the collapsed 1-step map. A protocol improvement ships with it: `--eval_seed` re-seeding before evaluation, making students of different training budgets comparable on one common test batch (full-scale 1024/100 retrain in progress).*
+*v1.41 additions: the CFG-scale sweep closes the mechanism question behind the v1.40 audit (Section 6.36). The teacher's near-collapse is intrinsic, not a guidance artifact — the diversity ratio stays 0.02 at w = 0/1/2, i.e. even fully unconditional sampling produces near-identical outputs, so the C1 velocity field maps essentially all x0 to one latent (a deterministic conditional-mean estimator, not a distributional model). Guidance is pure profit for the teacher: CD improves monotonically 0.3060 → 0.2725 → 0.2664 with diversity unchanged, so the closed-loop shape prior correctly runs at w=2. The student's guidance behavior is inverted relative to a standard generative model — its diversity ratio rises with w (0.04 → 0.09 → 0.19), because the regressed guidance direction retains x0-dependence — and its paired CD is worse than the teacher's at every w (+44% at w=2). The student is therefore a different quality–diversity operating point (useful where sampling diversity matters, e.g. data augmentation), not a free upgrade of the teacher. The re-run also reproduced the §6.35 headline numbers exactly (deterministic protocol check).*
 
 ---
 
@@ -1120,6 +1121,24 @@ CD. D1's pre-registered 0.7× threshold was too loose against a near-collapsed t
 the pass is near-trivial and the informative content is the 9× relative gain, which the threshold did not
 capture — recorded honestly. A full-scale retrain (1024/100) is running on the same eval batch for a
 three-way paired comparison.
+
+### 6.36 The CFG Sweep: the Collapse Is Intrinsic, Guidance Is Pure Profit for the Teacher, the Student Is a Different Operating Point (v1.41)
+
+The v1.40 audit left a mechanism question: is the teacher's near-collapse a CFG artifact? `verify_fm_distill_diversity.py --cfg_list 0 1 2` sweeps the guidance scale on the same batch with a paired x0 (seed 999); the re-run reproduced the Section 6.35 headline numbers exactly (0.2318 / 0.4950 / 0.3839 — deterministic protocol check):
+
+| w | Teacher CD | Teacher ratio | Student CD | Student ratio |
+|---|---|---|---|---|
+| 0 | 0.3060 | 0.02 | 0.3656 | 0.04 |
+| 1 | 0.2725 | 0.02 | 0.3668 | 0.09 |
+| 2 | 0.2664 | 0.02 | 0.3839 | **0.19** |
+
+| Proposition | Prediction | Measured | Verdict |
+|---|---|---|---|
+| M1 CFG drives collapse: ratio(w=0) ≥ 3× ratio(w=2) | removing guidance restores diversity | 0.02 vs 0.02 | **FAIL** |
+| M1b guidance buys quality: CD(w=2) ≤ CD(w=0) | guidance improves quality | 0.2664 ≤ 0.3060 | **PASS** |
+| M2 student pairwise > teacher at matched w=2 | diversity advantage is structural | 0.0488 > 0.0053 | **PASS** |
+
+Three conclusions. (i) The collapse is intrinsic: the teacher's ratio is 0.02 at every w — even fully unconditional sampling (w=0, condition entirely inert) yields near-identical outputs, so the C1 velocity field maps essentially all x0 to a single latent; this cannot be fixed by tuning w. (ii) Guidance is pure profit for the teacher: CD improves monotonically (0.3060 → 0.2725 → 0.2664) with diversity unchanged, so the closed-loop shape prior correctly runs at w=2. (iii) The student's guidance behavior is inverted relative to a standard generative model — its diversity ratio rises with w (0.04 → 0.09 → 0.19) because the regressed guidance direction retains x0-dependence, whereas ordinary CFG sharpens the distribution — and its paired CD is worse than the teacher's at every w (+44% at w=2). The student is a different quality–diversity operating point (valuable where sampling diversity matters, e.g. data augmentation), not a free upgrade of the teacher. The full-scale retrain's verdict on the student's positioning is pending.
 
 ## 7. Limitations and Honest Discussion
 

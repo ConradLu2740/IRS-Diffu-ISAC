@@ -17,6 +17,12 @@ CFG w=2.0）：pairwise CD（样本间）vs GT-vs-后验均值 CD，比率 ≈0 
      （比率 = pairwise CD / GT-vs-后验均值 CD；v1.11 的 teacher 侧证书约 2.7）
   D2 样本间确有差异：student pairwise CD ≥ 0.5 × teacher pairwise CD
   D3 同批质量一致性：student 对 GT 的 CD ≤ teacher 对 GT 的 CD
+
+CFG 尺度扫描（--cfg_list，默认 0 1 2）附加命题（§7.32）：
+  M1 CFG 驱动坍塌：teacher 比率(w=0) ≥ 3 × 比率(w=2)（去引导恢复多样性）
+  M1b 引导买到质量：teacher CD(w=2) ≤ CD(w=0)
+  M2 同 w=2 下学生 pairwise > teacher pairwise（多样性优势是结构性的）
+  注：学生以 w=2.0 的 teacher 输出为训练目标，w≠2 属离分布评估。
 """
 
 import os
@@ -54,13 +60,13 @@ def one_step(vnet, condenc, x0, cond, device, cfg_scale=2.0):
 
 @torch.no_grad()
 def diversity(vae, vnet, condenc, cond, pc_gt, z_mean, z_std,
-              n_samples=16, device="cpu"):
+              n_samples=16, device="cpu", cfg_scale=2.0):
     """同 cond × n_samples 个初始噪声：pairwise CD + GT-vs-后验均值 CD。"""
     outs = []
     for s in range(n_samples):
         g = torch.Generator(device=device).manual_seed(1000 + s)
         x0 = torch.randn((cond.size(0), 256), device=device, generator=g)
-        z0 = one_step(vnet, condenc, x0, cond, device) * z_std + z_mean
+        z0 = one_step(vnet, condenc, x0, cond, device, cfg_scale=cfg_scale) * z_std + z_mean
         pc, _ = vae.decode(z0)
         outs.append(pc)
     pcs = torch.stack(outs)                       # [S, B, N, 3]
@@ -129,7 +135,7 @@ def main(args):
         pc_stu, _ = vae.decode(one_step(student, condenc, x0, cond, device) * z_std + z_mean)
         cd_stu = chamfer_distance_loss(pc_gt, pc_stu).item()
 
-    # ---- 多样性（同 cond × 16 噪声，teacher vs student 配对）----
+    # ---- 多样性 headline（w=2.0，D1/D2/D3；复现蒸馏评估协议）----
     div_t = diversity(vae, vnet, condenc, cond, pc_gt, z_mean, z_std,
                       n_samples=args.n_samples, device=device)
     div_s = diversity(vae, student, condenc, cond, pc_gt, z_mean, z_std,
@@ -144,21 +150,56 @@ def main(args):
         "D3_student_cd_le_teacher_cd": bool(cd_stu <= cd_t1),
     }
 
+    # ---- CFG 尺度扫描：坍塌是 CFG 假象还是条件本身？----
+    # 配对协议：teacher 与学生消费同一 x0（seed 999）；每个 w 独立评估。
+    # 学生以 w=2.0 的 teacher 输出为训练目标，w≠2 属离分布评估（如实记账）。
+    sweep = {}
+    for cfg in args.cfg_list:
+        with torch.no_grad():
+            pc_t, _ = vae.decode(one_step(vnet, condenc, x0, cond, device,
+                                          cfg_scale=cfg) * z_std + z_mean)
+            cd_t = chamfer_distance_loss(pc_gt, pc_t).item()
+            pc_s, _ = vae.decode(one_step(student, condenc, x0, cond, device,
+                                          cfg_scale=cfg) * z_std + z_mean)
+            cd_s = chamfer_distance_loss(pc_gt, pc_s).item()
+        d_t = diversity(vae, vnet, condenc, cond, pc_gt, z_mean, z_std,
+                        n_samples=args.n_samples, device=device, cfg_scale=cfg)
+        d_s = diversity(vae, student, condenc, cond, pc_gt, z_mean, z_std,
+                        n_samples=args.n_samples, device=device, cfg_scale=cfg)
+        r_t = d_t["pairwise_cd_mean"] / max(d_t["gt_vs_postmean_cd"], 1e-9)
+        r_s = d_s["pairwise_cd_mean"] / max(d_s["gt_vs_postmean_cd"], 1e-9)
+        sweep[f"w={cfg:g}"] = {"teacher": {"cd_gt": cd_t, **d_t, "ratio": float(r_t)},
+                               "student": {"cd_gt": cd_s, **d_s, "ratio": float(r_s)}}
+
+    if 0.0 in args.cfg_list and 2.0 in args.cfg_list:
+        rt0, rt2 = sweep["w=0"]["teacher"]["ratio"], sweep["w=2"]["teacher"]["ratio"]
+        cd0, cd2 = sweep["w=0"]["teacher"]["cd_gt"], sweep["w=2"]["teacher"]["cd_gt"]
+        verdicts["M1_cfg_drives_collapse_ratio_w0_ge_3x_w2"] = bool(rt0 >= 3.0 * rt2)
+        verdicts["M1b_guidance_buys_quality_cd_w2_le_w0"] = bool(cd2 <= cd0)
+        verdicts["M2_student_more_diverse_at_matched_w2"] = bool(
+            sweep["w=2"]["student"]["pairwise_cd_mean"]
+            > sweep["w=2"]["teacher"]["pairwise_cd_mean"])
+
     print(f"\n{'=' * 70}")
     print("单样本 CD（同测试批，复现蒸馏评估协议）")
     print(f"  teacher NFE=1 : CD={cd_t1:.4f}")
     print(f"  teacher NFE=2 : CD={cd_t2:.4f}")
     print(f"  student 1-step: CD={cd_stu:.4f}  (vs teacher1 {(cd_stu/cd_t1-1)*100:+.1f}%)")
-    print(f"\n样本多样性（同 cond × {args.n_samples} 初始噪声，CFG w=2.0）")
+    print(f"\n样本多样性 headline（同 cond × {args.n_samples} 初始噪声，CFG w=2.0）")
     print(f"  teacher: pairwise CD {div_t['pairwise_cd_mean']:.4f} ± {div_t['pairwise_cd_std']:.4f}"
           f"  GT-vs-postmean {div_t['gt_vs_postmean_cd']:.4f}  比率 {ratio_t:.2f}")
     print(f"  student: pairwise CD {div_s['pairwise_cd_mean']:.4f} ± {div_s['pairwise_cd_std']:.4f}"
           f"  GT-vs-postmean {div_s['gt_vs_postmean_cd']:.4f}  比率 {ratio_s:.2f}")
+    print(f"\nCFG 尺度扫描（同一 x0 配对；学生 w≠2 为离分布评估）")
+    for k, v in sweep.items():
+        print(f"  {k:>5}: teacher CD={v['teacher']['cd_gt']:.4f} ratio={v['teacher']['ratio']:.2f}"
+              f" | student CD={v['student']['cd_gt']:.4f} ratio={v['student']['ratio']:.2f}")
     print(f"\n裁决: {verdicts}")
 
     out = {"cd_teacher_nfe1": cd_t1, "cd_teacher_nfe2": cd_t2, "cd_student": cd_stu,
            "diversity_teacher": {**div_t, "ratio": float(ratio_t)},
            "diversity_student": {**div_s, "ratio": float(ratio_s)},
+           "cfg_sweep": sweep,
            "n_samples": args.n_samples, "n_eval": args.n_eval,
            "eval_seed": args.eval_seed, "student_dir": args.student_dir,
            "verdicts": verdicts}
@@ -185,6 +226,8 @@ if __name__ == "__main__":
     parser.add_argument("--n_eval", type=int, default=8)
     parser.add_argument("--n_samples", type=int, default=16)
     parser.add_argument("--eval_seed", type=int, default=999)
+    parser.add_argument("--cfg_list", type=float, nargs="+", default=[0.0, 1.0, 2.0],
+                        help="CFG 尺度扫描列表（坍塌机制分析）")
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
     main(args)
