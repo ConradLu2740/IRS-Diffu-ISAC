@@ -34,9 +34,17 @@ from scipy.optimize import linear_sum_assignment
 
 def load_model(args, name):
     ckpt = torch.load(os.path.join(args.ckpt_dir, name), map_location=args.device)
-    model = DetectNet(count_head=bool(ckpt.get("count_head", False))).to(args.device)
+    model = DetectNet(count_head=bool(ckpt.get("count_head", False)),
+                              obj_head=bool(ckpt.get("obj_head", False))).to(args.device)
     model.load_state_dict(ckpt["model"]); model.eval()
     return model, ckpt
+
+
+def det_conf(clss_k, objs_k):
+    """检测置信度：有 objectness 头用 sigmoid(obj)，否则回退 max-softmax。"""
+    if objs_k is not None:
+        return float(torch.sigmoid(objs_k))
+    return float(F.softmax(clss_k, dim=0).max())
 
 
 def scene_frames(args, seeds, mode, count_model=None, thr=0.3, name=None):
@@ -55,11 +63,12 @@ def scene_frames(args, seeds, mode, count_model=None, thr=0.3, name=None):
                 roi, scene.mid["target_pos"], scene.mid["ground_pos"],
                 scene.scenario.wavelength_m, snr_db=args.snr_db, seed=t, align=False)
             with torch.no_grad():
-                clss, poss, cnt = model(torch.from_numpy(rp).float().unsqueeze(0).to(args.device))
+                clss, poss, cnt, objs = model(torch.from_numpy(rp).float().unsqueeze(0).to(args.device))
             if mode == "count" and cnt is not None:
                 n_pred = int(cnt.argmax(1).item())
                 slots = sorted(range(len(clss)),
-                               key=lambda k: -float(F.softmax(clss[k].squeeze(0), dim=0).max()))
+                               key=lambda k: -det_conf(clss[k].squeeze(0),
+                                                       None if objs is None else objs[k]))
                 dets = []
                 for k in slots[:max(n_pred, 0)]:
                     lg = clss[k].squeeze(0)
@@ -69,7 +78,7 @@ def scene_frames(args, seeds, mode, count_model=None, thr=0.3, name=None):
                 dets = []
                 for k in range(len(clss)):
                     lg = clss[k].squeeze(0)
-                    p = float(F.softmax(lg, dim=0).max())
+                    p = det_conf(lg, None if objs is None else objs[k])
                     if p >= thr:
                         dets.append((poss[k].squeeze(0).cpu().numpy(),
                                      F.softmax(lg, dim=0).cpu().numpy()))
@@ -93,7 +102,7 @@ def count_accuracy(args):
                 roi, scene.mid["target_pos"], scene.mid["ground_pos"],
                 scene.scenario.wavelength_m, snr_db=args.snr_db, seed=t, align=False)
             with torch.no_grad():
-                _, _, cnt = model(torch.from_numpy(rp).float().unsqueeze(0).to(args.device))
+                _, _, cnt, _ = model(torch.from_numpy(rp).float().unsqueeze(0).to(args.device))
             n_true = min(len(scene.targets_at(t)), K_MAX)
             n_pred = int(cnt.argmax(1).item())
             ok1 += int(abs(n_pred - n_true) <= 1)

@@ -37,10 +37,12 @@ class DetectNet(nn.Module):
     槽（top-K 选择），替代固定阈值过滤——可变计数检测头。
     """
 
-    def __init__(self, in_dim=WIDEBAND_K, k=K_MAX, hidden=512, count_head=True, stack=1):
+    def __init__(self, in_dim=WIDEBAND_K, k=K_MAX, hidden=512, count_head=True, stack=1,
+                 obj_head=False):
         super().__init__()
         self.k = k
         self.count_head = count_head
+        self.obj_head = obj_head
         self.stack = stack
         self.shared = nn.Sequential(
             nn.Linear(in_dim * stack, hidden), nn.BatchNorm1d(hidden), nn.ReLU(), nn.Dropout(0.3),
@@ -55,6 +57,10 @@ class DetectNet(nn.Module):
         if count_head:
             self.count = nn.Sequential(
                 nn.Linear(hidden // 2, 64), nn.ReLU(), nn.Linear(64, k + 1))
+        if obj_head:
+            self.obj_heads = nn.ModuleList(
+                [nn.Sequential(nn.Linear(hidden // 2, 64), nn.ReLU(), nn.Linear(64, 1))
+                 for _ in range(k)])
 
     def forward(self, x):
         x = x.reshape(x.shape[0], -1)          # [B, stack*K] 展平（stack=1 兼容 [B,K]/[B,1,K]）
@@ -62,7 +68,8 @@ class DetectNet(nn.Module):
         clss = [h(feat) for h in self.cls_heads]
         poss = [h(feat) for h in self.pos_heads]
         cnt = self.count(feat) if self.count_head else None
-        return clss, poss, cnt
+        objs = [h(feat).squeeze(-1) for h in self.obj_heads] if self.obj_head else None
+        return clss, poss, cnt, objs
 
 
 def match_loss(clss, poss, targets, device):
@@ -90,17 +97,20 @@ def match_loss(clss, poss, targets, device):
     return loss_cls / B, loss_pos / B
 
 
-def match_loss_hungarian(clss, poss, targets, device):
+def match_loss_hungarian(clss, poss, targets, device, objs=None):
     """DETR 式集合预测损失：每样本匈牙利匹配（位置代价）后对匹配对施加
     CE+MSE，未匹配槽推远。与 match_loss（x 排序配对）的区别：分配是
     最优双射而非排序启发式——直接消解槽位分配歧义（§7.19 诊断的根因）。"""
     B = poss[0].shape[0]
-    loss_cls = loss_pos = 0.0
+    loss_cls = loss_pos = loss_obj = 0.0
     for b in range(B):
         tg = targets[b]
         n_t = len(tg)
         pred_pos = torch.stack([p[b] for p in poss])      # [K, 3]
         pred_cls = torch.stack([c[b] for c in clss])      # [K, C]
+        if objs is not None:
+            pred_obj = torch.stack([o[b] for o in objs])  # [K]
+            obj_target = torch.zeros_like(pred_obj)
         if n_t > 0:
             gt_pos = torch.tensor([t[1] for t in tg], dtype=torch.float32, device=device)
             gt_cls = torch.tensor([t[0] for t in tg], device=device)
@@ -111,6 +121,8 @@ def match_loss_hungarian(clss, poss, targets, device):
                 loss_cls = loss_cls + F.cross_entropy(
                     pred_cls[r].unsqueeze(0), gt_cls[c:c + 1])
                 loss_pos = loss_pos + F.mse_loss(pred_pos[r], gt_pos[c])
+                if objs is not None:
+                    obj_target[r] = 1.0
             matched = set(rows.tolist())
         else:
             matched = set()
@@ -118,7 +130,11 @@ def match_loss_hungarian(clss, poss, targets, device):
             if k not in matched:
                 loss_pos = loss_pos + 4.0 * F.mse_loss(
                     pred_pos[k], torch.tensor([2.0, 2.0, 2.0], device=device))
-    return loss_cls / B, loss_pos / B
+        if objs is not None:
+            loss_obj = loss_obj + F.binary_cross_entropy_with_logits(pred_obj, obj_target)
+    if objs is not None:
+        return loss_cls / B, loss_pos / B, loss_obj / B
+    return loss_cls / B, loss_pos / B, None
 
 
 def build_dataset(n_scenes, n_frames, seed0, snr_db=20.0, n_targets_range=None, stack=1,
@@ -148,7 +164,7 @@ def evaluate(model, rps, targets, device, iou_thr=0.25):
     _x = torch.from_numpy(rps).float().to(device)
     if _x.dim() == 2:
         _x = _x.unsqueeze(1)
-    clss, poss, _cnt = model(_x)
+    clss, poss, _cnt, _objs = model(_x)
     B = rps.shape[0]
     for b in range(B):
         tg = sorted(targets[b], key=lambda t: t[1][0])
@@ -181,7 +197,8 @@ def main(args):
                                   n_targets_range=ntr, stack=args.stack, n_avg=args.n_avg)
     print(f"训练样本: {tr_rps.shape[0]}, 测试样本: {te_rps.shape[0]}")
 
-    model = DetectNet(count_head=True, stack=args.stack).to(device)
+    model = DetectNet(count_head=True, stack=args.stack,
+                      obj_head=(args.match == "hungarian")).to(device)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-4)
 
     os.makedirs(args.save_dir, exist_ok=True)
@@ -196,13 +213,16 @@ def main(args):
             x = torch.from_numpy(tr_rps[idx]).float().to(device)
             if args.stack == 1:
                 x = x.unsqueeze(1)              # [B, 1, K] 与堆叠口径一致
-            clss, poss, cnt = model(x)
+            clss, poss, cnt, objs = model(x)
             tgs = [tr_tg[j] for j in idx.tolist()]
+            lo = None
             if args.match == "hungarian":
-                lc, lp = match_loss_hungarian(clss, poss, tgs, device)
+                lc, lp, lo = match_loss_hungarian(clss, poss, tgs, device, objs=objs)
             else:
                 lc, lp = match_loss(clss, poss, tgs, device)
             loss = lc + args.pos_weight * lp
+            if lo is not None:
+                loss = loss + args.obj_weight * lo
             if cnt is not None:
                 n_true = torch.tensor([min(len(tr_tg[j]), K_MAX) for j in idx.tolist()],
                                       device=device)
@@ -216,7 +236,7 @@ def main(args):
         if det > best_det:
             best_det = det
             torch.save({"model": model.state_dict(), "k": K_MAX, "count_head": True,
-                        "stack": args.stack,
+                        "stack": args.stack, "obj_head": (args.match == "hungarian"),
                         "n_classes": N_CLASSES, "classes": CLASS_NAMES},
                        os.path.join(args.save_dir, args.save_name))
 
@@ -246,6 +266,8 @@ if __name__ == "__main__":
                         help="每帧平均的独立 realizing 数（N1：测量分集，1=单 realizing）")
     parser.add_argument("--match", choices=["sorted", "hungarian"], default="sorted",
                         help="slot-目标分配：sorted（旧行为，x 排序）或 hungarian（DETR 式可微集合预测）")
+    parser.add_argument("--obj_weight", type=float, default=1.0,
+                        help="objectness 头 BCE 权重（S2）")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"

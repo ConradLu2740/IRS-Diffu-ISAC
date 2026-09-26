@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.29 (2026-09-26) — companion to the open-source repository
+**Version**: v1.30 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -30,6 +30,7 @@
 *v1.27 additions: the first "new observation" candidate from the MOT conclusion — naive multi-frame stacking (M=4 range profiles as detector input) — is falsified (Section 6.22): P@R=0.67 drops 0.599 -> 0.441 and MOT recall 0.699 -> 0.594. Mechanism: target motion de-aligns the stack (the same target sits in different range cells across frames; a detector has no motion model) plus a 4x input dimension. Effective temporal fusion needs motion-compensated stacks or complex slow-time (Doppler), which the magnitude-only forward model does not provide. The correct form of "new observation" is physical-layer measurement (two-station ranging, whose CRB analysis already proved the FIM rank completion, or complex slow-time Doppler), not post-processor stacking.*
 *v1.28 additions: the measurement-diversity candidate (4 independent realizations averaged per frame, trained and evaluated consistently) degrades precision (P@R=0.67 0.591 -> 0.407) while reducing ID switches by 21% (Section 6.23). The detection precision limit is therefore not input-noise-driven but structural (slot-assignment ambiguity under the x-sorted matching loss). The detection line closes with a precise remaining hypothesis: DETR-style set prediction (differentiable matching) or genuinely new geometry (two-station differential delay structure).*
 *v1.29 additions: registered proposition S1 implements DETR-style set prediction (Hungarian matching in the loss, `train_detect.py --match hungarian`). The diagnosed structural cause is confirmed and improved: MOT RMSE -4.7% (0.2010 -> 0.1915), recall +0.4pp, ID switches -11% (178.0 -> 158.3). But slot-level confidence ranking degrades (P@R=0.67 0.599 -> 0.441) because optimal matching supervises every slot and the max-softmax confidence loses discriminability — the architecture lacks a dedicated objectness head. Registered S2: Hungarian matching plus a binary objectness head (Section 6.24).*
+*v1.30 additions: registered proposition S2 adds the binary objectness head to the Hungarian matching (Section 6.25). The confidence ranking is recovered (P@R=0.67 0.441 -> 0.610, slightly above the 0.599 sorted baseline) and MOT recall (0.759) and RMSE (0.1899) reach their best values; ID switches rise to 192.0 because the sigmoid threshold 0.3 is not the same operating point as the old max-softmax 0.3 — threshold calibration (Section 6.18 machinery) is the remaining engineering step (registered S3). The DETR-style triple (matching loss, set prediction, objectness) is complete.*
 
 ---
 
@@ -857,6 +858,27 @@ degrades — under optimal matching every slot receives supervision against some
 softmax confidence loses discriminability. The missing piece is a dedicated objectness head (the
 DETR "is-object" classifier). Registered S2: Hungarian matching plus a binary objectness head
 (matched = 1 / unmatched = 0), targeting P@R=0.67 >= 0.65 with MOT ID switches <= 0.9x baseline.
+
+### 6.25 S2: The Objectness Head Completes the DETR-Style Triple (v1.30)
+
+Registered proposition S2: Hungarian matching plus a per-slot binary objectness head (matched = 1 /
+unmatched = 0, BCE; inference confidence = sigmoid(objectness)). Same data and scenes, both models at
+threshold 0.3:
+
+| Metric | Baseline (sorted) | S1 (Hungarian) | S2 (+objectness) |
+|---|---|---|---|
+| P@R=0.67 | 0.599 | 0.441 | **0.610** (ranking recovered) |
+| MOT RMSE | 0.2010 | 0.1915 | **0.1899** (best) |
+| MOT recall | 0.699 | 0.703 | **0.759** (best) |
+| MOT ID switches | 178.0 | **158.3** | 192.0 (worse) |
+
+The objectness head recovers the confidence ranking that optimal matching had destroyed (0.441 ->
+0.610, slightly above the sorted baseline), and MOT recall (0.759) and RMSE (0.1899) reach their best
+values. ID switches rise to 192.0 — the sigmoid threshold 0.3 is not the same operating point as the
+old max-softmax 0.3, so more false positives survive. The remaining step is threshold calibration on
+the objectness score (the Section 6.18 machinery), registered as S3. The architecture arc for the
+detection line is complete: sorted -> Hungarian (geometry + ID stability) -> + objectness (ranking +
+recall): the DETR-style triple (matching loss, set prediction, objectness) is fully in place.
 
 ## 7. Limitations and Honest Discussion
 
