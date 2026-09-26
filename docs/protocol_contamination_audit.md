@@ -187,3 +187,13 @@
 2. **C.8 中 c3_raw vs c3 的"同批"**：依据是两份 JSON 的 VAE oracle CD 逐位相同（0.008261645213）+ RNG 流演化一致性论证；未重跑 `compare_gen.py` 验证（本审计禁止训练）。如需铁证可重跑该脚本比对指纹。
 3. **M1 的最终状态**：已确认无 `verify_vae_scale_paired.py`（不存在即未配对）；是否值得补做配对重评由作者决定（M1 不进论文）。
 4. **`verify_headline_multiseed.py` 的 CI**：3 个种子的 bootstrap 实质为 min/max 包络（`boot_ci` 对 3 点重采样）；"95% CI"的统计强度有限，论文已按"跨零"作保守解读。
+
+---
+
+## 附：待办核销记录（2026-09-26）
+
+**「无法验证 1」（收敛阶 −0.87）已核销。** 论文中的 −0.87 来自 `verify_fm_bounds.py` 在 `n_eval=32` 但 `batch_size=16`（有效 16 云）协议下的运行。规范协议（`--seed 42 --n_eval 32 --batch_size 32 --x0_seed 7`，有效 32 云）复跑两次逐位一致（确定性确认），斜率为 **−0.889**，crossover NFE=1（DDPM NFE=100 CD 0.4362 vs FM Euler NFE=1 CD 0.4234），直线性比 0.0057。收敛阶估计随评估批大小变动：n=8 → −0.94，n=16 → −0.87，n=32 → −0.89——量级结论（≈ Euler 的 −1）稳健，点估计不稳健。处置：论文改用规范协议的 −0.89 并在 VI-B 标注批大小范围；`verify_fm_bounds.py` 的 protocol 块已补记 `batch_size / nfe_list / n_effective / test_data / mode`（此前缺失导致旧 JSON 无法归因）；新 JSON 已提交。
+
+**「无法验证 4」（headline CI 口径）已核销。** `headline_multiseed.json` 的 `ci95_*` 为 3 种子差值的 min/max 包络（bootstrap 重采样 3 点等价于包络），统计强度有限但方向保守。处置：论文 VI-B 措辞已改为 "a bootstrap 95% confidence interval over the three seeds"，明示样本量。
+
+**复发防护新增一条**：凡 protocol 记录块必须包含全部影响批构造与拟合的参数（batch_size、nfe_list、有效样本数），否则证据 JSON 不可归因——`verify_fm_bounds.py` 的旧 protocol 块即因此无法追溯 −0.852 的来路。
