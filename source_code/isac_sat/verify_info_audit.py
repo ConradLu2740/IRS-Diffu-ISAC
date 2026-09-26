@@ -602,7 +602,7 @@ def block3_cfm(args):
     cond_dim = channels.frame_cond_dim()
     ds = SatROIDataset(args.fm_n_eval, channels, num_points=args.num_points,
                        device=device, tau=args.tau, phase_mode="random",
-                       cond_feat=args.cond_feat)
+                       cond_feat=args.cond_feat, spread_equalize=args.spread_equalize)
     _batch = next(iter(DataLoader(ds, batch_size=args.fm_n_eval, shuffle=False,
                                   num_workers=0)))
     pc_gt, cond = _batch[0], _batch[1]
@@ -702,7 +702,8 @@ def block3_cfm(args):
         np.random.seed(args.seed + 999)
         ds_ab = SatROIDataset(args.fm_n_eval, channels, num_points=args.num_points,
                               cond_feat=args.cond_feat,
-                              device=device, tau=args.tau, phase_mode="random")
+                              device=device, tau=args.tau, phase_mode="random",
+                              spread_equalize=args.spread_equalize)
         loader_ab = DataLoader(ds_ab, batch_size=32, shuffle=True, num_workers=0)
         condenc_ft = copy.deepcopy(condenc)
         vnet_ft = copy.deepcopy(vnet)
@@ -830,6 +831,8 @@ if __name__ == "__main__":
     p.add_argument("--mlp_epochs", type=int, default=20)
     # Block 3
     p.add_argument("--save_dir", type=str, default="./sat_model_cmp")
+    p.add_argument("--spread_equalize", action="store_true",
+                   help="ISAR 条件：dop 块按 §7.37 审计的 5.0× spread 缩放后拼接")
     p.add_argument("--mode", choices=["none", "sat", "ground"], default="sat")
     p.add_argument("--num_points", type=int, default=512)
     p.add_argument("--tau", type=int, default=8)

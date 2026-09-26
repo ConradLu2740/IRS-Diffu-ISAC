@@ -89,12 +89,15 @@ def run_mode(args, irs_mode):
     channels = SatScenarioChannels(frames, irs_mode=irs_mode, device=device)
     train_ds = SatROIDataset(args.train_data, channels, num_points=args.num_points,
                              device=device, tau=args.tau, phase_mode=args.phase_mode,
-                             cond_feat=args.cond_feat)
+                             cond_feat=args.cond_feat, spread_equalize=args.spread_equalize)
     test_ds = SatROIDataset(args.test_data, channels, num_points=args.num_points,
                             device=device, tau=args.tau, phase_mode=args.phase_mode,
-                            cond_feat=args.cond_feat)
-    if args.materialize or args.cond_feat == "isar":
-        # 一次性物化（样本冻结）；--materialize 用于受控对比（C4）
+                            cond_feat=args.cond_feat, spread_equalize=args.spread_equalize)
+    if args.materialize:
+        # 一次性物化（样本冻结）；--materialize 仅用于受控对比（C4）。
+        # §7.25 教训：条件生成训练禁止物化（冻结→记忆化→条件坍塌）；
+        # ISAR 模式同样走逐 epoch 新样本的新鲜数据路径（_PairView 支持
+        # (pc, cond, *rest) 三元组）。
         def _materialize(ds):
             pcs, conds = [], []
             for i in range(len(ds)):
@@ -104,7 +107,7 @@ def run_mode(args, irs_mode):
                               batch_size=args.batch_size, shuffle=True, num_workers=0)
         train_loader = _materialize(train_ds)
         test_loader = _materialize(test_ds)
-        print(f"[{irs_mode}] ISAR 条件模式：数据集已物化（{len(train_ds)}+{len(test_ds)} 样本）")
+        print(f"[{irs_mode}] 数据集已物化（{len(train_ds)}+{len(test_ds)} 样本，--materialize 受控对比）")
     else:
         train_loader = DataLoader(_PairView(train_ds), batch_size=args.batch_size,
                                   shuffle=True, num_workers=0)
@@ -285,6 +288,8 @@ if __name__ == "__main__":
     parser.add_argument("--nfe_list", nargs="+", type=int, default=[1, 2, 5, 10, 20, 50, 100])
     parser.add_argument("--solver", choices=["euler", "midpoint"], default="euler")
     parser.add_argument("--save_dir", type=str, default="./sat_model_cmp")
+    parser.add_argument("--spread_equalize", action="store_true",
+                        help="ISAR 条件：dop 块按 §7.37 审计的 5.0× spread 缩放后拼接")
     parser.add_argument("--phase_mode", choices=["random", "tracked"], default="random")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--sat", choices=["iss", "starlink"], default="iss",

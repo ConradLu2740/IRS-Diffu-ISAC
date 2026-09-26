@@ -575,7 +575,8 @@ class SatROIDataset(Dataset):
                  tau=ss.TAU, p_snr=P_SNR, power_sigma=POWER_SIGMA,
                  phase_mode="random", target_source="ground", with_label=False,
                  wideband=False, wideband_snr_db=20.0, isar=False, rp_align=True,
-                 center=None, multi=False, hrrp_legacy=False, cond_feat="narrowband"):
+                 center=None, multi=False, hrrp_legacy=False, cond_feat="narrowband",
+                 spread_equalize=False):
         """center: 显式指定距离像投影中心（'roi' 保留位置 / 'centroid' 形状特征）。
         None 时由 rp_align 决定：align=False → 'roi'（定位），align=True → 'centroid'。
         cond_feat: 'narrowband'（默认，逐帧窄带 cond）/ 'hrrp'（宽带距离像广播，
@@ -599,6 +600,10 @@ class SatROIDataset(Dataset):
         self.rp_align = rp_align
         self.rp_center = center if center is not None else ("roi" if not rp_align else "centroid")
         self.multi = multi
+        self.spread_equalize = spread_equalize
+        # §7.37 审计：ISAR 模式下 HRRP 块与 dop 块平均两两距离 0.9448 vs 0.1884
+        # （5.0×），拼接前放大 dop 块使两块 spread 相等，防 C2 式稀释
+        self.dop_spread_scale = 5.0
         if phase_mode == "tracked" and channels.irs_mode == "none":
             self.phase_mode = "random"  # 无 IRS 时退回随机
         self._opt = PhaseOptimizerSat(channels, device=device) if self.phase_mode == "tracked" else None
@@ -723,6 +728,8 @@ class SatROIDataset(Dataset):
                 slow = isar_seq - isar_seq.mean(dim=0, keepdim=True)
                 dop = torch.fft.fft(slow, dim=0).abs().mean(dim=1)     # [M] 多普勒剖面
                 dop = dop / (dop.norm() + 1e-12)
+                if self.spread_equalize:
+                    dop = dop * self.dop_spread_scale
                 cond = torch.cat([feat.unsqueeze(0).expand(self.tau, -1),
                                   dop.unsqueeze(0).expand(self.tau, -1)],
                                  dim=-1).contiguous().float()          # [Tau, 512+32]
