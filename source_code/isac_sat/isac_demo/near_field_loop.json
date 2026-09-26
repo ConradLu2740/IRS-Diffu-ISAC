@@ -1,0 +1,32 @@
+{
+  "regimes": {
+    "near": {
+      "R_m": 100.0,
+      "rmse_y": 0.6248912811279297,
+      "crb_y_std": 29.877976786564414,
+      "prior_std_y": 0.5898781418800354,
+      "efficiency_vs_crb": 2286.0906146014754,
+      "R_over_RF": 0.49965409666666666
+    },
+    "far": {
+      "R_m": 1000.0,
+      "rmse_y": 0.6284379363059998,
+      "crb_y_std": 0.38763565286577567,
+      "prior_std_y": 0.5898781418800354,
+      "efficiency_vs_crb": 0.38047194756557273,
+      "R_over_RF": 4.996540966666666
+    }
+  },
+  "rayleigh_m": 200.13845711889124,
+  "verdicts": {
+    "L1_near_efficiency_ge_0.3": true,
+    "L2_far_y_ge_10x_near": false,
+    "L3_far_at_prior": true
+  },
+  "protocol": {
+    "n_elements": 200,
+    "aperture_m": 1.0,
+    "gamma_db": 20.0,
+    "epochs": 40
+  }
+}

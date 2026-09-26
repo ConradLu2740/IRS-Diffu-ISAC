@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.35 (2026-09-26) — companion to the open-source repository
+**Version**: v1.36 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -36,6 +36,7 @@
 *v1.33 additions: registered proposition C3 (ISAR-sequence conditioning) surfaced a methodological trap (Section 6.28): the first run materialized the dataset once (to afford the expensive per-sample ISAR computation), which froze the samples and let the model memorize them — the condition became unnecessary and the encoder collapsed (Delta ~ 0). Lesson: in conditional generative training, data freezing -> memorization -> condition collapse; C1 succeeded precisely because its data were regenerated per epoch. A confound-free information test shows the ISAR slow-time Doppler profile carries genuine class information (40.5% vs 20% chance) but weaker than HRRP (0.80+). Registered C4: rerun C3 with per-epoch fresh data at a smaller scene budget.*
 *v1.34 additions: registered proposition C4 runs the controlled experiment for the C3 confound (Section 6.29): materialized 2048 samples + 20 epochs, ISAR arm vs HRRP-only control arm, otherwise identical. Both arms collapse (Delta(0) ~ 3e-5 and ~ 6e-5) — the control proves the collapse is the general consequence of data freezing, not an ISAR-specific effect, and retroactively validates C1 (whose Delta(0) = 0.302 was measured under the correct per-epoch-fresh-data protocol). The C-line closes: HRRP-only is the best validated condition input; the reusable asset is the protocol lesson (conditional generative training must not freeze data).*
 *v1.35 additions: the geometry direction of the Wall Map is opened with the near-field XL-RIS certificates (Section 6.30): (F1) the far-field validity bound Δφ = (2π/λ)D²/(8R) is verified against the exact per-element spherical-phase model (<2% deviation), positively certifying the far-field assumption of the spaceborne scenario (D* = 58.9 m for a 10 m panel at 695 km) and identifying the UAV case (1 m panel at 100 m, D* = 0.71 m) as genuinely near-field; (F2) the near-field ranging CRB is verified by Monte Carlo (MC/CRB = 0.98–1.17): a 1 m aperture achieves σ_R = 65 mm at 100 m and 5.6 mm at 30 m — breaking the 11.84 m far-field single-station wall by 180–2000×; (F3) the Rayleigh window R_F = 2D²/λ is confirmed by the FIM condition-number explosion (4×10⁹ at 0.25 R_F → 3×10¹⁴ at 4 R_F).*
+*v1.36 additions: registered proposition NF-2 separates the observables behind the wall (Section 6.31). With a phase-reference-less coherent receiver (nuisance-projected CRB), the far-field DOA of a 1 m XL aperture gives σ_y = 0.39 m at 1 km — 30× better than the 11.84 m range-profile wall — while the near-field curvature signal degrades to ~30 m once the unknown global phase is projected out, which corrects the scope of the F2 certificate (65 mm assumed a known phase reference). The MLP converges to the prior whenever the information is absent (625 mm vs prior 590 mm), a network-level demonstration of posterior = prior; the far-field MLP achieves 38% of the DOA CRB. Registered NF-3: near-field CRB with phase calibration.*
 
 ---
 
@@ -1002,6 +1003,25 @@ The Wall Map now has three escape routes, all certified: two-station trilaterati
 scenarios; aperture requirement σ_R ≤ 5 m ⟺ 1 m aperture within 200 m), and none in
 the far field. Registered NF-2: a near-field channel layer feeding a low-altitude
 closed-loop demo.
+
+### 6.31 NF-2: Separating the Observables Behind the Wall (v1.36)
+
+Registered proposition NF-2 trains one MLP localizer on synthetic ULA data in both regimes, estimating
+the cross-range y with R fixed (`verify_near_field_loop.py`; all CRBs nuisance-projected for the unknown
+global phase):
+
+| Regime | CRB y-std (phase unknown) | MLP y-RMSE | Prior std | Reading |
+|---|---|---|---|---|
+| Near-field R=100 m (1 m aperture) | **29.9 m** | 625 mm | 590 mm | information absent; network learns the prior |
+| Far-field R=1000 m (1 m aperture) | **387.6 mm** | 628 mm | 590 mm | DOA observable; 38% CRB efficiency |
+
+Two honest conclusions: (i) the wall of Section 5.3 is a range-profile (bistatic-delay) wall; a coherent
+1 m XL aperture provides a different observable — far-field DOA — whose nuisance-aware CRB is 0.39 m at
+1 km, 30× better than the wall; (ii) the F2 near-field certificate (65 mm) assumed a known global phase;
+with the phase unknown, the near-field curvature signal (the second-order n-variation of the phase
+derivative) is projected out and σ_y degrades to ~30 m, so near-field wall-breaking requires phase
+calibration (registered NF-3). Methodological note: the MLP converges to the prior exactly when the
+information is absent (625 mm vs 590 mm), a network-level demonstration of posterior = prior.
 
 ## 7. Limitations and Honest Discussion
 

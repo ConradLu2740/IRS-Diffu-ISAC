@@ -151,6 +151,9 @@ verify-obj-calib: ## S3 objectness 阈值校准（held-out F1 选阈 + 全变体
 verify-near-field: ## 近场 XL-RIS 证书（远场有效性 + 测距 CRB + Rayleigh 窗口，~3 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_near_field_crb.py --n_mc 200
 
+verify-near-field-loop: ## NF-2 近场/远场 ML 定位对比（可观测量辨析，~10 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_near_field_loop.py
+
 train-fm: ## Flow Matching 训练（扩散同架构/同数据，3 种 IRS 模式）
 	cd $(ISAC) && ../../$(VENV)/bin/python train_fm.py
 
