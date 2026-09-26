@@ -1,0 +1,15 @@
+{
+  "n_seeds": 4,
+  "sigma": 0.12,
+  "g1_correct": "4/4",
+  "kappa_median": 0.004740865435451269,
+  "cos_los_median": 0.25910405814647675,
+  "eta_before": 1.7999992296099663,
+  "eta_after": 9.697689682245255,
+  "verdicts": {
+    "G1_grad_correct": true,
+    "G2_kappa_ge_10": false,
+    "G2_cos_los_ge_085": false,
+    "G3_eta_gain_ge_3pp": true
+  }
+}

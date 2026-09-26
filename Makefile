@@ -154,6 +154,9 @@ verify-near-field: ## 近场 XL-RIS 证书（远场有效性 + 测距 CRB + Rayl
 verify-near-field-loop: ## NF-2 近场/远场 ML 定位对比（可观测量辨析，~10 秒）
 	cd $(ISAC) && ../../$(VENV)/bin/python verify_near_field_loop.py
 
+verify-soft-phase: ## 软体素可微相位设计（G1 梯度 / G2 Danskin / G3 端到端一步，~6 秒）
+	cd $(ISAC) && ../../$(VENV)/bin/python verify_soft_phase_grad.py --n_seeds 8
+
 train-fm: ## Flow Matching 训练（扩散同架构/同数据，3 种 IRS 模式）
 	cd $(ISAC) && ../../$(VENV)/bin/python train_fm.py
 

@@ -4,7 +4,7 @@
 
 *School of Information Science and Engineering, Northeastern University, Shenyang, China*
 
-**Version**: v1.37 (2026-09-26) — companion to the open-source repository
+**Version**: v1.38 (2026-09-26) — companion to the open-source repository
 [https://github.com/ConradLu2740/IRS-Diffu-ISAC](https://github.com/ConradLu2740/IRS-Diffu-ISAC)
 
 *v1.4 additions: Rician-fading robustness of the RIS tracking trade-off (Section 6.3); a metric-dependence finding (ROI-object and baseline dependence of headline boosts); the layered `isac_sim/` reference library (Section 6.2).*
@@ -38,6 +38,7 @@
 *v1.35 additions: the geometry direction of the Wall Map is opened with the near-field XL-RIS certificates (Section 6.30): (F1) the far-field validity bound Δφ = (2π/λ)D²/(8R) is verified against the exact per-element spherical-phase model (<2% deviation), positively certifying the far-field assumption of the spaceborne scenario (D* = 58.9 m for a 10 m panel at 695 km) and identifying the UAV case (1 m panel at 100 m, D* = 0.71 m) as genuinely near-field; (F2) the near-field ranging CRB is verified by Monte Carlo (MC/CRB = 0.98–1.17): a 1 m aperture achieves σ_R = 65 mm at 100 m and 5.6 mm at 30 m — breaking the 11.84 m far-field single-station wall by 180–2000×; (F3) the Rayleigh window R_F = 2D²/λ is confirmed by the FIM condition-number explosion (4×10⁹ at 0.25 R_F → 3×10¹⁴ at 4 R_F).*
 *v1.36 additions: registered proposition NF-2 separates the observables behind the wall (Section 6.31). With a phase-reference-less coherent receiver (nuisance-projected CRB), the far-field DOA of a 1 m XL aperture gives σ_y = 0.39 m at 1 km — 30× better than the 11.84 m range-profile wall — while the near-field curvature signal degrades to ~30 m once the unknown global phase is projected out, which corrects the scope of the F2 certificate (65 mm assumed a known phase reference). The MLP converges to the prior whenever the information is absent (625 mm vs prior 590 mm), a network-level demonstration of posterior = prior; the far-field MLP achieves 38% of the DOA CRB. Registered NF-3: near-field CRB with phase calibration.*
 *v1.37 additions: registered proposition NF-3 sweeps the phase-calibration noise (0–5°) in both regimes (Section 6.32): no threshold recovers the near-field advantage in the ML setting — the near-field curvature signal (~6e-3 rad over the full y range) is unextractable even with perfect calibration (MLP converges to the prior), while the far-field DOA is robust (CRB 387 mm, 38% efficiency, flat under 5° calibration noise). The geometry line closes: the coherent XL-array DOA is the robust wall-escape observable (far field suffices); near-field curvature is low-value in practice. Registered NF-4: XL-array DOA in the low-altitude closed loop.*
+*v1.38 additions: the differentiable-loop direction (D2) is closed with the soft-voxel relaxation (Section 6.33): the differentiable pipeline is verified (autograd matches finite differences, 4/4 seeds), but the smooth limit of the value function is also flat (κ(H_V) ≈ 0, no LOS alignment) — the closed-form phase design absorbs position error, confirming the G-κ gate from the smooth side. The 5× power gain from position ascent is a coverage-broadening artifact (η > 1), not position refinement. The sensing-side bottleneck is the shape prior (consistent with the FM-shape success, Section 7.5), not position weighting.*
 
 ---
 
@@ -1043,6 +1044,26 @@ delay-observable wall; (ii) coherent XL-array DOA is the robust wall-escape obse
 suffices; (iii) near-field curvature is low-value in practice (the F2 65 mm certificate's scope —
 known phase reference — is now explicitly bounded). Registered NF-4: XL-array DOA in the low-altitude
 closed loop.
+
+### 6.33 The Differentiable-Loop Direction Closes on the Smooth Limit (v1.38)
+
+Registered direction D2 (task-aware closed-loop weighting) is closed with the soft-voxel relaxation
+(`verify_soft_phase_grad.py`): the hard 0/1 occupancy is replaced by Gaussian bumps σ(p), making the
+phase design and evaluated power differentiable in the target position p:
+
+| Proposition | Prediction | Measured | Verdict |
+|---|---|---|---|
+| G1 gradient correctness | autograd ≈ FD | 4/4 seeds, rel err < 5% | **PASS** |
+| G2 κ(H_V) ≥ 10, LOS-aligned | smooth limit restores anisotropy | κ ≈ 0, |cos⟩ = 0.26 | **FAIL** |
+| G3 position ascent, η +3pp | position refinement works | 1.800 → 9.698 | artifact (below) |
+
+Conclusions: (i) the differentiable pipeline is a genuine asset (infrastructure for future end-to-end
+work); (ii) the smooth relaxation does not rescue the Danskin analysis — the value function is flat in
+position even in the smooth limit (the closed-form phase design absorbs position error), confirming
+the G-κ gate from the smooth side; (iii) the 5× power gain from position ascent is a coverage-
+broadening artifact (η > 1: soft occupancy excites more true-template voxels), not position
+refinement. The sensing-side bottleneck is the shape prior — consistent with the FM-shape success
+(Section 6.14 era) — not position weighting; estimator-side weighting is falsified twice over.
 
 ## 7. Limitations and Honest Discussion
 
