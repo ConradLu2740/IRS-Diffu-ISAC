@@ -201,3 +201,5 @@
 **Table IV n=32：被加强，不是被证伪。** n=8 试测时十步采样器的离散度不可见（coverage 0.500/0.750、1-NNA 0.875），曾可能被读成"多步无优势"；评估规模升到 n=32 后十步采样器 coverage 0.812/0.906、1-NNA 0.906，一步图 1-NNA=1.000 / 内距 0.028——Remark 1 的分布学验证**加强**。口径登记：此条属于「先修协议再解读数字」的正例，falsification 登记记 **strengthened**（评估粒度不足曾掩盖效应），不记 retracted/falsified。
 
 **复发防护新增一条**：凡 protocol 记录块必须包含全部影响批构造与拟合的参数（batch_size、nfe_list、有效样本数），否则证据 JSON 不可归因——`verify_fm_bounds.py` 的旧 protocol 块即因此无法追溯 −0.852 的来路。
+
+**复发防护再添一条（2026-09-27 事件）**：多 seed 复用 verify 脚本时必须显式指定输出文件名——`verify_info_audit.py` 默认写 `isac_demo/info_audit.json`，W1 代理跑 seed 44 审计时未指定输出，覆盖了论文引用的 seed-42 C5 对照审计（Δ(0)=0.1436），已从 git 恢复。规则：凡输出路径带默认值的脚本，批量运行一律显式传 `--out`/输出名，收尾时用 `git status` 确认被引用证据文件零改动。
