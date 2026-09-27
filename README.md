@@ -1,3 +1,5 @@
+> **This project has moved.** The active repository is [ConradLu2740/FMShape](https://github.com/ConradLu2740/FMShape) — conditional flow matching for target-shape reconstruction from HRRP in spaceborne ISAC, with the full verification suite and evidence base. This repository is kept as the development lineage.
+
 # 🛰️ IRS-Diffu-ISAC
 
 **English** · [简体中文](README.zh-CN.md)

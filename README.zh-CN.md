@@ -1,3 +1,5 @@
+> **本项目已迁移。** 当前仓库为 [ConradLu2740/FMShape](https://github.com/ConradLu2740/FMShape)——空-天 ISAC 中由 HRRP 条件生成目标形状的条件流匹配框架，含完整验证套件与证据库。本仓库保留为开发血缘。
+
 # 🛰️ IRS-Diffu-ISAC
 
 [English](README.md) · **简体中文**
